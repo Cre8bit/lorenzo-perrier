@@ -39,7 +39,7 @@ export const HeroSection = () => {
             isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}
         >
-          <span className="block">Alex Chen</span>
+          <span className="block">Lorenzo Perrier</span>
         </h1>
         
         <p 
