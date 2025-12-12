@@ -219,3 +219,38 @@
     background-position: 0% 50%;
   }
 }
+
+@keyframes glass-flare {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(200%) skewX(-15deg);
+    opacity: 0;
+  }
+}
+
+@keyframes glass-reveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+    backdrop-filter: blur(0px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    backdrop-filter: blur(20px);
+  }
+}
+
+.animate-glass-reveal {
+  animation: glass-reveal 0.8s var(--ease-smooth) forwards;
+}
