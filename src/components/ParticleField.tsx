@@ -19,6 +19,7 @@ export const ParticleField = () => {
   const mouseRef = useRef({ x: 0, y: 0 });
   const animationRef = useRef<number>();
   const frameCountRef = useRef(0);
+  const isInAboutSectionRef = useRef(false);
 
   const createParticle = useCallback(
     (width: number, height: number, spawning = true): Particle => {
@@ -69,6 +70,26 @@ export const ParticleField = () => {
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
     };
+
+    // Observe the experience section to disable mouse effect when scrolled to it
+    const experienceSection = document.querySelector(
+      'section[class*="min-h-screen"]'
+    );
+    let observer: IntersectionObserver | null = null;
+
+    if (experienceSection) {
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          // Enable mouse attraction when experience section is NOT visible
+          isInAboutSectionRef.current = !(
+            entry.isIntersecting && entry.intersectionRatio > 0.3
+          );
+        },
+        { threshold: [0, 0.3, 1] }
+      );
+
+      observer.observe(experienceSection);
+    }
 
     resize();
     window.addEventListener("resize", resize);
@@ -137,20 +158,22 @@ export const ParticleField = () => {
           return false;
         }
 
-        // Mouse influence
-        const dx = mouseRef.current.x - particle.x;
-        const dy = mouseRef.current.y - particle.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const maxDistance = 250;
+        // Mouse influence - only if enabled (not in experience section)
+        if (!isInAboutSectionRef.current) {
+          const dx = mouseRef.current.x - particle.x;
+          const dy = mouseRef.current.y - particle.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const maxDistance = 250;
 
-        if (distance < maxDistance && !particle.spawning) {
-          const force = (1 - distance / maxDistance) * 0.03;
-          particle.vx += dx * force * 0.01;
-          particle.vy += dy * force * 0.01;
-          particle.opacity = Math.min(
-            particle.baseOpacity + (1 - distance / maxDistance) * 0.4,
-            1
-          );
+          if (distance < maxDistance && !particle.spawning) {
+            const force = (1 - distance / maxDistance) * 0.03;
+            particle.vx += dx * force * 0.01;
+            particle.vy += dy * force * 0.01;
+            particle.opacity = Math.min(
+              particle.baseOpacity + (1 - distance / maxDistance) * 0.4,
+              1
+            );
+          }
         }
 
         // Idle movement - slight pulsing
@@ -232,6 +255,9 @@ export const ParticleField = () => {
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handleMouseMove);
+      if (observer) {
+        observer.disconnect();
+      }
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
