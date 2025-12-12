@@ -8,6 +8,9 @@ interface Particle {
   size: number;
   opacity: number;
   baseOpacity: number;
+  life: number;
+  maxLife: number;
+  spawning: boolean;
 }
 
 export const ParticleField = () => {
@@ -15,25 +18,34 @@ export const ParticleField = () => {
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef({ x: 0, y: 0 });
   const animationRef = useRef<number>();
+  const frameCountRef = useRef(0);
+
+  const createParticle = useCallback((width: number, height: number, spawning = true): Particle => {
+    const baseOpacity = Math.random() * 0.5 + 0.2;
+    const maxLife = Math.random() * 400 + 200;
+    return {
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      size: Math.random() * 2.5 + 1,
+      opacity: spawning ? 0 : baseOpacity,
+      baseOpacity,
+      life: spawning ? 0 : Math.random() * maxLife,
+      maxLife,
+      spawning,
+    };
+  }, []);
 
   const createParticles = useCallback((width: number, height: number) => {
     const particles: Particle[] = [];
-    const count = Math.floor((width * height) / 15000);
+    const count = Math.floor((width * height) / 12000);
     
     for (let i = 0; i < count; i++) {
-      const baseOpacity = Math.random() * 0.3 + 0.1;
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.2,
-        vy: (Math.random() - 0.5) * 0.2,
-        size: Math.random() * 2 + 0.5,
-        opacity: baseOpacity,
-        baseOpacity,
-      });
+      particles.push(createParticle(width, height, false));
     }
     return particles;
-  }, []);
+  }, [createParticle]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -58,32 +70,63 @@ export const ParticleField = () => {
 
     const animate = () => {
       if (!ctx || !canvas) return;
+      frameCountRef.current++;
       
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      particlesRef.current.forEach((particle) => {
+      // Spawn new particles periodically
+      if (frameCountRef.current % 30 === 0 && particlesRef.current.length < 150) {
+        particlesRef.current.push(createParticle(canvas.width, canvas.height, true));
+      }
+      
+      particlesRef.current = particlesRef.current.filter((particle) => {
+        // Life cycle
+        particle.life++;
+        
+        // Spawning fade in
+        if (particle.spawning && particle.opacity < particle.baseOpacity) {
+          particle.opacity += 0.02;
+          if (particle.opacity >= particle.baseOpacity) {
+            particle.spawning = false;
+          }
+        }
+        
+        // Fade out when nearing end of life
+        const lifeRatio = particle.life / particle.maxLife;
+        if (lifeRatio > 0.8) {
+          particle.opacity = particle.baseOpacity * (1 - (lifeRatio - 0.8) / 0.2);
+        }
+        
+        // Remove dead particles
+        if (particle.life >= particle.maxLife) {
+          return false;
+        }
+
         // Mouse influence
         const dx = mouseRef.current.x - particle.x;
         const dy = mouseRef.current.y - particle.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const maxDistance = 200;
+        const maxDistance = 250;
         
-        if (distance < maxDistance) {
-          const force = (1 - distance / maxDistance) * 0.02;
+        if (distance < maxDistance && !particle.spawning) {
+          const force = (1 - distance / maxDistance) * 0.03;
           particle.vx += dx * force * 0.01;
           particle.vy += dy * force * 0.01;
-          particle.opacity = particle.baseOpacity + (1 - distance / maxDistance) * 0.3;
-        } else {
-          particle.opacity += (particle.baseOpacity - particle.opacity) * 0.02;
+          particle.opacity = Math.min(particle.baseOpacity + (1 - distance / maxDistance) * 0.4, 1);
         }
+
+        // Idle movement - slight pulsing
+        const pulse = Math.sin(frameCountRef.current * 0.02 + particle.x * 0.01) * 0.1;
+        particle.vx += pulse * 0.002;
+        particle.vy += Math.cos(frameCountRef.current * 0.015 + particle.y * 0.01) * 0.002;
 
         // Update position
         particle.x += particle.vx;
         particle.y += particle.vy;
 
         // Damping
-        particle.vx *= 0.99;
-        particle.vy *= 0.99;
+        particle.vx *= 0.98;
+        particle.vy *= 0.98;
 
         // Wrap around
         if (particle.x < 0) particle.x = canvas.width;
@@ -91,11 +134,27 @@ export const ParticleField = () => {
         if (particle.y < 0) particle.y = canvas.height;
         if (particle.y > canvas.height) particle.y = 0;
 
-        // Draw particle
+        // Draw particle with glow
+        const gradient = ctx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, particle.size * 3
+        );
+        gradient.addColorStop(0, `hsla(185, 50%, 65%, ${particle.opacity})`);
+        gradient.addColorStop(0.4, `hsla(185, 45%, 60%, ${particle.opacity * 0.5})`);
+        gradient.addColorStop(1, `hsla(185, 40%, 55%, 0)`);
+        
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size * 3, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Core of particle
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(185, 40%, 60%, ${particle.opacity})`;
+        ctx.fillStyle = `hsla(185, 50%, 70%, ${particle.opacity})`;
         ctx.fill();
+
+        return true;
       });
 
       // Draw connections
@@ -105,12 +164,13 @@ export const ParticleField = () => {
           const dy = p1.y - p2.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 100) {
+          if (distance < 120) {
+            const opacity = 0.12 * (1 - distance / 120) * Math.min(p1.opacity, p2.opacity);
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `hsla(185, 35%, 55%, ${0.08 * (1 - distance / 100)})`;
-            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = `hsla(185, 40%, 60%, ${opacity})`;
+            ctx.lineWidth = 0.8;
             ctx.stroke();
           }
         });
@@ -128,7 +188,7 @@ export const ParticleField = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [createParticles]);
+  }, [createParticles, createParticle]);
 
   return (
     <canvas

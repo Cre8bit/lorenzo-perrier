@@ -58,15 +58,25 @@ export const GlassPanel = ({ children, className = '', delay = 0 }: GlassPanelPr
       onMouseMove={handleMouseMove}
       className={`
         relative overflow-hidden rounded-2xl transition-all duration-700 ease-smooth
-        ${isVisible ? 'glass-panel-visible' : 'glass-panel-hidden'}
-        ${isHovered ? 'scale-[1.02]' : 'scale-100'}
+        ${isHovered ? 'scale-[1.01]' : 'scale-100'}
         ${className}
       `}
       style={{
         transform: isVisible 
-          ? `translateY(0) ${isHovered ? 'scale(1.02)' : ''}` 
+          ? `translateY(0) ${isHovered ? 'scale(1.01)' : ''}` 
           : 'translateY(40px)',
         opacity: isVisible ? 1 : 0,
+        background: isVisible 
+          ? 'linear-gradient(135deg, hsla(220, 20%, 8%, 0.5) 0%, hsla(220, 20%, 6%, 0.3) 100%)'
+          : 'transparent',
+        backdropFilter: isVisible ? 'blur(20px)' : 'blur(0px)',
+        WebkitBackdropFilter: isVisible ? 'blur(20px)' : 'blur(0px)',
+        border: isVisible 
+          ? '1px solid hsla(210, 20%, 92%, 0.06)' 
+          : '1px solid transparent',
+        boxShadow: isVisible 
+          ? `0 0 40px hsla(185, 40%, 45%, 0.06), inset 0 1px 0 hsla(210, 20%, 92%, 0.04)`
+          : 'none',
       }}
     >
       {/* Shine overlay */}
@@ -85,7 +95,7 @@ export const GlassPanel = ({ children, className = '', delay = 0 }: GlassPanelPr
           isHovered ? 'opacity-100' : 'opacity-0'
         }`}
         style={{
-          boxShadow: 'inset 0 0 0 1px hsla(185, 50%, 55%, 0.15)',
+          boxShadow: 'inset 0 0 0 1px hsla(185, 50%, 55%, 0.12)',
         }}
       />
     </div>
