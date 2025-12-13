@@ -82,6 +82,23 @@ const experiences = [
   },
 ];
 
+const education = [
+  {
+    degree: "M.Sc. Artificial Intelligence & Advanced Visual Computing",
+    school: "École Polytechnique",
+    period: "2024 — 2025",
+    location: "Paris, France",
+    description: "Master's program focused on deep learning, computer vision, and advanced graphics.",
+  },
+  {
+    degree: "Engineering Diploma (M.Eng)",
+    school: "ENSTA Paris",
+    period: "2021 — 2025",
+    location: "Paris, France",
+    description: "Multidisciplinary engineering with specialization in Computer Science and AI.",
+  },
+];
+
 const skills = [
   { category: "Languages", items: ["TypeScript", "Python", "Rust", "Go"] },
   {
@@ -250,142 +267,215 @@ export const ExperienceSection = () => {
               </p>
             </div>
 
-            {/* Experience Section */}
+            {/* Experience Section with Timeline */}
             <div
               ref={experienceRef}
               id="experience"
-              className="scroll-mt-32 space-y-6"
+              className="scroll-mt-32"
             >
-              {experiences.map((exp, index) => {
-                const isExpanded = expandedCards.has(index);
-                return (
-                  <GlassPanel key={exp.company} delay={index * 150}>
-                    <div className="flex flex-col gap-4">
-                      <span className="font-body text-xs text-muted-foreground/50 tracking-wider">
-                        {exp.period}
-                      </span>
-                      <div>
-                        <h3 className="font-display text-2xl text-foreground mb-1">
-                          {exp.role}
-                        </h3>
-                        <p className="font-body text-sm tracking-wide mb-3">
-                          <a
-                            href={exp.website}
-                            className="text-primary/80 hover:text-primary transition-all duration-300 relative inline-block group"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <span className="relative">
-                              {exp.company}
-                              <span className="absolute bottom-0 left-0 w-0 h-px bg-primary group-hover:w-full transition-all duration-300" />
-                            </span>
-                          </a>
-                          <span className="text-muted-foreground/60">
-                            {" "}
-                            · {exp.location}
-                          </span>
-                        </p>
-                        <p className="font-body text-muted-foreground font-light text-sm leading-relaxed mb-2">
-                          {exp.description}
-                        </p>
-
-                        {/* Read More / Show Less Button (always rendered to avoid layout jump) */}
-                        <button
-                          onClick={() => toggleExpanded(index)}
-                          className="group font-body text-xs text-primary/50 hover:text-primary tracking-wide mb-4 inline-flex items-center gap-2 transition-all duration-500"
-                        >
-                          <span>{isExpanded ? "Show less" : "Show more"}</span>
-                          <svg
-                            className={`w-3 h-3 transition-transform duration-500 ${
-                              isExpanded ? "rotate-180" : "rotate-0"
-                            }`}
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              d="M19 9l-7 7-7-7"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-
-                        {/* Expanded Content (measured max-height for smooth animation) */}
-                        <div
-                          ref={(el) => contentRefs.current.set(index, el)}
-                          className="overflow-hidden mb-4"
-                          style={{
-                            maxHeight: isExpanded
-                              ? `${
-                                  contentHeightsRef.current.get(index) ?? 480
-                                }px`
-                              : "0px",
-                            opacity: isExpanded ? 1 : 0,
-                            transform: isExpanded
-                              ? "translateY(0)"
-                              : "translateY(-6px)",
-                            transition:
-                              "max-height 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 450ms ease, transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
-                          }}
-                        >
-                          <div className="pt-2 pb-2">
-                            <p className="font-body text-muted-foreground/80 font-light text-sm leading-relaxed mb-4">
-                              {exp.expandedContent}
-                            </p>
-                            {exp.showChart && (
-                              <FundGrowthChart
-                                data={fundGrowthData}
-                                isVisible={isExpanded}
-                              />
-                            )}
+              <h3 className="font-display text-3xl text-foreground mb-12">Experience</h3>
+              
+              {/* Timeline container */}
+              <div className="relative">
+                {/* Vertical timeline line */}
+                <div className="absolute left-0 top-0 bottom-0 w-px">
+                  <div className="h-full bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
+                </div>
+                
+                {/* Experience items */}
+                <div className="space-y-8">
+                  {experiences.map((exp, index) => {
+                    const isExpanded = expandedCards.has(index);
+                    return (
+                      <div key={exp.company} className="relative pl-8">
+                        {/* Timeline dot */}
+                        <div className="absolute left-0 top-2 -translate-x-1/2">
+                          <div className="relative">
+                            {/* Glow */}
+                            <div className="absolute inset-0 w-3 h-3 rounded-full bg-primary/30 blur-sm" />
+                            {/* Dot */}
+                            <div className="w-3 h-3 rounded-full bg-primary/60 border border-primary/40" />
                           </div>
                         </div>
-
-                        {/* Tech Tags */}
-                        <div className="flex flex-wrap gap-2">
-                          {exp.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="font-body text-xs px-3 py-1 rounded-full bg-primary/10 text-primary/80 border border-primary/20"
-                            >
-                              {tag}
+                        
+                        <GlassPanel delay={index * 150}>
+                          <div className="flex flex-col gap-4">
+                            <span className="font-body text-xs text-primary/70 tracking-wider font-medium">
+                              {exp.period}
                             </span>
-                          ))}
+                            <div>
+                              <h3 className="font-display text-2xl text-foreground mb-1">
+                                {exp.role}
+                              </h3>
+                              <p className="font-body text-sm tracking-wide mb-3">
+                                <a
+                                  href={exp.website}
+                                  className="text-primary/80 hover:text-primary transition-all duration-300 relative inline-block group"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <span className="relative">
+                                    {exp.company}
+                                    <span className="absolute bottom-0 left-0 w-0 h-px bg-primary group-hover:w-full transition-all duration-300" />
+                                  </span>
+                                </a>
+                                <span className="text-muted-foreground/60">
+                                  {" "}
+                                  · {exp.location}
+                                </span>
+                              </p>
+                              <p className="font-body text-muted-foreground font-light text-sm leading-relaxed mb-2">
+                                {exp.description}
+                              </p>
+
+                              {/* Read More / Show Less Button */}
+                              <button
+                                onClick={() => toggleExpanded(index)}
+                                className="group font-body text-xs text-primary/50 hover:text-primary tracking-wide mb-4 inline-flex items-center gap-2 transition-all duration-500"
+                              >
+                                <span>{isExpanded ? "Show less" : "Show more"}</span>
+                                <svg
+                                  className={`w-3 h-3 transition-transform duration-500 ${
+                                    isExpanded ? "rotate-180" : "rotate-0"
+                                  }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    d="M19 9l-7 7-7-7"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+
+                              {/* Expanded Content */}
+                              <div
+                                ref={(el) => contentRefs.current.set(index, el)}
+                                className="overflow-hidden mb-4"
+                                style={{
+                                  maxHeight: isExpanded
+                                    ? `${contentHeightsRef.current.get(index) ?? 480}px`
+                                    : "0px",
+                                  opacity: isExpanded ? 1 : 0,
+                                  transform: isExpanded
+                                    ? "translateY(0)"
+                                    : "translateY(-6px)",
+                                  transition:
+                                    "max-height 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 450ms ease, transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+                                }}
+                              >
+                                <div className="pt-2 pb-2">
+                                  <p className="font-body text-muted-foreground/80 font-light text-sm leading-relaxed mb-4">
+                                    {exp.expandedContent}
+                                  </p>
+                                  {exp.showChart && (
+                                    <FundGrowthChart
+                                      data={fundGrowthData}
+                                      isVisible={isExpanded}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Tech Tags */}
+                              <div className="flex flex-wrap gap-2">
+                                {exp.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="font-body text-xs px-3 py-1 rounded-full bg-primary/10 text-primary/80 border border-primary/20"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </GlassPanel>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Education Section */}
+            <div className="scroll-mt-32">
+              <h3 className="font-display text-3xl text-foreground mb-12">Education</h3>
+              
+              {/* Timeline container */}
+              <div className="relative">
+                {/* Vertical timeline line */}
+                <div className="absolute left-0 top-0 bottom-0 w-px">
+                  <div className="h-full bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
+                </div>
+                
+                {/* Education items */}
+                <div className="space-y-8">
+                  {education.map((edu, index) => (
+                    <div key={edu.school + edu.degree} className="relative pl-8">
+                      {/* Timeline dot */}
+                      <div className="absolute left-0 top-2 -translate-x-1/2">
+                        <div className="relative">
+                          {/* Glow */}
+                          <div className="absolute inset-0 w-3 h-3 rounded-full bg-primary/30 blur-sm" />
+                          {/* Dot */}
+                          <div className="w-3 h-3 rounded-full bg-primary/60 border border-primary/40" />
                         </div>
                       </div>
-                    </div>
-                  </GlassPanel>
-                );
-              })}
-
-              {/* Skills */}
-              <GlassPanel delay={500}>
-                <h3 className="font-display text-2xl text-foreground mb-8">
-                  Technical Fluency
-                </h3>
-                <div className="grid gap-8">
-                  {skills.map((skill) => (
-                    <div key={skill.category}>
-                      <h4 className="font-body text-xs text-primary/70 tracking-widest uppercase mb-4">
-                        {skill.category}
-                      </h4>
-                      <ul className="flex flex-wrap gap-3">
-                        {skill.items.map((item) => (
-                          <li
-                            key={item}
-                            className="font-body text-muted-foreground font-light text-sm"
-                          >
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
+                      
+                      <GlassPanel delay={index * 150 + 600}>
+                        <div className="flex flex-col gap-3">
+                          <span className="font-body text-xs text-primary/70 tracking-wider font-medium">
+                            {edu.period}
+                          </span>
+                          <div>
+                            <h4 className="font-display text-xl text-foreground mb-1">
+                              {edu.degree}
+                            </h4>
+                            <p className="font-body text-sm text-primary/80 mb-2">
+                              {edu.school}
+                              <span className="text-muted-foreground/60"> · {edu.location}</span>
+                            </p>
+                            <p className="font-body text-muted-foreground font-light text-sm leading-relaxed">
+                              {edu.description}
+                            </p>
+                          </div>
+                        </div>
+                      </GlassPanel>
                     </div>
                   ))}
                 </div>
-              </GlassPanel>
+              </div>
             </div>
+
+            {/* Skills */}
+            <GlassPanel delay={800}>
+              <h3 className="font-display text-2xl text-foreground mb-8">
+                Technical Fluency
+              </h3>
+              <div className="grid gap-8">
+                {skills.map((skill) => (
+                  <div key={skill.category}>
+                    <h4 className="font-body text-xs text-primary/70 tracking-widest uppercase mb-4">
+                      {skill.category}
+                    </h4>
+                    <ul className="flex flex-wrap gap-3">
+                      {skill.items.map((item) => (
+                        <li
+                          key={item}
+                          className="font-body text-muted-foreground font-light text-sm"
+                        >
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </GlassPanel>
 
             {/* Projects Section */}
             <div ref={projectsRef} id="projects" className="scroll-mt-32">
