@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AnimatedSubtitle } from "./AnimatedSubtitle";
 
 export const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -47,16 +48,13 @@ export const HeroSection = () => {
           </span>
         </h1>
 
-        <p
-          className={`font-body text-lg md:text-xl font-extralight text-muted-foreground max-w-md mx-auto tracking-wide transition-all duration-1000 delay-300 ease-smooth ${
+        <div
+          className={`transition-all duration-1000 delay-300 ease-smooth ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          Exploring the architecture of systems,
-          <br />
-          <span className="text-primary/70">motion, and flow.</span>
-        </p>
-
+          <AnimatedSubtitle />
+        </div>
       </div>
     </section>
   );
