@@ -57,19 +57,6 @@ export const HeroSection = () => {
           <span className="text-primary/70">motion, and flow.</span>
         </p>
 
-        {/* Subtle scroll indicator */}
-        <div
-          className={`mt-20 transition-all duration-1000 delay-700 ease-smooth ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-xs font-body text-muted-foreground/40 tracking-widest uppercase">
-              scroll to explore
-            </span>
-            <div className="w-px h-12 bg-gradient-to-b from-muted-foreground/20 to-transparent" />
-          </div>
-        </div>
       </div>
     </section>
   );
