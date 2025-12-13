@@ -89,14 +89,16 @@ const education = [
     school: "École Polytechnique",
     period: "2024 — 2025",
     location: "Paris, France",
-    description: "Master's program focused on deep learning, computer vision, and advanced graphics.",
+    description:
+      "Master's program focused on deep learning, computer vision, and advanced graphics.",
   },
   {
     degree: "Engineering Diploma (M.Eng)",
     school: "ENSTA Paris",
     period: "2021 — 2025",
     location: "Paris, France",
-    description: "Multidisciplinary engineering with specialization in Computer Science and AI.",
+    description:
+      "Multidisciplinary engineering with specialization in Computer Science and AI.",
   },
 ];
 
@@ -116,6 +118,7 @@ export const ExperienceSection = () => {
   const [activeSection, setActiveSection] = useState("about");
   const [isVisible, setIsVisible] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+  const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
   const contentHeightsRef = useRef<Map<number, number>>(new Map());
   const contentRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const aboutRef = useRef<HTMLDivElement>(null);
@@ -124,6 +127,14 @@ export const ExperienceSection = () => {
   const projectsRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [visibleEducationCards, setVisibleEducationCards] = useState<
+    Set<number>
+  >(new Set());
+  const educationCardRefs = useRef<Map<number, HTMLDivElement | null>>(
+    new Map()
+  );
+  const educationTimelineRef = useRef<HTMLDivElement>(null);
 
   const toggleExpanded = (index: number) => {
     setExpandedCards((prev) => {
@@ -173,12 +184,102 @@ export const ExperienceSection = () => {
     };
   }, []);
 
+  // Progressive timeline animation based on card visibility
+  useEffect(() => {
+    const observers = new Map<number, IntersectionObserver>();
+
+    experiences.forEach((_, index) => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setVisibleCards((prev) => new Set(prev).add(index));
+          }
+        },
+        { threshold: 0.3, rootMargin: "-10% 0px -10% 0px" }
+      );
+
+      const cardEl = cardRefs.current.get(index);
+      if (cardEl) {
+        observer.observe(cardEl);
+        observers.set(index, observer);
+      }
+    });
+
+    return () => {
+      observers.forEach((observer) => observer.disconnect());
+    };
+  }, []);
+
+  // Progressive timeline for education
+  useEffect(() => {
+    const observers = new Map<number, IntersectionObserver>();
+
+    education.forEach((_, index) => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setVisibleEducationCards((prev) => new Set(prev).add(index));
+          }
+        },
+        { threshold: 0.3, rootMargin: "-10% 0px -10% 0px" }
+      );
+
+      const cardEl = educationCardRefs.current.get(index);
+      if (cardEl) {
+        observer.observe(cardEl);
+        observers.set(index, observer);
+      }
+    });
+
+    return () => observers.forEach((o) => o.disconnect());
+  }, []);
+
+  // Update education timeline height based on visible education cards
+  useEffect(() => {
+    if (visibleEducationCards.size === 0 || !educationTimelineRef.current)
+      return;
+
+    const maxVisibleIndex = Math.max(...Array.from(visibleEducationCards));
+    const lastVisibleCard = educationCardRefs.current.get(maxVisibleIndex);
+
+    if (lastVisibleCard && educationTimelineRef.current) {
+      const timelineTop =
+        educationTimelineRef.current.getBoundingClientRect().top;
+      const cardTop = lastVisibleCard.getBoundingClientRect().top;
+      const cardHeight = lastVisibleCard.offsetHeight;
+      const targetHeight = cardTop - timelineTop + cardHeight / 3;
+      educationTimelineRef.current.style.height = `${Math.max(
+        0,
+        targetHeight
+      )}px`;
+    }
+  }, [visibleEducationCards]);
+
+  // Update timeline height based on visible cards
+  useEffect(() => {
+    if (visibleCards.size === 0 || !timelineRef.current) return;
+
+    const maxVisibleIndex = Math.max(...Array.from(visibleCards));
+    const lastVisibleCard = cardRefs.current.get(maxVisibleIndex);
+
+    if (lastVisibleCard && timelineRef.current) {
+      const timelineTop = timelineRef.current.getBoundingClientRect().top;
+      const cardTop = lastVisibleCard.getBoundingClientRect().top;
+      const cardHeight = lastVisibleCard.offsetHeight;
+
+      // Calculate height from timeline start to center of the last visible card
+      const targetHeight = cardTop - timelineTop + cardHeight / 3;
+      timelineRef.current.style.height = `${Math.max(0, targetHeight)}px`;
+    }
+  }, [visibleCards]);
+
   useEffect(() => {
     const handleScroll = () => {
       const aboutTop = aboutRef.current?.getBoundingClientRect().top || 0;
       const experienceTop =
         experienceRef.current?.getBoundingClientRect().top || 0;
-      const educationTop = educationRef.current?.getBoundingClientRect().top || 0;
+      const educationTop =
+        educationRef.current?.getBoundingClientRect().top || 0;
       const projectsTop = projectsRef.current?.getBoundingClientRect().top || 0;
 
       const windowMid = window.innerHeight / 2;
@@ -207,7 +308,7 @@ export const ExperienceSection = () => {
       education: educationRef,
       projects: projectsRef as React.RefObject<HTMLDivElement | null>,
     };
-    
+
     refs[sectionId]?.current?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -299,45 +400,45 @@ export const ExperienceSection = () => {
             </div>
 
             {/* Experience Section with Timeline */}
-            <div
-              ref={experienceRef}
-              id="experience"
-              className="scroll-mt-32"
-            >
-              <h3 className="font-display text-3xl text-foreground mb-12">Experience</h3>
-              
+            <div ref={experienceRef} id="experience" className="scroll-mt-32">
+              <h3 className="font-display text-3xl text-foreground mb-12">
+                Experience
+              </h3>
+
               {/* Timeline container */}
               <div className="relative">
-                {/* Vertical timeline line - animated */}
-                <div 
-                  className="absolute left-0 top-0 bottom-0 w-px transition-all duration-1000"
+                {/* Vertical timeline line - progressively animated */}
+                <div
+                  ref={timelineRef}
+                  className="absolute left-0 top-0 w-px transition-all duration-700 ease-out"
                   style={{
-                    opacity: isVisible ? 1 : 0,
-                    transform: isVisible ? "scaleY(1)" : "scaleY(0)",
-                    transformOrigin: "top",
-                    transitionDelay: "200ms",
+                    height: 0,
+                    opacity: visibleCards.size > 0 ? 1 : 0,
                   }}
                 >
-                  <div className="h-full bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
+                  <div className="h-full w-full bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
                 </div>
-                
+
                 {/* Experience items */}
                 <div className="space-y-8">
                   {experiences.map((exp, index) => {
                     const isExpanded = expandedCards.has(index);
+                    const isCardVisible = visibleCards.has(index);
                     return (
-                      <div 
-                        key={exp.company} 
+                      <div
+                        key={exp.company}
                         className="relative pl-8"
                         ref={(el) => cardRefs.current.set(index, el)}
                       >
-                        {/* Timeline dot - animated with card */}
-                        <div 
-                          className="absolute left-0 top-2 -translate-x-1/2 transition-all duration-700"
+                        {/* Timeline dot - animated with card visibility */}
+                        <div
+                          className="absolute left-0 top-2 -translate-x-1/2 transition-all duration-500"
                           style={{
-                            opacity: isVisible ? 1 : 0,
-                            transform: isVisible ? "translateX(-50%) scale(1)" : "translateX(-50%) scale(0)",
-                            transitionDelay: `${index * 150 + 100}ms`,
+                            opacity: isCardVisible ? 1 : 0,
+                            transform: isCardVisible
+                              ? "translateX(-50%) scale(1)"
+                              : "translateX(-50%) scale(0)",
+                            transitionDelay: "150ms",
                           }}
                         >
                           <div className="relative">
@@ -347,7 +448,7 @@ export const ExperienceSection = () => {
                             <div className="w-3 h-3 rounded-full bg-primary/60 border border-primary/40" />
                           </div>
                         </div>
-                        
+
                         <GlassPanel delay={index * 150}>
                           <div className="flex flex-col gap-4">
                             <span className="font-body text-xs text-primary/70 tracking-wider font-medium">
@@ -383,7 +484,9 @@ export const ExperienceSection = () => {
                                 onClick={() => toggleExpanded(index)}
                                 className="group font-body text-xs text-primary/50 hover:text-primary tracking-wide mb-4 inline-flex items-center gap-2 transition-all duration-500"
                               >
-                                <span>{isExpanded ? "Show less" : "Show more"}</span>
+                                <span>
+                                  {isExpanded ? "Show less" : "Show more"}
+                                </span>
                                 <svg
                                   className={`w-3 h-3 transition-transform duration-500 ${
                                     isExpanded ? "rotate-180" : "rotate-0"
@@ -407,7 +510,10 @@ export const ExperienceSection = () => {
                                 className="overflow-hidden mb-4"
                                 style={{
                                   maxHeight: isExpanded
-                                    ? `${contentHeightsRef.current.get(index) ?? 480}px`
+                                    ? `${
+                                        contentHeightsRef.current.get(index) ??
+                                        480
+                                      }px`
                                     : "0px",
                                   opacity: isExpanded ? 1 : 0,
                                   transform: isExpanded
@@ -453,73 +559,86 @@ export const ExperienceSection = () => {
 
             {/* Education Section */}
             <div ref={educationRef} id="education" className="scroll-mt-32">
-              <h3 className="font-display text-3xl text-foreground mb-12">Education</h3>
-              
+              <h3 className="font-display text-3xl text-foreground mb-12">
+                Education
+              </h3>
+
               {/* Timeline container */}
               <div className="relative">
-                {/* Vertical timeline line - animated */}
-                <div 
-                  className="absolute left-0 top-0 bottom-0 w-px transition-all duration-1000"
+                {/* Vertical timeline line - progressively animated for education */}
+                <div
+                  ref={educationTimelineRef}
+                  className="absolute left-0 top-0 w-px transition-all duration-700 ease-out"
                   style={{
-                    opacity: isVisible ? 1 : 0,
-                    transform: isVisible ? "scaleY(1)" : "scaleY(0)",
-                    transformOrigin: "top",
-                    transitionDelay: "600ms",
+                    height: 0,
+                    opacity: visibleEducationCards.size > 0 ? 1 : 0,
                   }}
                 >
-                  <div className="h-full bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
+                  <div className="h-full w-full bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
                 </div>
-                
+
                 {/* Education items */}
                 <div className="space-y-8">
-                  {education.map((edu, index) => (
-                    <div key={edu.school + edu.degree} className="relative pl-8">
-                      {/* Timeline dot - animated with card */}
-                      <div 
-                        className="absolute left-0 top-2 -translate-x-1/2 transition-all duration-700"
-                        style={{
-                          opacity: isVisible ? 1 : 0,
-                          transform: isVisible ? "translateX(-50%) scale(1)" : "translateX(-50%) scale(0)",
-                          transitionDelay: `${index * 150 + 700}ms`,
-                        }}
+                  {education.map((edu, index) => {
+                    const isEduVisible = visibleEducationCards.has(index);
+                    return (
+                      <div
+                        key={edu.school + edu.degree}
+                        className="relative pl-8"
+                        ref={(el) => educationCardRefs.current.set(index, el)}
                       >
-                        <div className="relative">
-                          {/* Glow */}
-                          <div className="absolute inset-0 w-3 h-3 rounded-full bg-primary/30 blur-sm" />
-                          {/* Dot */}
-                          <div className="w-3 h-3 rounded-full bg-primary/60 border border-primary/40" />
-                        </div>
-                      </div>
-                      
-                      <GlassPanel delay={index * 150 + 600}>
-                        <div className="flex flex-col gap-3">
-                          <span className="font-body text-xs text-primary/70 tracking-wider font-medium">
-                            {edu.period}
-                          </span>
-                          <div>
-                            <h4 className="font-display text-xl text-foreground mb-1">
-                              {edu.degree}
-                            </h4>
-                            <p className="font-body text-sm text-primary/80 mb-2">
-                              {edu.school}
-                              <span className="text-muted-foreground/60"> · {edu.location}</span>
-                            </p>
-                            <p className="font-body text-muted-foreground font-light text-sm leading-relaxed">
-                              {edu.description}
-                            </p>
+                        {/* Timeline dot - animated with card */}
+                        <div
+                          className="absolute left-0 top-2 -translate-x-1/2 transition-all duration-500"
+                          style={{
+                            opacity: isEduVisible ? 1 : 0,
+                            transform: isEduVisible
+                              ? "translateX(-50%) scale(1)"
+                              : "translateX(-50%) scale(0)",
+                            transitionDelay: "150ms",
+                          }}
+                        >
+                          <div className="relative">
+                            {/* Glow */}
+                            <div className="absolute inset-0 w-3 h-3 rounded-full bg-primary/30 blur-sm" />
+                            {/* Dot */}
+                            <div className="w-3 h-3 rounded-full bg-primary/60 border border-primary/40" />
                           </div>
                         </div>
-                      </GlassPanel>
-                    </div>
-                  ))}
+
+                        <GlassPanel delay={index * 150 + 600}>
+                          <div className="flex flex-col gap-3">
+                            <span className="font-body text-xs text-primary/70 tracking-wider font-medium">
+                              {edu.period}
+                            </span>
+                            <div>
+                              <h4 className="font-display text-xl text-foreground mb-1">
+                                {edu.degree}
+                              </h4>
+                              <p className="font-body text-sm text-primary/80 mb-2">
+                                {edu.school}
+                                <span className="text-muted-foreground/60">
+                                  {" "}
+                                  · {edu.location}
+                                </span>
+                              </p>
+                              <p className="font-body text-muted-foreground font-light text-sm leading-relaxed">
+                                {edu.description}
+                              </p>
+                            </div>
+                          </div>
+                        </GlassPanel>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
             {/* Skills Graph */}
             <div className="scroll-mt-32">
-              <SkillsGraph 
-                experiences={experiences} 
+              <SkillsGraph
+                experiences={experiences}
                 onSkillClick={scrollToCard}
               />
             </div>
