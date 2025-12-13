@@ -6,8 +6,8 @@ export const ScrollIndicator = () => {
   const [hasScrolled, setHasScrolled] = useState(false);
 
   useEffect(() => {
-    // Fade in after initial load
-    const showTimer = setTimeout(() => setIsVisible(true), 1500);
+    // Show after user stays on page for a few seconds
+    const showTimer = setTimeout(() => setIsVisible(true), 3000);
 
     const handleScroll = () => {
       if (window.scrollY > 100) {
@@ -27,8 +27,8 @@ export const ScrollIndicator = () => {
 
   return (
     <div
-      className={`fixed bottom-12 left-1/2 -translate-x-1/2 z-20 transition-all duration-1000 ${
-        isVisible ? "opacity-100" : "opacity-0"
+      className={`fixed bottom-32 left-1/2 -translate-x-1/2 z-20 transition-all duration-1000 ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       }`}
     >
       <div className="flex flex-col items-center gap-3 group cursor-pointer animate-float">
