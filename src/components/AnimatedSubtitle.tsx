@@ -24,7 +24,10 @@ const SUBTITLES: Subtitle[] = [
   {
     segments: [
       { text: "Exploring the architecture of systems,", isAccent: false },
-      { text: "motion, and flow.", isAccent: true, newLine: true },
+      { text: "motion", isAccent: true, newLine: true },
+      { text: ", and ", isAccent: false },
+      { text: "flow", isAccent: true },
+      { text: ".", isAccent: false },
     ],
   },
   {
@@ -58,28 +61,9 @@ const SUBTITLES: Subtitle[] = [
   },
   {
     segments: [
-      { text: "Where ", isAccent: false },
-      { text: "structure", isAccent: true },
-      { text: " meets ", isAccent: false },
-      { text: "emergence", isAccent: true },
-      { text: ".", isAccent: false },
-    ],
-  },
-  {
-    segments: [{ text: "Precision beneath simplicity.", isAccent: false }],
-  },
-  {
-    segments: [
       { text: "Systems in ", isAccent: false },
       { text: "motion", isAccent: true },
       { text: ", by design.", isAccent: false },
-    ],
-  },
-  {
-    segments: [
-      { text: "Exploring ", isAccent: false },
-      { text: "flow", isAccent: true },
-      { text: " beyond interfaces.", isAccent: false },
     ],
   },
   {
@@ -136,15 +120,21 @@ export const AnimatedSubtitle = () => {
         // swap index mid-transition (after fade out)
         setTimeout(() => {
           let nextIndex;
-          const available = Array.from({ length: SUBTITLES.length }, (_, i) => i)
-            .filter((i) => i !== currentIndex);
+          const available = Array.from(
+            { length: SUBTITLES.length },
+            (_, i) => i
+          ).filter((i) => i !== currentIndex);
 
           if (usedIndices.length >= SUBTITLES.length) {
             setUsedIndices([currentIndex]);
             nextIndex = available[Math.floor(Math.random() * available.length)];
           } else {
             const unused = available.filter((i) => !usedIndices.includes(i));
-            nextIndex = (unused.length ? unused : available)[Math.floor(Math.random() * (unused.length ? unused : available).length)];
+            nextIndex = (unused.length ? unused : available)[
+              Math.floor(
+                Math.random() * (unused.length ? unused : available).length
+              )
+            ];
           }
 
           setCurrentIndex(nextIndex);
@@ -182,7 +172,13 @@ export const AnimatedSubtitle = () => {
         {currentSubtitle.segments.map((segment, idx) => (
           <span key={idx}>
             {segment.newLine && <br />}
-            <span className={segment.isAccent ? "text-[hsl(185,50%,55%)]" : "text-muted-foreground"}>
+            <span
+              className={
+                segment.isAccent
+                  ? "text-[hsl(185,50%,55%)]"
+                  : "text-muted-foreground"
+              }
+            >
               {segment.text}
             </span>
           </span>
