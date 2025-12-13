@@ -4,7 +4,7 @@ import { HeroSection } from '@/components/HeroSection';
 import { LiquidNavigation } from '@/components/LiquidNavigation';
 import { ExperienceSection } from '@/components/ExperienceSection';
 import { ScrollIndicator } from '@/components/ScrollIndicator';
-import { SocialLinks } from '@/components/SocialLinks';
+import { ContactLink, SocialLinks } from '@/components/SocialLinks';
 
 const Index = () => {
   return (
@@ -14,6 +14,9 @@ const Index = () => {
       
       {/* Social links - top right */}
       <SocialLinks />
+      
+      {/* Contact link - bottom left */}
+      <ContactLink />
       
       {/* Ambient background with gradient orbs */}
       <AmbientBackground />

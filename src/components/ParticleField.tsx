@@ -103,7 +103,7 @@ export const ParticleField = () => {
 
       // Spawn new particles periodically
       if (
-        frameCountRef.current % 20 === 0 &&
+        frameCountRef.current % 15 === 0 &&
         particlesRef.current.length < 200
       ) {
         particlesRef.current.push(
