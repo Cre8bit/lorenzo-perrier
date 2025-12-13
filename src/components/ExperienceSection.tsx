@@ -1,5 +1,6 @@
 import { GlassPanel } from "./GlassPanel";
 import { FundGrowthChart } from "./FundGrowthChart";
+import { SkillsGraph } from "./SkillsGraph";
 import { useEffect, useRef, useState } from "react";
 
 const fundGrowthData = [
@@ -119,8 +120,10 @@ export const ExperienceSection = () => {
   const contentRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const aboutRef = useRef<HTMLDivElement>(null);
   const experienceRef = useRef<HTMLDivElement>(null);
+  const educationRef = useRef<HTMLDivElement>(null);
   const projectsRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const cardRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
 
   const toggleExpanded = (index: number) => {
     setExpandedCards((prev) => {
@@ -175,12 +178,15 @@ export const ExperienceSection = () => {
       const aboutTop = aboutRef.current?.getBoundingClientRect().top || 0;
       const experienceTop =
         experienceRef.current?.getBoundingClientRect().top || 0;
+      const educationTop = educationRef.current?.getBoundingClientRect().top || 0;
       const projectsTop = projectsRef.current?.getBoundingClientRect().top || 0;
 
       const windowMid = window.innerHeight / 2;
 
       if (projectsTop < windowMid) {
         setActiveSection("projects");
+      } else if (educationTop < windowMid) {
+        setActiveSection("education");
       } else if (experienceTop < windowMid) {
         setActiveSection("experience");
       } else {
@@ -193,6 +199,29 @@ export const ExperienceSection = () => {
 
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const scrollToSection = (sectionId: string) => {
+    const refs: Record<string, React.RefObject<HTMLDivElement | null>> = {
+      about: aboutRef,
+      experience: experienceRef,
+      education: educationRef,
+      projects: projectsRef as React.RefObject<HTMLDivElement | null>,
+    };
+    
+    refs[sectionId]?.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const scrollToCard = (cardIndex: number) => {
+    const cardEl = cardRefs.current.get(cardIndex);
+    if (cardEl) {
+      cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Highlight effect
+      cardEl.style.boxShadow = "0 0 30px hsla(185, 50%, 55%, 0.4)";
+      setTimeout(() => {
+        cardEl.style.boxShadow = "";
+      }, 1500);
+    }
+  };
 
   return (
     <section
@@ -223,27 +252,29 @@ export const ExperienceSection = () => {
                 {[
                   { id: "about", label: "About" },
                   { id: "experience", label: "Experience" },
+                  { id: "education", label: "Education" },
                   { id: "projects", label: "Projects" },
                 ].map((item) => (
-                  <div
+                  <button
                     key={item.id}
-                    className={`flex items-center gap-4 transition-all duration-300 ${
+                    onClick={() => scrollToSection(item.id)}
+                    className={`flex items-center gap-4 transition-all duration-300 cursor-pointer group ${
                       activeSection === item.id
                         ? "text-foreground"
-                        : "text-muted-foreground/40"
+                        : "text-muted-foreground/40 hover:text-muted-foreground/70"
                     }`}
                   >
                     <div
                       className={`h-px transition-all duration-300 ${
                         activeSection === item.id
                           ? "w-16 bg-foreground"
-                          : "w-8 bg-muted-foreground/40"
+                          : "w-8 bg-muted-foreground/40 group-hover:w-12 group-hover:bg-muted-foreground/60"
                       }`}
                     />
                     <span className="font-body text-xs tracking-widest uppercase">
                       {item.label}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </nav>
             </div>
@@ -277,8 +308,16 @@ export const ExperienceSection = () => {
               
               {/* Timeline container */}
               <div className="relative">
-                {/* Vertical timeline line */}
-                <div className="absolute left-0 top-0 bottom-0 w-px">
+                {/* Vertical timeline line - animated */}
+                <div 
+                  className="absolute left-0 top-0 bottom-0 w-px transition-all duration-1000"
+                  style={{
+                    opacity: isVisible ? 1 : 0,
+                    transform: isVisible ? "scaleY(1)" : "scaleY(0)",
+                    transformOrigin: "top",
+                    transitionDelay: "200ms",
+                  }}
+                >
                   <div className="h-full bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
                 </div>
                 
@@ -287,9 +326,20 @@ export const ExperienceSection = () => {
                   {experiences.map((exp, index) => {
                     const isExpanded = expandedCards.has(index);
                     return (
-                      <div key={exp.company} className="relative pl-8">
-                        {/* Timeline dot */}
-                        <div className="absolute left-0 top-2 -translate-x-1/2">
+                      <div 
+                        key={exp.company} 
+                        className="relative pl-8"
+                        ref={(el) => cardRefs.current.set(index, el)}
+                      >
+                        {/* Timeline dot - animated with card */}
+                        <div 
+                          className="absolute left-0 top-2 -translate-x-1/2 transition-all duration-700"
+                          style={{
+                            opacity: isVisible ? 1 : 0,
+                            transform: isVisible ? "translateX(-50%) scale(1)" : "translateX(-50%) scale(0)",
+                            transitionDelay: `${index * 150 + 100}ms`,
+                          }}
+                        >
                           <div className="relative">
                             {/* Glow */}
                             <div className="absolute inset-0 w-3 h-3 rounded-full bg-primary/30 blur-sm" />
@@ -402,13 +452,21 @@ export const ExperienceSection = () => {
             </div>
 
             {/* Education Section */}
-            <div className="scroll-mt-32">
+            <div ref={educationRef} id="education" className="scroll-mt-32">
               <h3 className="font-display text-3xl text-foreground mb-12">Education</h3>
               
               {/* Timeline container */}
               <div className="relative">
-                {/* Vertical timeline line */}
-                <div className="absolute left-0 top-0 bottom-0 w-px">
+                {/* Vertical timeline line - animated */}
+                <div 
+                  className="absolute left-0 top-0 bottom-0 w-px transition-all duration-1000"
+                  style={{
+                    opacity: isVisible ? 1 : 0,
+                    transform: isVisible ? "scaleY(1)" : "scaleY(0)",
+                    transformOrigin: "top",
+                    transitionDelay: "600ms",
+                  }}
+                >
                   <div className="h-full bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
                 </div>
                 
@@ -416,8 +474,15 @@ export const ExperienceSection = () => {
                 <div className="space-y-8">
                   {education.map((edu, index) => (
                     <div key={edu.school + edu.degree} className="relative pl-8">
-                      {/* Timeline dot */}
-                      <div className="absolute left-0 top-2 -translate-x-1/2">
+                      {/* Timeline dot - animated with card */}
+                      <div 
+                        className="absolute left-0 top-2 -translate-x-1/2 transition-all duration-700"
+                        style={{
+                          opacity: isVisible ? 1 : 0,
+                          transform: isVisible ? "translateX(-50%) scale(1)" : "translateX(-50%) scale(0)",
+                          transitionDelay: `${index * 150 + 700}ms`,
+                        }}
+                      >
                         <div className="relative">
                           {/* Glow */}
                           <div className="absolute inset-0 w-3 h-3 rounded-full bg-primary/30 blur-sm" />
@@ -449,6 +514,14 @@ export const ExperienceSection = () => {
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* Skills Graph */}
+            <div className="scroll-mt-32">
+              <SkillsGraph 
+                experiences={experiences} 
+                onSkillClick={scrollToCard}
+              />
             </div>
 
             {/* Skills */}
