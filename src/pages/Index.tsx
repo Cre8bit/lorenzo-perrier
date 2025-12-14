@@ -34,13 +34,16 @@ const Index = () => {
       {/* Philosophy Section 2: Sequential Reveal with Timer + Overview */}
       <div className="-mt-[80vh]">
         <PhilosophyReveal />
+      
+      </div>
+      {/* Scrollable experience/resume section */}
+      <div className="-mt-[20vh]">
+      <ExperienceSection />
       </div>
 
       {/* Liquid horizontal navigation */}
       <LiquidNavigation />
 
-      {/* Scrollable experience/resume section */}
-      <ExperienceSection />
     </main>
   );
 };
