@@ -5,7 +5,6 @@ import { LiquidNavigation } from "@/components/LiquidNavigation";
 import { ExperienceSection } from "@/components/ExperienceSection";
 import { ScrollIndicator } from "@/components/ScrollIndicator";
 import { ContactLink, SocialLinks } from "@/components/SocialLinks";
-import { PhilosophyLineDrawing } from "@/components/philosophy/PhilosophyLineDrawing";
 import { PhilosophyReveal } from "@/components/philosophy/PhilosophyReveal";
 
 const Index = () => {
