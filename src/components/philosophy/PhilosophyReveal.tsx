@@ -14,6 +14,8 @@ export const PhilosophyReveal = () => {
 
   // "Seen" tracking (kept as state because it’s UX / gating)
   const [maxSeenIndex, setMaxSeenIndex] = useState(0);
+  // Once user has traversed all items at least once, keep all steps selectable
+  const [allTraversed, setAllTraversed] = useState(false);
 
   // DOM + internal refs
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -30,6 +32,9 @@ export const PhilosophyReveal = () => {
   const scrollTimeoutRef = useRef<number | null>(null);
   const tickingRef = useRef(false);
   const rafWatchRef = useRef<number | null>(null);
+
+  const [stepperOpen, setStepperOpen] = useState(false);
+  const [hoveredStep, setHoveredStep] = useState<number | null>(null);
 
   const n = philosophyItems.length;
 
@@ -135,13 +140,31 @@ export const PhilosophyReveal = () => {
         // Reveal just completed: capture the anchor scroll position once
         if (!revealCompletedRef.current) {
           revealCompletedRef.current = true;
-          revealStartScrollRef.current = window.scrollY;
 
-          progressRef.current = 0;
-          setProgress(0);
+          // Back-calculate where reveal completed (at p = 0.1 of section progress)
+          const rect = el.getBoundingClientRect();
+          const vh = window.innerHeight;
+          const total = rect.height - vh;
+          const traveledAtReveal = 0.1 * total;
 
-          // We consider first item "seen" once reveal completed
-          setMaxSeenIndex((prev) => Math.max(prev, 0));
+          // Absolute position of section top + distance traveled for reveal
+          const sectionTop = window.scrollY + rect.top;
+          revealStartScrollRef.current = sectionTop + traveledAtReveal;
+
+          // Sync progress immediately from current scroll position
+          const delta = Math.max(
+            0,
+            window.scrollY - revealStartScrollRef.current
+          );
+          const p = clamp01(delta / internalScrollDistance());
+
+          progressRef.current = p;
+          setProgress(p);
+
+          // Set maxSeenIndex based on current progress
+          const idx = Math.min(n - 1, Math.floor(p * n));
+          setMaxSeenIndex(Math.max(0, idx));
+
           return;
         }
 
@@ -166,6 +189,13 @@ export const PhilosophyReveal = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [n]);
+
+  // Update `allTraversed` whenever maxSeenIndex reaches the last index
+  useEffect(() => {
+    if (maxSeenIndex >= n - 1) {
+      setAllTraversed(true);
+    }
+  }, [maxSeenIndex, n]);
 
   // Opacity computation with:
   // - overlap to avoid "both 0" at boundaries
@@ -211,7 +241,7 @@ export const PhilosophyReveal = () => {
       return 1;
     }
 
-    const EPS_OPACITY = 0.03; // tune 0.02–0.06
+    const EPS_OPACITY = 0.2;
     if (baseOpacity < EPS_OPACITY) baseOpacity = 0;
     if (baseOpacity > 1 - EPS_OPACITY) baseOpacity = 1;
     return baseOpacity;
@@ -248,7 +278,7 @@ export const PhilosophyReveal = () => {
 
   const handleStepperClick = (index: number) => {
     if (!sectionRef.current || !revealCompletedRef.current) return;
-    if (index > maxSeenIndex) return;
+    if (!allTraversed && index > maxSeenIndex) return;
 
     const targetP = stepMidProgress(index);
     const targetScroll =
@@ -311,56 +341,114 @@ export const PhilosophyReveal = () => {
           What I Build
         </h2>
 
-        {/* Progress indicators with titles */}
-        <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col gap-4">
-          {philosophyItems.map((item, index) => {
-            const isActive = index === effectiveActiveIndex;
-            const hasBeenSeen = index <= maxSeenIndex;
+        {/* Expandable wave stepper: LEFT-ALIGNED bars, wave is only elongation + thickness/glow */}
+        <div
+          className="absolute left-10 top-1/2 -translate-y-1/2"
+          onMouseEnter={() => setStepperOpen(true)}
+          onMouseLeave={() => {
+            setStepperOpen(false);
+            setHoveredStep(null);
+          }}
+        >
+          <div
+            className="flex flex-col items-start"
+            style={{
+              gap: stepperOpen ? 14 : 10,
+              transform: `scale(${stepperOpen ? 1.1 : 1})`,
+              transformOrigin: "left center",
+              transition: "transform 180ms ease, gap 180ms ease",
+            }}
+          >
+            {philosophyItems.map((_, index) => {
+              const isActive = index === effectiveActiveIndex;
+              const hasBeenSeen = allTraversed || index <= maxSeenIndex;
+              const isHovered = hoveredStep === index;
 
-            return (
-              <div
-                key={index}
-                className={`flex items-center gap-3 group ${
-                  hasBeenSeen ? "cursor-pointer" : "cursor-default"
-                }`}
-                onClick={() => handleStepperClick(index)}
-              >
-                <div
-                  className="rounded-full overflow-hidden bg-primary/10 transition-all duration-400 group-hover:bg-primary/20"
+              // --- Traveling wave "energy" centered on current progress ---
+              const waveCenter = progress * (n - 1); // 0..n-1
+              const dist = index - waveCenter;
+
+              // tighter because 4 steps; tune 0.85..1.25
+              const sigma = 1.05;
+              const envelope = Math.exp(-(dist * dist) / (2 * sigma * sigma)); // 0..1
+
+              // baseline so ends still have some life
+              const baseline = 0.2; // 0.15..0.28
+              const wave = baseline + (1 - baseline) * envelope;
+
+              // sizing (compact by default, bigger when stepperOpen)
+              const baseW = stepperOpen ? 18 : 14;
+              const maxExtraW = stepperOpen ? 42 : 26;
+
+              const width =
+                baseW +
+                maxExtraW * wave +
+                (isActive ? 10 : 0) +
+                (isHovered ? 14 : 0);
+
+              // thickness: subtle, but helps selection
+              const heightBase = isActive ? 3 : 2;
+              const height = stepperOpen
+                ? isHovered
+                  ? heightBase + 1
+                  : heightBase
+                : heightBase;
+
+              // opacity / glow
+              const trackOpacity = hasBeenSeen ? 0.28 : 0.18;
+              const fillOpacity = isActive ? 1 : isHovered ? 0.85 : 0.55;
+
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => handleStepperClick(index)}
+                  disabled={!hasBeenSeen}
+                  aria-label={`Go to step ${index + 1}`}
+                  onMouseEnter={() => setHoveredStep(index)}
+                  className={`group relative flex items-center ${
+                    hasBeenSeen ? "cursor-pointer" : "cursor-default"
+                  }`}
                   style={{
-                    width: isActive ? "6px" : "4px",
-                    height: isActive ? "40px" : "32px",
+                    pointerEvents: hasBeenSeen ? "auto" : "none",
+
+                    // bigger hit area when expanded
+                    minHeight: stepperOpen ? 34 : 26,
+                    paddingTop: stepperOpen ? 10 : 7,
+                    paddingBottom: stepperOpen ? 10 : 7,
                   }}
                 >
-                  <div
-                    className="w-full bg-primary/60 rounded-full group-hover:bg-primary/80"
+                  <span
+                    className="relative block rounded-full"
                     style={{
-                      height:
-                        index === effectiveActiveIndex
-                          ? "100%"
-                          : index < effectiveActiveIndex
-                          ? "100%"
-                          : "0%",
-                      opacity: index === effectiveActiveIndex ? 1 : 0.4,
-                      transition: "all 0.4s ease-out",
+                      width,
+                      height,
+                      background: `rgba(255,255,255,${trackOpacity})`,
+                      transition:
+                        "width 220ms cubic-bezier(0.2, 0.8, 0.2, 1), height 140ms ease, background 200ms ease, box-shadow 200ms ease",
+                      boxShadow: isActive
+                        ? "0 0 12px rgba(255,255,255,0.22)"
+                        : isHovered
+                        ? "0 0 14px rgba(255,255,255,0.18)"
+                        : "0 0 8px rgba(255,255,255,0.10)",
                     }}
-                  />
-                </div>
-
-                <span
-                  className={`hidden md:block text-sm font-light transition-all duration-300 whitespace-nowrap ${
-                    hasBeenSeen
-                      ? isActive
-                        ? "text-foreground/90 opacity-100"
-                        : "text-muted-foreground/40 opacity-70 group-hover:opacity-100 group-hover:text-muted-foreground/60"
-                      : "opacity-0"
-                  }`}
-                >
-                  {hasBeenSeen && `0${index + 1}. ${item.title}`}
-                </span>
-              </div>
-            );
-          })}
+                  >
+                    {/* Fill only once seen */}
+                    <span
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: "rgba(255,255,255,0.88)",
+                        transform: hasBeenSeen ? "scaleX(1)" : "scaleX(0)",
+                        transformOrigin: "left",
+                        opacity: hasBeenSeen ? fillOpacity : 0,
+                        transition: "transform 220ms ease, opacity 160ms ease",
+                      }}
+                    />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Central container */}
@@ -395,7 +483,6 @@ export const PhilosophyReveal = () => {
                     0.95 + opacity * 0.05
                   })`,
                   pointerEvents: opacity > 0.5 ? "auto" : "none",
-                  // Keep transform transition, but avoid opacity transition (opacity is derived each frame)
                   transition: "transform 0.2s ease-out",
                 }}
                 onMouseEnter={() => setHoveredIndex(index)}
