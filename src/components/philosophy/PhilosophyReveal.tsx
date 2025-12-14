@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { philosophyItems } from "./PhilosophyData";
 
-/**
- * POC 5: Sequential Reveal with Morphing Container
- * Single container that morphs and reveals each philosophy one at a time
- * Text fades between items as you scroll
- */
 export const PhilosophyReveal = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
