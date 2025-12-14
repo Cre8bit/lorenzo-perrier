@@ -5,6 +5,8 @@ import { LiquidNavigation } from '@/components/LiquidNavigation';
 import { ExperienceSection } from '@/components/ExperienceSection';
 import { ScrollIndicator } from '@/components/ScrollIndicator';
 import { ContactLink, SocialLinks } from '@/components/SocialLinks';
+import { PhilosophyLineDrawing } from '@/components/philosophy/PhilosophyLineDrawing';
+import { PhilosophySequential } from '@/components/philosophy/PhilosophySequential';
 
 const Index = () => {
   return (
@@ -29,6 +31,12 @@ const Index = () => {
       
       {/* Scroll indicator with glow */}
       <ScrollIndicator />
+      
+      {/* Philosophy Section 1: Line Drawing Animation */}
+      <PhilosophyLineDrawing />
+      
+      {/* Philosophy Section 2: Sequential Reveal with Timer + Overview */}
+      <PhilosophySequential />
       
       {/* Liquid horizontal navigation */}
       <LiquidNavigation />
