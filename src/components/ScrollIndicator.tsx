@@ -70,10 +70,11 @@ export const ScrollIndicator = () => {
   }, [readyToShow]);
 
   const handleClick = () => {
-    const aboutEl = document.getElementById("about");
-    if (aboutEl) {
-      aboutEl.scrollIntoView({ behavior: "smooth" });
-    }
+    // Scroll down by one full viewport height
+    window.scrollTo({
+      top: window.innerHeight,
+      behavior: "smooth",
+    });
     // hide indicator once user triggers the scroll
     setIsVisible(false);
     // reset readiness so it needs 10s again to reappear

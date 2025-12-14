@@ -168,7 +168,7 @@ const ContactButton = () => {
             isHovered ? "text-primary" : "text-muted-foreground/60"
           }`}
         >
-          Contact me
+          Let's connect
         </span>
       </div>
     </a>
