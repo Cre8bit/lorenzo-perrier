@@ -4,8 +4,10 @@ import { CarouselDepth } from './CarouselDepth';
 import { CarouselLiquid } from './CarouselLiquid';
 import { CarouselSplit } from './CarouselSplit';
 import { CarouselParticles } from './CarouselParticles';
+import { CarouselGlide } from './CarouselGlide';
 
 const variants = [
+  { id: 'glide', name: 'Glide', component: CarouselGlide },
   { id: 'orbital', name: 'Orbital', component: CarouselOrbital },
   { id: 'depth', name: 'Depth Stack', component: CarouselDepth },
   { id: 'liquid', name: 'Liquid Morph', component: CarouselLiquid },
@@ -14,7 +16,7 @@ const variants = [
 ];
 
 export const CarouselShowcase: React.FC = () => {
-  const [activeVariant, setActiveVariant] = useState('orbital');
+  const [activeVariant, setActiveVariant] = useState('glide');
 
   const ActiveComponent = variants.find(v => v.id === activeVariant)?.component || CarouselOrbital;
 
