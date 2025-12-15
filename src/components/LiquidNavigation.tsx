@@ -78,8 +78,8 @@ export const LiquidNavigation = () => {
       setDragOffset(0);
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    window.addEventListener("mouseup", handleMouseUp, { passive: true });
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
@@ -194,7 +194,8 @@ export const LiquidNavigation = () => {
                 ? "translateY(-50%) scale(1.5)"
                 : "translateY(-50%) scale(1)",
               opacity: anchors.length === chapters.length ? 1 : 0,
-              transitionProperty: 'left, width, height, background, box-shadow, transform, opacity',
+              transitionProperty:
+                "left, width, height, background, box-shadow, transform, opacity",
             }}
             onMouseDown={handleMouseDown}
           >

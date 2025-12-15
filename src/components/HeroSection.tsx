@@ -9,19 +9,37 @@ export const HeroSection = () => {
   useEffect(() => {
     setIsVisible(true);
 
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    if (prefersReducedMotion) return;
+
+    // Throttle mousemove with rAF
+    let scheduled = false;
+    let lastX = 0;
+    let lastY = 0;
+
     const handleMouseMove = (e: MouseEvent) => {
-      if (!textRef.current) return;
+      lastX = e.clientX;
+      lastY = e.clientY;
 
-      const { clientX, clientY } = e;
-      const { innerWidth, innerHeight } = window;
+      if (scheduled) return;
+      scheduled = true;
 
-      const xOffset = (clientX / innerWidth - 0.5) * 20;
-      const yOffset = (clientY / innerHeight - 0.5) * 15;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        if (!textRef.current) return;
 
-      textRef.current.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+        const { innerWidth, innerHeight } = window;
+        const xOffset = (lastX / innerWidth - 0.5) * 20;
+        const yOffset = (lastY / innerHeight - 0.5) * 15;
+
+        textRef.current.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+      });
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
