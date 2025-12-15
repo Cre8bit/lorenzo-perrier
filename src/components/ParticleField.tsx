@@ -1,4 +1,12 @@
 import { useEffect, useRef, useCallback } from "react";
+import { reportPerformance } from "./PerformanceOverlay";
+
+export interface QualitySettings {
+  maxParticles: number;
+  connectionDistance: number;
+  densityFactor: number;
+  skipConnectionFrames: number;
+}
 
 interface Particle {
   x: number;
@@ -13,6 +21,90 @@ interface Particle {
   spawning: boolean;
 }
 
+// Spatial grid for optimized neighbor lookups
+class SpatialGrid {
+  private cellSize: number;
+  private width: number;
+  private height: number;
+  private cols: number;
+  private rows: number;
+  private grid: Map<number, Particle[]>;
+
+  constructor(width: number, height: number, cellSize: number = 120) {
+    this.cellSize = cellSize;
+    this.width = width;
+    this.height = height;
+    this.cols = Math.ceil(width / cellSize);
+    this.rows = Math.ceil(height / cellSize);
+    this.grid = new Map();
+  }
+
+  private hash(x: number, y: number): number {
+    const col = Math.floor(x / this.cellSize);
+    const row = Math.floor(y / this.cellSize);
+    return row * this.cols + col;
+  }
+
+  clear() {
+    this.grid.clear();
+  }
+
+  insert(particle: Particle) {
+    const key = this.hash(particle.x, particle.y);
+    if (!this.grid.has(key)) {
+      this.grid.set(key, []);
+    }
+    this.grid.get(key)!.push(particle);
+  }
+
+  getNearby(particle: Particle, radius: number): Particle[] {
+    const nearby: Particle[] = [];
+    const col = Math.floor(particle.x / this.cellSize);
+    const row = Math.floor(particle.y / this.cellSize);
+    const range = Math.ceil(radius / this.cellSize);
+
+    for (let dy = -range; dy <= range; dy++) {
+      for (let dx = -range; dx <= range; dx++) {
+        const key = (row + dy) * this.cols + (col + dx);
+        const cell = this.grid.get(key);
+        if (cell) {
+          nearby.push(...cell);
+        }
+      }
+    }
+    return nearby;
+  }
+}
+
+// Detect device capabilities
+const getQualitySettings = () => {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const pixelRatio = window.devicePixelRatio || 1;
+
+  // @ts-expect-error - navigator.deviceMemory is experimental but useful
+  const memory = navigator.deviceMemory;
+  const cores = navigator.hardwareConcurrency || 4;
+
+  const isLowPower = memory && memory < 4;
+  const isSmallScreen = width < 768;
+  const isHighDPI = pixelRatio > 2;
+
+  return {
+    densityFactor: isSmallScreen ? 0.5 : isLowPower ? 0.7 : 1,
+    maxParticles: isLowPower ? 120 : isSmallScreen ? 150 : 200,
+    connectionDistance: isLowPower ? 100 : 120,
+    skipConnectionFrames: isLowPower || cores < 4 ? 2 : 1,
+  };
+};
+
+// Allow external quality settings to be passed in
+let externalQualitySettings: QualitySettings | null = null;
+
+export const setParticleFieldQuality = (settings: QualitySettings) => {
+  externalQualitySettings = settings;
+};
+
 export const ParticleField = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
@@ -20,6 +112,8 @@ export const ParticleField = () => {
   const animationRef = useRef<number>();
   const frameCountRef = useRef(0);
   const isInAboutSectionRef = useRef(false);
+  const spatialGridRef = useRef<SpatialGrid | null>(null);
+  const qualityRef = useRef(getQualitySettings());
 
   const createParticle = useCallback(
     (width: number, height: number, spawning = true): Particle => {
@@ -44,7 +138,12 @@ export const ParticleField = () => {
   const createParticles = useCallback(
     (width: number, height: number) => {
       const particles: Particle[] = [];
-      const count = Math.floor((width * height) / 12000);
+      const quality = qualityRef.current;
+      const baseCount = Math.floor((width * height) / 12000);
+      const count = Math.min(
+        Math.floor(baseCount * quality.densityFactor),
+        quality.maxParticles
+      );
 
       for (let i = 0; i < count; i++) {
         particles.push(createParticle(width, height, false));
@@ -64,11 +163,32 @@ export const ParticleField = () => {
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      // Use external settings if available, otherwise auto-detect
+      qualityRef.current = externalQualitySettings || getQualitySettings();
       particlesRef.current = createParticles(canvas.width, canvas.height);
+      const quality = qualityRef.current;
+      spatialGridRef.current = new SpatialGrid(
+        canvas.width,
+        canvas.height,
+        quality.connectionDistance
+      );
     };
 
+    // Throttle mousemove updates with rAF to avoid flooding with events
+    let mouseScheduled = false;
     const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
+      const px = e.clientX;
+      const py = e.clientY;
+      if (mouseScheduled) {
+        // store latest values; animate loop will pick them up
+        mouseRef.current = { x: px, y: py };
+        return;
+      }
+      mouseScheduled = true;
+      mouseRef.current = { x: px, y: py };
+      requestAnimationFrame(() => {
+        mouseScheduled = false;
+      });
     };
 
     // Observe the experience section to disable mouse effect when scrolled to it
@@ -96,19 +216,70 @@ export const ParticleField = () => {
     window.addEventListener("mousemove", handleMouseMove);
 
     const animate = () => {
+      const frameStart = performance.now();
+
       if (!ctx || !canvas) return;
+      if (document.hidden) {
+        // avoid running heavy updates when page not visible
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      // Apply external quality settings if they changed
+      if (externalQualitySettings) {
+        const current = qualityRef.current;
+        const external = externalQualitySettings;
+
+        // Check if settings changed
+        if (
+          current.maxParticles !== external.maxParticles ||
+          current.connectionDistance !== external.connectionDistance ||
+          current.densityFactor !== external.densityFactor ||
+          current.skipConnectionFrames !== external.skipConnectionFrames
+        ) {
+          qualityRef.current = { ...external };
+
+          // Trim particles if max reduced
+          if (particlesRef.current.length > external.maxParticles) {
+            particlesRef.current = particlesRef.current.slice(
+              0,
+              external.maxParticles
+            );
+          }
+
+          // Recreate spatial grid if connection distance changed
+          if (current.connectionDistance !== external.connectionDistance) {
+            spatialGridRef.current = new SpatialGrid(
+              canvas.width,
+              canvas.height,
+              external.connectionDistance
+            );
+          }
+        }
+      }
+
       frameCountRef.current++;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Spawn new particles periodically
+      // Spawn new particles periodically (respecting quality limits)
+      const spawnSettings = qualityRef.current;
       if (
         frameCountRef.current % 15 === 0 &&
-        particlesRef.current.length < 200
+        particlesRef.current.length < spawnSettings.maxParticles
       ) {
         particlesRef.current.push(
           createParticle(canvas.width, canvas.height, true)
         );
+      }
+
+      const settings = qualityRef.current;
+      const grid = spatialGridRef.current;
+
+      // Rebuild spatial grid
+      if (grid) {
+        grid.clear();
+        particlesRef.current.forEach((p) => grid.insert(p));
       }
 
       particlesRef.current = particlesRef.current.filter((particle) => {
@@ -119,18 +290,23 @@ export const ParticleField = () => {
         const maxMouseDistance = 250;
         const nearMouse = mouseDistance < maxMouseDistance;
 
-        // Check if particle has connections (is part of a constellation)
+        // Check if particle has connections using spatial grid (O(1) instead of O(n))
         let connectionCount = 0;
-        particlesRef.current.forEach((other) => {
-          if (other !== particle) {
-            const dx = particle.x - other.x;
-            const dy = particle.y - other.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < 120) {
-              connectionCount++;
+        if (grid) {
+          const nearby = grid.getNearby(particle, settings.connectionDistance);
+          for (const other of nearby) {
+            if (other !== particle) {
+              const dx = particle.x - other.x;
+              const dy = particle.y - other.y;
+              const distSq = dx * dx + dy * dy;
+              const maxDistSq =
+                settings.connectionDistance * settings.connectionDistance;
+              if (distSq < maxDistSq) {
+                connectionCount++;
+              }
             }
           }
-        });
+        }
 
         // Life cycle - connected particles and particles near mouse age slower
         let ageRate = 1;
@@ -227,25 +403,54 @@ export const ParticleField = () => {
         return true;
       });
 
-      // Draw connections
-      particlesRef.current.forEach((p1, i) => {
-        particlesRef.current.slice(i + 1).forEach((p2) => {
-          const dx = p1.x - p2.x;
-          const dy = p1.y - p2.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+      // Draw connections (skip frames on low-power devices)
+      const connSettings = qualityRef.current;
+      if (
+        frameCountRef.current % connSettings.skipConnectionFrames === 0 &&
+        grid
+      ) {
+        const drawn = new Set<string>();
+        particlesRef.current.forEach((p1) => {
+          const nearby = grid.getNearby(p1, connSettings.connectionDistance);
+          nearby.forEach((p2) => {
+            if (p1 === p2) return;
 
-          if (distance < 120) {
-            const opacity =
-              0.2 * (1 - distance / 120) * Math.min(p1.opacity, p2.opacity);
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `hsla(185, 45%, 65%, ${opacity})`;
-            ctx.lineWidth = 1.2;
-            ctx.stroke();
-          }
+            // Avoid drawing same connection twice
+            const key =
+              p1.x < p2.x
+                ? `${p1.x},${p1.y}-${p2.x},${p2.y}`
+                : `${p2.x},${p2.y}-${p1.x},${p1.y}`;
+            if (drawn.has(key)) return;
+            drawn.add(key);
+
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            const distSq = dx * dx + dy * dy;
+            const maxDistSq =
+              connSettings.connectionDistance * connSettings.connectionDistance;
+
+            if (distSq < maxDistSq) {
+              const distance = Math.sqrt(distSq);
+              const opacity =
+                0.2 *
+                (1 - distance / connSettings.connectionDistance) *
+                Math.min(p1.opacity, p2.opacity);
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.strokeStyle = `hsla(185, 45%, 65%, ${opacity})`;
+              ctx.lineWidth = 1.2;
+              ctx.stroke();
+            }
+          });
         });
-      });
+      }
+
+      // Report performance every 60 frames
+      if (frameCountRef.current % 60 === 0) {
+        const duration = performance.now() - frameStart;
+        reportPerformance("ParticleField", duration);
+      }
 
       animationRef.current = requestAnimationFrame(animate);
     };

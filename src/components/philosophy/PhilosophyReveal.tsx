@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { philosophyItems } from "./PhilosophyData";
+import { reportPerformance } from "../PerformanceOverlay";
 
 export const PhilosophyReveal = () => {
   // Reveal opacity (0..1) based on entering the section
@@ -111,7 +112,11 @@ export const PhilosophyReveal = () => {
       tickingRef.current = true;
 
       requestAnimationFrame(() => {
+        const scrollStart = performance.now();
         tickingRef.current = false;
+
+        // Skip heavy calculations when page is hidden
+        if (document.hidden) return;
 
         const op = computeRevealOpacity(el);
         setRevealOpacity(op);
@@ -171,6 +176,12 @@ export const PhilosophyReveal = () => {
         // After reveal: sync internal progress (skip if programmatic lock is active)
         if (!isProgrammaticScrollRef.current) {
           syncProgressFromScroll();
+        }
+
+        // Report scroll performance
+        const scrollDuration = performance.now() - scrollStart;
+        if (scrollDuration > 8) {
+          reportPerformance("PhilosophyReveal:scroll", scrollDuration);
         }
       });
     };

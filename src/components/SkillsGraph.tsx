@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
+import { reportPerformance } from "./PerformanceOverlay";
 
 interface SkillNode {
   id: string;
@@ -112,14 +113,33 @@ export const SkillsGraph = ({
     if (!ctx) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+    // Lower DPR for performance (canvas animation is heavy)
+    // @ts-expect-error - experimental API
+    const deviceMemory = navigator.deviceMemory;
+    const dpr = Math.min(
+      window.devicePixelRatio || 1,
+      deviceMemory && deviceMemory < 4 ? 1 : 1.5
+    );
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+    ctx.scale(dpr, dpr);
 
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
+    let frameCount = 0;
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const frameStart = performance.now();
+
+      // Pause when page is hidden
+      if (document.hidden) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
       const nodes = nodesRef.current;
       const time = Date.now() * 0.001;
@@ -130,19 +150,23 @@ export const SkillsGraph = ({
         nodeA.vx = 0;
         nodeA.vy = 0;
 
-        // Repulsion from other nodes - keep them apart
-        nodes.forEach((nodeB, j) => {
-          if (i === j) return;
-
+        // Repulsion from other nodes - keep them apart (only check forward)
+        nodes.slice(i + 1).forEach((nodeB) => {
           const dx = nodeA.x - nodeB.x;
           const dy = nodeA.y - nodeB.y;
-          const distance = Math.hypot(dx, dy);
-          const minDistance = 100; // Minimum distance between nodes
+          const distSq = dx * dx + dy * dy;
+          const minDistance = 100;
+          const minDistSq = minDistance * minDistance;
 
-          if (distance < minDistance && distance > 0) {
+          if (distSq < minDistSq && distSq > 0) {
+            const distance = Math.sqrt(distSq);
             const force = (minDistance - distance) / minDistance;
-            nodeA.vx += (dx / distance) * force * 2;
-            nodeA.vy += (dy / distance) * force * 2;
+            const fx = (dx / distance) * force * 2;
+            const fy = (dy / distance) * force * 2;
+            nodeA.vx += fx;
+            nodeA.vy += fy;
+            nodeB.vx -= fx;
+            nodeB.vy -= fy;
           }
         });
 
@@ -255,6 +279,13 @@ export const SkillsGraph = ({
         ctx.lineWidth = 2;
         ctx.stroke();
       });
+
+      // Report performance every 60 frames
+      frameCount++;
+      if (frameCount % 60 === 0) {
+        const duration = performance.now() - frameStart;
+        reportPerformance("SkillsGraph", duration);
+      }
 
       animationRef.current = requestAnimationFrame(animate);
     };

@@ -6,6 +6,7 @@ import { ExperienceSection } from "@/components/ExperienceSection";
 import { ScrollIndicator } from "@/components/ScrollIndicator";
 import { ContactLink, SocialLinks } from "@/components/SocialLinks";
 import { PhilosophyReveal } from "@/components/philosophy/PhilosophyReveal";
+import { CarouselGlide } from "@/components/carousel/CarouselGlide";
 
 const Index = () => {
   return (
@@ -34,16 +35,18 @@ const Index = () => {
       {/* Philosophy Section 2: Sequential Reveal with Timer + Overview */}
       <div className="-mt-[80vh]">
         <PhilosophyReveal />
-      
       </div>
+
+      {/* Carousel Showcase Section */}
+      <CarouselGlide />
+
       {/* Scrollable experience/resume section */}
       <div className="-mt-[20vh]">
-      <ExperienceSection />
+        <ExperienceSection />
       </div>
 
       {/* Liquid horizontal navigation */}
       <LiquidNavigation />
-
     </main>
   );
 };

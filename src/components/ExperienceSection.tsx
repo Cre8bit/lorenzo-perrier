@@ -274,28 +274,39 @@ export const ExperienceSection = () => {
   }, [visibleCards]);
 
   useEffect(() => {
+    // Throttle scroll with rAF
+    let ticking = false;
     const handleScroll = () => {
-      const aboutTop = aboutRef.current?.getBoundingClientRect().top || 0;
-      const experienceTop =
-        experienceRef.current?.getBoundingClientRect().top || 0;
-      const educationTop =
-        educationRef.current?.getBoundingClientRect().top || 0;
-      const projectsTop = projectsRef.current?.getBoundingClientRect().top || 0;
+      if (ticking) return;
+      ticking = true;
 
-      const windowMid = window.innerHeight / 2;
+      requestAnimationFrame(() => {
+        ticking = false;
+        if (document.hidden) return;
 
-      if (projectsTop < windowMid) {
-        setActiveSection("projects");
-      } else if (educationTop < windowMid) {
-        setActiveSection("education");
-      } else if (experienceTop < windowMid) {
-        setActiveSection("experience");
-      } else {
-        setActiveSection("about");
-      }
+        const aboutTop = aboutRef.current?.getBoundingClientRect().top || 0;
+        const experienceTop =
+          experienceRef.current?.getBoundingClientRect().top || 0;
+        const educationTop =
+          educationRef.current?.getBoundingClientRect().top || 0;
+        const projectsTop =
+          projectsRef.current?.getBoundingClientRect().top || 0;
+
+        const windowMid = window.innerHeight / 2;
+
+        if (projectsTop < windowMid) {
+          setActiveSection("projects");
+        } else if (educationTop < windowMid) {
+          setActiveSection("education");
+        } else if (experienceTop < windowMid) {
+          setActiveSection("experience");
+        } else {
+          setActiveSection("about");
+        }
+      });
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
 
     return () => window.removeEventListener("scroll", handleScroll);

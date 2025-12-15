@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { reportPerformance } from "./PerformanceOverlay";
 
 type Dot = {
   x: number;
@@ -46,16 +47,28 @@ export function ConstellationCanvas({
     if (!parent) return;
 
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // Smart DPR: reduce on low-memory devices to save GPU
+      // @ts-expect-error - experimental API
+      const deviceMemory = navigator.deviceMemory;
+      const baseDpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(
+        baseDpr,
+        deviceMemory && deviceMemory < 4 ? 1.25 : 1.5
+      );
+
       const rect = parent.getBoundingClientRect();
       canvas.width = Math.max(1, Math.floor(rect.width * dpr));
       canvas.height = Math.max(1, Math.floor(rect.height * dpr));
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
 
-      // initialize dots if empty
+      // initialize dots if empty (reduce count on small screens)
       if (dotsRef.current.length === 0) {
-        const dots: Dot[] = Array.from({ length: DOT_COUNT }, () => {
+        const isSmallScreen = window.innerWidth < 768;
+        const dotCount = isSmallScreen
+          ? Math.floor(DOT_COUNT * 0.7)
+          : DOT_COUNT;
+        const dots: Dot[] = Array.from({ length: dotCount }, () => {
           const x = Math.random() * canvas.width;
           const y = Math.random() * canvas.height;
           return { x, y, tx: x, ty: y, vx: 0, vy: 0 };
@@ -106,8 +119,10 @@ export function ConstellationCanvas({
     }
 
     startRef.current = performance.now();
+    let frameCount = 0;
 
     const tick = (now: number) => {
+      const tickStart = performance.now();
       const t = (now - startRef.current) / 1100; // match transition duration
       const fadeIn = smoothstep(t / 0.25); // first 25%
       const fadeOut = smoothstep((1 - t) / 0.25); // last 25%
@@ -186,6 +201,13 @@ export function ConstellationCanvas({
 
       ctx.restore();
 
+      // Report performance every 30 frames
+      frameCount++;
+      if (frameCount % 30 === 0) {
+        const duration = performance.now() - tickStart;
+        reportPerformance("ConstellationCanvas", duration);
+      }
+
       if (t < 1) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
@@ -195,11 +217,28 @@ export function ConstellationCanvas({
       }
     };
 
+    // Pause animation when the page/tab is hidden to save CPU
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      } else {
+        // restart if still active
+        if (active && rafRef.current == null) {
+          // resync timing to avoid huge jumps
+          startRef.current = performance.now();
+          rafRef.current = requestAnimationFrame(tick);
+        }
+      }
+    };
+
     rafRef.current = requestAnimationFrame(tick);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [active]);
 

@@ -5,25 +5,42 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import CarouselPOC from "./pages/CarouselPOC";
+import {
+  PerformanceOverlay,
+  usePerformanceOverlay,
+} from "./components/PerformanceOverlay";
+import {
+  QualityControls,
+  useQualityControls,
+} from "./components/QualityControls";
+import { setParticleFieldQuality } from "./components/ParticleField";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/carousel-poc" element={<CarouselPOC />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const perfEnabled = usePerformanceOverlay();
+  const qualityEnabled = useQualityControls();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <PerformanceOverlay enabled={perfEnabled} />
+        <QualityControls
+          enabled={qualityEnabled}
+          onSettingsChange={setParticleFieldQuality}
+        />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
