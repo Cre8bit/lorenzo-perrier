@@ -48,6 +48,19 @@
     
     --glow-primary: 185 50% 55% / 0.15;
     --glow-soft: 185 40% 45% / 0.08;
+
+    /* Carousel tint tokens (subtle, sober) */
+    --carousel-tint-1: 160 35% 48%;
+    --carousel-tint-1-border: 160 40% 58%;
+    --carousel-tint-1-glow: 160 35% 42%;
+
+    --carousel-tint-2: 200 22% 50%;
+    --carousel-tint-2-border: 200 25% 60%;
+    --carousel-tint-2-glow: 200 22% 44%;
+
+    --carousel-tint-3: 280 26% 56%;
+    --carousel-tint-3-border: 280 28% 66%;
+    --carousel-tint-3-glow: 280 26% 50%;
     
     --gradient-ambient: linear-gradient(
       135deg,
