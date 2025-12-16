@@ -8,6 +8,10 @@ import { ContactLink, SocialLinks } from "@/components/SocialLinks";
 import { PhilosophyReveal } from "@/components/philosophy/PhilosophyReveal";
 import { CarouselGlide } from "@/components/carousel/CarouselGlide";
 import { ScrollTransition } from "@/components/ScrollTransition";
+import { TransitionRibbon } from "@/components/transitions/TransitionRibbon";
+import { TransitionOrbit } from "@/components/transitions/TransitionOrbit";
+import { TransitionPulseGate } from "@/components/transitions/TransitionPulseGate";
+import { TransitionSoftDivider } from "@/components/transitions/TransitionSoftDivider";
 
 const Index = () => {
   return (
@@ -41,8 +45,12 @@ const Index = () => {
       {/* Carousel Showcase Section */}
       <CarouselGlide />
 
-      {/* Creative scroll transition */}
+      {/* Creative scroll transitions (POCs) */}
       <ScrollTransition />
+      <TransitionRibbon />
+      <TransitionOrbit />
+      <TransitionPulseGate />
+      <TransitionSoftDivider />
 
       {/* Scrollable experience/resume section */}
       <div className="-mt-[10vh]">
