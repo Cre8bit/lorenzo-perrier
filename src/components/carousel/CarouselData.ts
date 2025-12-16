@@ -4,6 +4,9 @@ export interface CarouselContext {
   problem: string;
   signals: string[];
   visualType: 'flow' | 'network' | 'layers';
+  // Back card content
+  backTitle: string;
+  backDetails: string[];
 }
 
 export const carouselContexts: CarouselContext[] = [
@@ -13,6 +16,12 @@ export const carouselContexts: CarouselContext[] = [
     problem: 'Building reliable, maintainable systems that serve thousands of users under real constraints.',
     signals: ['async workflows', 'scale', 'constraints'],
     visualType: 'flow',
+    backTitle: 'What this looks like',
+    backDetails: [
+      'Event-driven architectures handling millions of events',
+      'Zero-downtime deployments with graceful rollbacks',
+      'Observability pipelines for real-time debugging',
+    ],
   },
   {
     id: 'intelligence',
@@ -20,6 +29,12 @@ export const carouselContexts: CarouselContext[] = [
     problem: 'Designing reasoning architectures where agents coordinate, adapt, and execute with precision.',
     signals: ['agents', 'execution graphs', 'real-time'],
     visualType: 'network',
+    backTitle: 'What this looks like',
+    backDetails: [
+      'Multi-agent coordination with shared memory',
+      'Dynamic task graphs with real-time replanning',
+      'Hybrid reasoning: symbolic + neural approaches',
+    ],
   },
   {
     id: 'perception',
@@ -27,6 +42,12 @@ export const carouselContexts: CarouselContext[] = [
     problem: 'Creating systems that perceive, process, and respond faster than conscious thought.',
     signals: ['LiDAR', 'physics', 'real-time'],
     visualType: 'layers',
+    backTitle: 'What this looks like',
+    backDetails: [
+      'Sub-millisecond sensor fusion pipelines',
+      'GPU-accelerated point cloud processing',
+      'Predictive state estimation under uncertainty',
+    ],
   },
 ];
 

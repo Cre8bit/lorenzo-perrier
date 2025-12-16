@@ -7,6 +7,7 @@ import { ScrollIndicator } from "@/components/ScrollIndicator";
 import { ContactLink, SocialLinks } from "@/components/SocialLinks";
 import { PhilosophyReveal } from "@/components/philosophy/PhilosophyReveal";
 import { CarouselGlide } from "@/components/carousel/CarouselGlide";
+import { ScrollTransition } from "@/components/ScrollTransition";
 
 const Index = () => {
   return (
@@ -40,8 +41,11 @@ const Index = () => {
       {/* Carousel Showcase Section */}
       <CarouselGlide />
 
+      {/* Creative scroll transition */}
+      <ScrollTransition />
+
       {/* Scrollable experience/resume section */}
-      <div className="-mt-[20vh]">
+      <div className="-mt-[10vh]">
         <ExperienceSection />
       </div>
 
