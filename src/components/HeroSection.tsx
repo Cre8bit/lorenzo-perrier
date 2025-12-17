@@ -46,7 +46,7 @@ export const HeroSection = () => {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen flex items-center justify-center"
+      className="relative h-screen flex items-center justify-center"
       style={{ zIndex: 10 }}
     >
       <div

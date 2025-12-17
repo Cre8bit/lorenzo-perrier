@@ -6,6 +6,9 @@ export const PhilosophyReveal = () => {
   // Reveal opacity (0..1) based on entering the section
   const [revealOpacity, setRevealOpacity] = useState(0);
 
+  // Exit opacity for fading out content as carousel approaches
+  const [exitOpacity, setExitOpacity] = useState(1);
+
   // Single rendered progress for internal transitions (0..1) after reveal completes
   const [progress, setProgress] = useState(0);
 
@@ -64,6 +67,18 @@ export const PhilosophyReveal = () => {
     return smoothstep(fadeRange);
   };
 
+  const computeExitOpacity = (section: HTMLElement) => {
+    const p = computeSectionProgress(section);
+    const startFade = 0.93;
+    const endFade = 0.98;
+
+    if (p <= startFade) return 1;
+    if (p >= endFade) return 0;
+
+    const t = (p - startFade) / (endFade - startFade);
+    return 1 - smoothstep(t);
+  };
+
   // Derived active index (do NOT store separately)
   const derivedActiveIndex = useMemo(() => {
     const idx = Math.min(n - 1, Math.floor(progress * n));
@@ -80,7 +95,7 @@ export const PhilosophyReveal = () => {
   };
 
   // Total internal scroll distance after reveal completes
-  const internalScrollDistance = () => window.innerHeight * 4;
+  const internalScrollDistance = () => window.innerHeight * 5;
 
   // Sync progress from current scroll position (after reveal completed)
   const syncProgressFromScroll = () => {
@@ -120,6 +135,10 @@ export const PhilosophyReveal = () => {
 
         const op = computeRevealOpacity(el);
         setRevealOpacity(op);
+
+        // Compute exit opacity (for fading out as carousel approaches)
+        const exitOp = computeExitOpacity(el);
+        setExitOpacity(exitOp);
 
         // manual scroll state (only when not programmatic)
         if (!isProgrammaticScrollRef.current) {
@@ -222,7 +241,7 @@ export const PhilosophyReveal = () => {
     const itemRange = itemEnd - itemStart;
 
     // Small overlap prevents blank frames at exact boundaries
-    const overlap = itemRange * 0.04; // tune 0.02–0.08
+    const overlap = itemRange * 0.02; // tune 0.02–0.08
     const start = itemStart - overlap;
     const end = itemEnd + overlap;
 
@@ -337,24 +356,36 @@ export const PhilosophyReveal = () => {
     <section
       id="philosophy"
       ref={sectionRef}
-      className="min-h-[600vh] relative"
+      className="min-h-[700vh] relative -mt-[100vh]"
     >
       {/* Sticky container */}
       <div
-        className="sticky top-0 h-screen flex items-center justify-center px-8 transition-opacity duration-500 ease-linear"
+        className="sticky top-0 h-screen flex items-center justify-center px-4 md:px-8 transition-opacity duration-300 ease-linear"
         style={{ opacity: revealOpacity }}
       >
-        {/* Headline */}
+        {/* Headline - stays visible */}
         <h2
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-body text-xs tracking-[0.3em] uppercase text-foreground/70 top-40 text-center transition-opacity duration-500 ease-linear z-20"
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-body text-xs tracking-[0.3em] uppercase text-foreground/70 top-24 md:top-40 text-center transition-opacity duration-300 ease-linear z-20 px-4"
           style={{ opacity: revealOpacity }}
         >
           What I Build
         </h2>
 
+        {/* Headline - becaomes visible only at end */}
+        <h2
+          className="pointer-events-none absolute font-body text-xs tracking-[0.3em] uppercase text-foreground/70 top-24 md:top-40 text-center transition-opacity duration-300 ease-linear z-20 px-4"
+          style={{
+            opacity: 1 - exitOpacity,
+            transform: `translateY(clamp(12px, 2.5vh, 32px))`,
+          }}
+        >
+          Is
+        </h2>
+
         {/* Expandable wave stepper: LEFT-ALIGNED bars, wave is only elongation + thickness/glow */}
         <div
-          className="absolute left-10 top-1/2 -translate-y-1/2"
+          className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2"
+          style={{ opacity: exitOpacity }}
           onMouseEnter={() => setStepperOpen(true)}
           onMouseLeave={() => {
             setStepperOpen(false);
@@ -462,23 +493,25 @@ export const PhilosophyReveal = () => {
           </div>
         </div>
 
+        {/* Background glow (kept outside fading container so it remains visible) */}
+        <div
+          className="absolute inset-0 rounded-3xl pointer-events-none"
+          style={{
+            background: `radial-gradient(ellipse at center, hsl(var(--primary) / ${
+              0.05 + progress * 0.1
+            }) 0%, transparent 70%)`,
+            transform: `scale(${1 + progress * 0.2})`,
+            transition: "transform 0.3s ease-out",
+            opacity: revealOpacity,
+            zIndex: 10,
+          }}
+        />
+
         {/* Central container */}
         <div
-          className="max-w-2xl w-full relative"
-          style={{ minHeight: "300px" }}
+          className="max-w-2xl w-full relative px-4"
+          style={{ minHeight: "300px", opacity: exitOpacity, zIndex: 20 }}
         >
-          {/* Background glow */}
-          <div
-            className="absolute inset-0 rounded-3xl"
-            style={{
-              background: `radial-gradient(ellipse at center, hsl(var(--primary) / ${
-                0.05 + progress * 0.1
-              }) 0%, transparent 70%)`,
-              transform: `scale(${1 + progress * 0.2})`,
-              transition: "transform 0.3s ease-out",
-            }}
-          />
-
           {/* Items */}
           {philosophyItems.map((item, index) => {
             const opacity = getItemOpacity(index);
@@ -487,7 +520,7 @@ export const PhilosophyReveal = () => {
             return (
               <div
                 key={index}
-                className="absolute inset-0 flex flex-col items-center justify-center text-center p-12 cursor-default"
+                className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 md:p-12 cursor-default"
                 style={{
                   opacity,
                   transform: `translateY(${(1 - opacity) * 20}px) scale(${
@@ -501,7 +534,7 @@ export const PhilosophyReveal = () => {
               >
                 {/* Number */}
                 <span
-                  className="text-8xl font-extralight text-primary/10 mb-4"
+                  className="text-6xl md:text-8xl font-extralight text-primary/10 mb-3 md:mb-4"
                   style={{
                     transform: `translateY(${(1 - opacity) * -20}px)`,
                     transition: "transform 0.3s ease-out",
@@ -516,13 +549,13 @@ export const PhilosophyReveal = () => {
                 </span>
 
                 {/* Title */}
-                <h3 className="text-3xl font-light text-foreground mb-6">
+                <h3 className="text-2xl md:text-3xl font-light text-foreground mb-4 md:mb-6">
                   {item.title}
                 </h3>
 
                 {/* Description */}
                 <p
-                  className={`text-lg font-light leading-relaxed max-w-md transition-all duration-700 ${
+                  className={`text-base md:text-lg font-light leading-relaxed max-w-md transition-all duration-700 ${
                     isHovered
                       ? "text-muted-foreground/90 blur-0"
                       : "text-muted-foreground/70 blur-[0.3px]"
@@ -536,14 +569,14 @@ export const PhilosophyReveal = () => {
         </div>
 
         {/* Section label */}
-        <div className="absolute right-8 top-1/2 -translate-y-1/2">
+        <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 hidden md:block">
           <span
             className="text-xs uppercase tracking-[0.3em] text-muted-foreground/40 writing-mode-vertical"
             style={{
               writingMode: "vertical-rl",
               textOrientation: "mixed",
-              opacity: revealOpacity,
-              transition: "opacity 0.5s linear",
+              opacity: revealOpacity * exitOpacity,
+              transition: "opacity 240ms ease-out",
             }}
           >
             Philosophy

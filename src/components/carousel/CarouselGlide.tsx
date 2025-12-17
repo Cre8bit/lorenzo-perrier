@@ -31,7 +31,11 @@ function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
-function transformFor(slot: "left" | "center" | "right", t: number, dir: -1 | 1) {
+function transformFor(
+  slot: "left" | "center" | "right",
+  t: number,
+  dir: -1 | 1
+) {
   // Base positions
   const X = 320;
   const base = {
@@ -97,7 +101,17 @@ function CardLayer(props: {
   onFlip?: () => void;
   onClick?: () => void;
 }) {
-  const { index, slot, t, dir, isAnimating, isActive, isFlipped, onFlip, onClick } = props;
+  const {
+    index,
+    slot,
+    t,
+    dir,
+    isAnimating,
+    isActive,
+    isFlipped,
+    onFlip,
+    onClick,
+  } = props;
   const tint = cardTints[index % cardTints.length];
   const context = carouselContexts[index];
   const m = isAnimating ? transformFor(slot, t, dir) : transformFor(slot, 0, 1);
@@ -119,7 +133,13 @@ function CardLayer(props: {
         zIndex,
       }}
     >
-      <GlassCarouselCard context={context} tint={tint} isActive={isActive} isFlipped={isFlipped} onFlip={onFlip} />
+      <GlassCarouselCard
+        context={context}
+        tint={tint}
+        isActive={isActive}
+        isFlipped={isFlipped}
+        onFlip={onFlip}
+      />
     </div>
   );
 }
@@ -132,10 +152,11 @@ export const CarouselGlide: React.FC = () => {
 
   const clearAllFlips = useCallback(() => setFlippedCards(new Set()), []);
 
-  const { activeIndex, direction, isAnimating, t, next, prev, goTo } = useCarouselTransition(len, {
-    durationMs: 620,
-    onBeforeChange: clearAllFlips,
-  });
+  const { activeIndex, direction, isAnimating, t, next, prev, goTo } =
+    useCarouselTransition(len, {
+      durationMs: 620,
+      onBeforeChange: clearAllFlips,
+    });
 
   const { progress, reset } = useAutoplayProgress({
     enabled: isAutoPlaying,
@@ -156,7 +177,8 @@ export const CarouselGlide: React.FC = () => {
 
   return (
     <section
-      className="min-h-[75vh] relative overflow-hidden flex flex-col items-center justify-center py-16"
+      className="min-h-[75vh] relative overflow-visible flex flex-col items-center justify-center py-16 -mt-[83vh]"
+      style={{ zIndex: 40 }}
       onMouseEnter={() => {
         setIsAutoPlaying(false);
         reset();
@@ -166,28 +188,20 @@ export const CarouselGlide: React.FC = () => {
         reset();
       }}
     >
-      {/* Background crossfade (stable + minimal) */}
-      <div className="absolute inset-0" style={{ background: "hsl(var(--background))" }} />
-      <div
-        className="absolute inset-0 transition-opacity duration-700"
-        style={{
-          opacity: 1,
-          background: `radial-gradient(ellipse 80% 60% at 50% 40%, ${activeTint.glow}18 0%, transparent 70%), radial-gradient(ellipse 40% 50% at 15% 50%, hsl(var(--primary) / 0.05) 0%, transparent 60%), radial-gradient(ellipse 40% 50% at 85% 50%, hsl(var(--primary) / 0.04) 0%, transparent 60%)`,
-        }}
-      />
-
       {/* Floating accent orbs (very low opacity) */}
       <div
-        className="absolute w-[600px] h-[600px] rounded-full opacity-[0.035] blur-3xl pointer-events-none"
+        className="absolute w-[400px] h-[400px] rounded-full opacity-[0.02] blur-3xl pointer-events-none"
         style={{
           background: `radial-gradient(circle, ${activeTint.bg} 0%, transparent 70%)`,
-          left: "10%",
-          top: "20%",
+          left: "15%",
+          top: "30%",
         }}
       />
 
       <div className="relative z-10 mb-12">
-        <p className="text-muted-foreground/60 text-sm tracking-widest uppercase text-center">{sectionTitle}</p>
+        <h2 className="text-sm tracking-widest text-primary uppercase text-center">
+          {sectionTitle}
+        </h2>
       </div>
 
       <div className="relative z-10 w-full max-w-5xl h-[400px] flex items-center justify-center">
@@ -215,7 +229,10 @@ export const CarouselGlide: React.FC = () => {
           <ChevronRight className="w-5 h-5 text-foreground/70" />
         </button>
 
-        <div className="relative w-full h-full" style={{ perspective: "1200px" }}>
+        <div
+          className="relative w-full h-full"
+          style={{ perspective: "1200px" }}
+        >
           <CardLayer
             index={indices.left}
             slot="left"
@@ -284,7 +301,9 @@ export const CarouselGlide: React.FC = () => {
               style={{
                 width: isActive ? 56 : 20,
                 transition: "width 300ms var(--ease-smooth)",
-                background: isActive ? `${tint.bg}18` : "hsl(var(--muted) / 0.25)",
+                background: isActive
+                  ? `${tint.bg}18`
+                  : "hsl(var(--muted) / 0.25)",
               }}
               aria-label={`Go to card ${idx + 1}`}
             >
@@ -300,7 +319,10 @@ export const CarouselGlide: React.FC = () => {
                   }}
                 />
               ) : (
-                <div className="absolute inset-0 opacity-40 hover:opacity-70 transition-opacity" style={{ background: tint.bg }} />
+                <div
+                  className="absolute inset-0 opacity-40 hover:opacity-70 transition-opacity"
+                  style={{ background: tint.bg }}
+                />
               )}
             </button>
           );

@@ -191,25 +191,29 @@ export const ParticleField = () => {
       });
     };
 
-    // Observe the experience section to disable mouse effect when scrolled to it
-    const experienceSection = document.querySelector(
-      'section[class*="min-h-screen"]'
-    );
+    // Observe the hero section to disable mouse effect when scrolled past it
     let observer: IntersectionObserver | null = null;
 
-    if (experienceSection) {
-      observer = new IntersectionObserver(
-        ([entry]) => {
-          // Enable mouse attraction when experience section is NOT visible
-          isInAboutSectionRef.current = !(
-            entry.isIntersecting && entry.intersectionRatio > 0.3
-          );
-        },
-        { threshold: [0, 0.3, 1] }
-      );
+    // Wait for DOM to be ready
+    const observeHero = () => {
+      const heroSection = document.querySelector("section.h-screen");
 
-      observer.observe(experienceSection);
-    }
+      if (heroSection) {
+        observer = new IntersectionObserver(
+          ([entry]) => {
+            // Disable mouse attraction when hero is no longer significantly visible
+            isInAboutSectionRef.current = entry.intersectionRatio < 0.3;
+          },
+          { threshold: [0, 0.3, 0.5, 1] }
+        );
+
+        observer.observe(heroSection);
+      }
+    };
+
+    // Call immediately and also set a short timeout as fallback
+    observeHero();
+    const timeoutId = setTimeout(observeHero, 100);
 
     resize();
     window.addEventListener("resize", resize);
@@ -460,6 +464,7 @@ export const ParticleField = () => {
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handleMouseMove);
+      clearTimeout(timeoutId);
       if (observer) {
         observer.disconnect();
       }
