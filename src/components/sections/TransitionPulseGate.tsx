@@ -8,7 +8,7 @@ export const TransitionPulseGate: React.FC = () => {
   const barH = 10;
 
   return (
-    <section ref={ref} className="relative min-h-[42vh] flex items-center justify-center overflow-hidden">
+    <section ref={ref} className="relative min-h-[1vh] flex items-center justify-center overflow-hidden">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{

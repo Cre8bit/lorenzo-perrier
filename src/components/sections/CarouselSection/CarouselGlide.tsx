@@ -193,8 +193,18 @@ export const CarouselGlide: React.FC = () => {
         }}
       />
 
-      <div className="relative z-10 mb-12">
-        <h2 className="text-sm tracking-widest text-primary uppercase text-center">
+      <div
+        className="absolute left-0 right-0 z-10"
+        style={{ top: "var(--carousel-title-offset)" }}
+      >
+        <h2
+          className="text-primary uppercase text-center px-4"
+          style={{
+            fontSize: "var(--section-title-font-size)",
+            letterSpacing: "var(--section-title-tracking)",
+            lineHeight: "var(--section-title-line-height)",
+          }}
+        >
           {sectionTitle}
         </h2>
       </div>

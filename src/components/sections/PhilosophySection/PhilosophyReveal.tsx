@@ -360,17 +360,27 @@ export const PhilosophyReveal = () => {
       >
         {/* Headline - stays visible */}
         <h2
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-body text-xs tracking-[0.3em] uppercase text-foreground/70 top-24 md:top-40 text-center transition-opacity duration-300 ease-linear z-20 px-4"
-          style={{ opacity: revealOpacity }}
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-body uppercase text-foreground/70 text-center transition-opacity duration-300 ease-linear z-20 px-4"
+          style={{
+            opacity: revealOpacity,
+            top: "var(--section-title-top)",
+            fontSize: "var(--section-title-font-size)",
+            letterSpacing: "var(--section-title-tracking)",
+            lineHeight: "var(--section-title-line-height)",
+          }}
         >
           What I Build
         </h2>
 
         {/* Headline - becaomes visible only at end */}
         <h2
-          className="pointer-events-none absolute font-body text-xs tracking-[0.3em] uppercase text-foreground/70 top-24 md:top-40 text-center transition-opacity duration-300 ease-linear z-20 px-4"
+          className="pointer-events-none absolute font-body uppercase text-foreground/70 text-center transition-opacity duration-300 ease-linear z-20 px-4"
           style={{
             opacity: 1 - exitOpacity,
+            top: "var(--section-title-top)",
+            fontSize: "var(--section-title-font-size)",
+            letterSpacing: "var(--section-title-tracking)",
+            lineHeight: "var(--section-title-line-height)",
             transform: `translateY(clamp(12px, 2.5vh, 32px))`,
           }}
         >
@@ -492,12 +502,13 @@ export const PhilosophyReveal = () => {
         <div
           className="absolute inset-0 rounded-3xl pointer-events-none"
           style={{
-            background: `radial-gradient(ellipse at center, hsl(var(--primary) / ${
+            background: `radial-gradient(ellipse ${50 + progress * 20}% ${
+              60 + progress * 20
+            }% at center, hsl(var(--primary) / ${
               0.05 + progress * 0.1
             }) 0%, transparent 70%)`,
-            transform: `scale(${1 + progress * 0.2})`,
-            transition: "transform 0.3s ease-out",
             opacity: revealOpacity,
+            transition: "background 0.3s ease-out",
             zIndex: 10,
           }}
         />
