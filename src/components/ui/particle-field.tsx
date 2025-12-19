@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { reportPerformance } from "./PerformanceOverlay";
+import { reportPerformance } from "./performance-overlay";
 
 export interface QualitySettings {
   maxParticles: number;

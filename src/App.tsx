@@ -8,12 +8,12 @@ import NotFound from "./pages/NotFound";
 import {
   PerformanceOverlay,
   usePerformanceOverlay,
-} from "./components/PerformanceOverlay";
+} from "./components/ui/performance-overlay";
 import {
   QualityControls,
   useQualityControls,
-} from "./components/QualityControls";
-import { setParticleFieldQuality } from "./components/ParticleField";
+} from "./components/ui/quality-controls";
+import { setParticleFieldQuality } from "./components/ui/particle-field";
 
 const queryClient = new QueryClient();
 

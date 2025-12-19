@@ -8,10 +8,7 @@ export const TransitionPulseGate: React.FC = () => {
   const barH = 10;
 
   return (
-    <section
-      ref={ref}
-      className="relative min-h-[42vh] flex items-center justify-center overflow-hidden"
-    >
+    <section ref={ref} className="relative min-h-[42vh] flex items-center justify-center overflow-hidden">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -39,8 +36,7 @@ export const TransitionPulseGate: React.FC = () => {
             transform: `translate(-50%, -50%) scaleX(${progress})`,
             transformOrigin: "0% 50%",
             borderRadius: 999,
-            background:
-              "linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary) / 0.25))",
+            background: "linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--primary) / 0.25))",
             boxShadow: "0 0 22px hsl(var(--primary) / 0.18)",
             opacity: 0.9,
           }}

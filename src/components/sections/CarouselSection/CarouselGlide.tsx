@@ -2,12 +2,11 @@ import React, { useCallback, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { carouselContexts, sectionTitle } from "./CarouselData";
 import { GlassCarouselCard, type CarouselTint } from "./GlassCarouselCard";
-import { useAutoplayProgress } from "./useAutoplayProgress";
-import { useCarouselTransition } from "./useCarouselTransition";
+import { useAutoplayProgress } from "@/hooks/use-autoplay-progress";
+import { useCarouselTransition } from "@/hooks/use-carousel-transition";
+import { clampIndex, lerp } from "@/utils/animation";
 
 const TIMER_DURATION = 5000;
-
-const clampIndex = (i: number, len: number) => (i + len) % len;
 
 const cardTints: CarouselTint[] = [
   {
@@ -26,10 +25,6 @@ const cardTints: CarouselTint[] = [
     glow: "hsl(var(--carousel-tint-3-glow))",
   },
 ];
-
-function lerp(a: number, b: number, t: number) {
-  return a + (b - a) * t;
-}
 
 function transformFor(
   slot: "left" | "center" | "right",

@@ -1,14 +1,13 @@
-import { AmbientBackground } from "@/components/AmbientBackground";
-import { ParticleField } from "@/components/ParticleField";
-import { HeroSection } from "@/components/HeroSection";
-import { LiquidNavigation } from "@/components/LiquidNavigation";
-import { ExperienceSection } from "@/components/ExperienceSection";
-import { ScrollIndicator } from "@/components/ScrollIndicator";
-import { ContactLink, SocialLinks } from "@/components/SocialLinks";
-import { PhilosophyReveal } from "@/components/philosophy/PhilosophyReveal";
-import { CarouselGlide } from "@/components/carousel/CarouselGlide";
-import { ScrollTransition } from "@/components/ScrollTransition";
-import { TransitionPulseGate } from "@/components/transitions/TransitionPulseGate";
+import { AmbientBackground } from "@/components/ui/ambient-background";
+import { ParticleField } from "@/components/ui/particle-field";
+import { HeroSection } from "@/components/sections/HeroSection";
+import { LiquidNavigation } from "@/components/sections/LiquidNavigation";
+import { ExperienceSection } from "@/components/sections/ExperienceSection";
+import { ScrollIndicator } from "@/components/ui/scroll-indicator";
+import { ContactLink, SocialLinks } from "@/components/ui/social-links";
+import { PhilosophyReveal } from "@/components/sections/PhilosophySection/PhilosophyReveal";
+import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGlide";
+import { TransitionPulseGate } from "@/components/sections/TransitionPulseGate";
 
 const Index = () => {
   return (
