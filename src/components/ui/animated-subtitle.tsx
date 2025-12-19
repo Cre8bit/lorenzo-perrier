@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ConstellationCanvas } from "./ConstellationCanvas";
+import { ConstellationCanvas } from "./constellation-canvas";
 
 interface SubtitleSegment {
   text: string;

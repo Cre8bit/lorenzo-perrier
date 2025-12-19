@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatedSubtitle } from "./AnimatedSubtitle";
+import { AnimatedSubtitle } from "@/components/ui/animated-subtitle";
 
 export const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);

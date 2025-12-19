@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { clampIndex } from "@/utils/animation";
 
 type Dir = -1 | 1;
 
-const clampIndex = (i: number, len: number) => (i + len) % len;
+const easeInOutCubic = (t: number) =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-
-export function useCarouselTransition(len: number, options?: { durationMs?: number; onBeforeChange?: () => void }) {
+export function useCarouselTransition(
+  len: number,
+  options?: { durationMs?: number; onBeforeChange?: () => void }
+) {
   const durationMs = options?.durationMs ?? 560;
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -64,8 +67,14 @@ export function useCarouselTransition(len: number, options?: { durationMs?: numb
     [activeIndex, durationMs, isAnimating, len, options, stop]
   );
 
-  const next = useCallback(() => animateTo(activeIndex + 1, 1), [activeIndex, animateTo]);
-  const prev = useCallback(() => animateTo(activeIndex - 1, -1), [activeIndex, animateTo]);
+  const next = useCallback(
+    () => animateTo(activeIndex + 1, 1),
+    [activeIndex, animateTo]
+  );
+  const prev = useCallback(
+    () => animateTo(activeIndex - 1, -1),
+    [activeIndex, animateTo]
+  );
 
   const goTo = useCallback(
     (idx: number) => {

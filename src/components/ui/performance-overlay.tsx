@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { PerformanceMonitor } from "../lib/performance";
+import { PerformanceMonitor } from "@/lib/performance";
 
 interface ComponentMetric {
   name: string;
@@ -81,10 +81,7 @@ export const PerformanceOverlay = ({
     return () => {
       monitor.stop();
       clearInterval(fpsInterval);
-      window.removeEventListener(
-        "performance-metric",
-        handlePerformance
-      );
+      window.removeEventListener("performance-metric", handlePerformance);
     };
   }, [enabled]);
 

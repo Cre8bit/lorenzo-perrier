@@ -1,6 +1,6 @@
-import { GlassPanel } from "./GlassPanel";
-import { FundGrowthChart } from "./FundGrowthChart";
-import { SkillsGraph } from "./SkillsGraph";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import { FundGrowthChart } from "@/components/ui/fund-growth-chart";
+import { SkillsGraph } from "@/components/ui/skills-graph";
 import { useEffect, useRef, useState } from "react";
 
 const fundGrowthData = [

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { philosophyItems } from "./PhilosophyData";
-import { reportPerformance } from "../PerformanceOverlay";
+import { reportPerformance } from "@/components/ui/performance-overlay";
+import { clamp01, smoothstep } from "@/utils/animation";
 
 export const PhilosophyReveal = () => {
   // Reveal opacity (0..1) based on entering the section
@@ -41,12 +42,6 @@ export const PhilosophyReveal = () => {
   const [hoveredStep, setHoveredStep] = useState<number | null>(null);
 
   const n = philosophyItems.length;
-
-  const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
-  const smoothstep = (t: number) => {
-    t = clamp01(t);
-    return t * t * (3 - 2 * t);
-  };
 
   const computeSectionProgress = (section: HTMLElement) => {
     const rect = section.getBoundingClientRect();

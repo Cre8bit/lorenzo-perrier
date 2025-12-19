@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import { reportPerformance } from "./PerformanceOverlay";
+import { reportPerformance } from "./performance-overlay";
 
 interface SkillNode {
   id: string;

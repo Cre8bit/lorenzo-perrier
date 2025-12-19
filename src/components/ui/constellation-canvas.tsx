@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { reportPerformance } from "./PerformanceOverlay";
+import { reportPerformance } from "./performance-overlay";
+import { clamp01, smoothstep } from "@/utils/animation";
 
 type Dot = {
   x: number;
@@ -13,16 +14,6 @@ type Dot = {
 const DOT_COUNT = 30;
 const CONNECTION_DISTANCE = 110; // a bit bigger for readability
 const ACCENT = "hsl(185, 50%, 55%)";
-
-function clamp01(v: number) {
-  return Math.max(0, Math.min(1, v));
-}
-
-// smoothstep for nicer fades
-function smoothstep(t: number) {
-  t = clamp01(t);
-  return t * t * (3 - 2 * t);
-}
 
 export function ConstellationCanvas({
   active,
