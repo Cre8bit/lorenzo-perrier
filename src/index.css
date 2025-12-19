@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Outfit:wght@200;300;400;500&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Outfit:wght@200;300;400;500&display=swap");
 
 @layer base {
   :root {
@@ -45,7 +45,7 @@
     --glass-bg: 220 20% 8% / 0.4;
     --glass-border: 210 20% 92% / 0.05;
     --glass-blur: 20px;
-    
+
     --glow-primary: 185 50% 55% / 0.15;
     --glow-soft: 185 40% 45% / 0.08;
 
@@ -61,7 +61,7 @@
     --carousel-tint-3: 280 26% 56%;
     --carousel-tint-3-border: 280 28% 66%;
     --carousel-tint-3-glow: 280 26% 50%;
-    
+
     --gradient-ambient: linear-gradient(
       135deg,
       hsl(220 25% 6%) 0%,
@@ -85,8 +85,15 @@
     );
 
     /* Typography */
-    --font-display: 'Cormorant Garamond', Georgia, serif;
-    --font-body: 'Outfit', system-ui, sans-serif;
+    --font-display: "Cormorant Garamond", Georgia, serif;
+    --font-body: "Outfit", system-ui, sans-serif;
+
+    /* Section title alignment system - ensures Philosophy and Carousel titles align perfectly */
+    --section-title-top: 15%;
+    --section-title-font-size: 0.75rem;
+    --section-title-tracking: 0.3em;
+    --section-title-line-height: 1.2;
+    --carousel-title-offset: 1.3rem;
 
     /* Animation timing */
     --ease-liquid: cubic-bezier(0.4, 0, 0.2, 1);
@@ -146,8 +153,7 @@
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid hsl(var(--glass-border));
-    box-shadow: 
-      0 0 40px hsl(var(--glow-soft)),
+    box-shadow: 0 0 40px hsl(var(--glow-soft)),
       inset 0 1px 0 hsl(210 20% 92% / 0.03);
   }
 
@@ -156,8 +162,7 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid hsl(var(--primary) / 0.15);
-    box-shadow: 
-      0 0 30px hsl(var(--glow-primary)),
+    box-shadow: 0 0 30px hsl(var(--glow-primary)),
       inset 0 1px 0 hsl(210 20% 92% / 0.05);
   }
 
@@ -204,7 +209,8 @@
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -213,7 +219,8 @@
 }
 
 @keyframes pulse-slow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
   }
   50% {
@@ -265,7 +272,8 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.3;
     transform: scale(1);
   }
@@ -276,7 +284,8 @@
 }
 
 @keyframes scroll-bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(-2px);
     opacity: 0.6;
   }
