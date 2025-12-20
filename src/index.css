@@ -93,7 +93,8 @@
     --section-title-font-size: 0.75rem;
     --section-title-tracking: 0.3em;
     --section-title-line-height: 1.2;
-    --carousel-title-offset: 1.3rem;
+    --carousel-title-offset: 1.5rem;
+    --carousel-title-offset-bigger: 2rem;
 
     /* Animation timing */
     --ease-liquid: cubic-bezier(0.4, 0, 0.2, 1);

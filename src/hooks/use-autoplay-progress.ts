@@ -8,27 +8,38 @@ export function useAutoplayProgress(options: {
 }) {
   const { enabled, durationMs, paused, onDone } = options;
 
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(0); // 0..100
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
 
+  // Prevent effect restarts caused by changing onDone identity
+  const onDoneRef = useRef(onDone);
   useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
+
+  useEffect(() => {
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
     if (!enabled || paused) return;
 
-    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-    rafRef.current = null;
     startRef.current = null;
 
     const tick = (ts: number) => {
       if (startRef.current == null) startRef.current = ts;
-      const elapsed = ts - startRef.current;
-      const pct = Math.min((elapsed / durationMs) * 100, 100);
-      setProgress(pct);
 
-      if (pct >= 100) {
+      const elapsed = ts - startRef.current;
+      const pct01 = Math.min(elapsed / durationMs, 1);
+
+      setProgress(pct01 * 100); // <-- 0..100
+
+      if (pct01 >= 1) {
         startRef.current = null;
         setProgress(0);
-        onDone();
+        onDoneRef.current(); // <-- stable callback
         return;
       }
 
@@ -41,7 +52,7 @@ export function useAutoplayProgress(options: {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [durationMs, enabled, onDone, paused]);
+  }, [durationMs, enabled, paused]);
 
   const reset = () => {
     if (rafRef.current != null) cancelAnimationFrame(rafRef.current);

@@ -360,7 +360,7 @@ export const PhilosophyReveal = () => {
       >
         {/* Headline - stays visible */}
         <h2
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-body uppercase text-foreground/70 text-center transition-opacity duration-300 ease-linear z-20 px-4"
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-body uppercase text-foreground/70 text-center transition-opacity duration-300 ease-linear z-20"
           style={{
             opacity: revealOpacity,
             top: "var(--section-title-top)",
@@ -374,14 +374,14 @@ export const PhilosophyReveal = () => {
 
         {/* Headline - becaomes visible only at end */}
         <h2
-          className="pointer-events-none absolute font-body uppercase text-foreground/70 text-center transition-opacity duration-300 ease-linear z-20 px-4"
+          className="pointer-events-none absolute left-1/2 font-body uppercase text-foreground/70 text-center transition-opacity duration-300 ease-linear z-20"
           style={{
             opacity: 1 - exitOpacity,
-            top: "var(--section-title-top)",
+            top: "calc(var(--section-title-top) + var(--carousel-title-offset))",
             fontSize: "var(--section-title-font-size)",
             letterSpacing: "var(--section-title-tracking)",
             lineHeight: "var(--section-title-line-height)",
-            transform: `translateY(clamp(12px, 2.5vh, 32px))`,
+            transform: `translateX(-50%)`,
           }}
         >
           Is
