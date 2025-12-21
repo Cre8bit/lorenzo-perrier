@@ -43,15 +43,9 @@ Sections use **scroll progress (0–1)** to orchestrate animations:
 
 ## Development Workflow
 
-### Commands
-
-```bash
-npm run dev          # Dev server (port 8080)
-npm run build        # Production build
-npm run build:dev    # Dev build with source maps
-npm run lint         # ESLint
-npm run preview      # Preview production build
-```
+- **Always verify performance** after changes using the overlay
+- **Always verify that the code compiles** and no errors of typescript compilation exist
+- npm run build
 
 ### Path Aliases
 
@@ -63,15 +57,9 @@ import { useScrollProgress } from "@/hooks/use-scroll-progress";
 import { throttleRAF } from "@/utils/animation";
 ```
 
-### Adding shadcn/ui Components
-
-Uses [components.json](components.json) config. Install via `npx shadcn@latest add <component>`. Always import from `@/components/ui/`.
-
 ### Performance Debugging
 
-1. Press `Ctrl/Cmd + Shift + P` to toggle overlay
 2. Identify components >16.67ms (red threshold)
-3. Press `Ctrl/Cmd + Shift + Q` for ParticleField quality controls (live tuning)
 4. Use `reportPerformance(componentName, startTime)` to track new canvas components
 
 ## Critical Patterns
@@ -103,7 +91,6 @@ Use `useRef` for values updated every frame (scroll position, mouse coordinates)
 
 ## Anti-Patterns to Avoid
 
-- ❌ Never store derived values (like `activeIndex`) in state if they can be computed from `progress`
 - ❌ Don't add `console.log` in scroll/RAF handlers – use the performance overlay
 - ❌ Avoid inline styles for animations – prefer CSS classes with Tailwind or CSS variables
 - ❌ Don't create new canvas contexts on every render – cache in refs
@@ -115,18 +102,3 @@ Use `useRef` for values updated every frame (scroll position, mouse coordinates)
 - `strictNullChecks: false`
 
 When adding types, prefer interfaces over types for extensibility.
-
-## External Dependencies
-
-- **Radix UI**: Accessible primitives for dialogs, dropdowns, etc.
-- **Embla Carousel**: Powers [CarouselGlide](src/components/sections/CarouselSection/CarouselGlide.tsx)
-- **Lucide React**: Icon library
-- **TanStack Query**: Used in [App.tsx](src/App.tsx) but currently unused (future API integration)
-- **Lovable Tagger**: Dev-only plugin for component tagging
-
-## Key Files to Reference
-
-- [performance.ts](src/lib/performance.ts) – Device tier detection, DPR optimization, throttling
-- [animation.ts](src/utils/animation.ts) – Math utilities (`smoothstep`, `lerp`, `clamp01`)
-- [PhilosophyReveal.tsx](src/components/sections/PhilosophySection/PhilosophyReveal.tsx) – Complex scroll-driven state machine (best example of scroll choreography)
-- [particle-field.tsx](src/components/ui/particle-field.tsx) – Spatial grid implementation for canvas optimization
