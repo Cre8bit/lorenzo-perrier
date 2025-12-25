@@ -353,6 +353,28 @@ export const PhilosophyReveal = () => {
       ref={sectionRef}
       className="min-h-[700vh] relative -mt-[100vh]"
     >
+
+       {/* Aurore boreal effect TODO Full-section background (spans the whole scroll section) */}
+  {/* <div
+    className="absolute inset-0 pointer-events-none z-0"
+    style={{
+      // keep it stable across the whole section
+      background: `
+        radial-gradient(ellipse 70% 60% at 50% 35%,
+          hsl(var(--primary) / 0.12) 0%,
+          transparent 65%
+        ),
+        radial-gradient(ellipse 60% 55% at 50% 70%,
+          hsl(var(--primary) / 0.08) 0%,
+          transparent 70%
+        )
+      `,
+    }}
+  />
+   */}
+
+
+  
       {/* Sticky container */}
       <div
         className="sticky top-0 h-screen flex items-center justify-center px-4 md:px-8 transition-opacity duration-300 ease-linear"
@@ -503,7 +525,7 @@ export const PhilosophyReveal = () => {
           className="absolute inset-0 rounded-3xl pointer-events-none"
           style={{
             background: `radial-gradient(ellipse ${50 + progress * 20}% ${
-              60 + progress * 20
+              40 + progress * 15
             }% at center, hsl(var(--primary) / ${
               0.05 + progress * 0.1
             }) 0%, transparent 70%)`,

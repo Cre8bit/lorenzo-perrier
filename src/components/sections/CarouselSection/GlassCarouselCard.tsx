@@ -356,11 +356,17 @@ export function GlassCarouselCard(props: {
                 ))}
               </div>
 
-              {isActive && (
-                <div className="absolute bottom-4 right-4 flex items-center gap-1.5 text-xs opacity-50 text-foreground/70">
-                  <RotateCcw className="w-3 h-3" />
-                </div>
-              )}
+              <div
+                className="absolute bottom-4 right-4 flex items-center gap-1.5 text-xs text-foreground/70"
+                style={{
+                  opacity: bodyOpacity,
+                  pointerEvents: isActive ? "auto" : "none",
+                  transition: styles.transitionOpacity,
+                  willChange: "opacity",
+                }}
+              >
+                <RotateCcw className="w-3 h-3" />
+              </div>
             </div>
           </div>
         </div>
@@ -447,7 +453,15 @@ export function GlassCarouselCard(props: {
                 ))}
               </div>
 
-              <div className="absolute bottom-4 right-4 flex items-center gap-1.5 text-xs opacity-50 text-foreground/70">
+              <div
+                className="absolute bottom-4 right-4 flex items-center gap-1.5 text-xs text-foreground/70"
+                style={{
+                  opacity: isActive ? bodyOpacity : 0,
+                  pointerEvents: isActive ? "auto" : "none",
+                  transition: styles.transitionOpacity,
+                  willChange: "opacity",
+                }}
+              >
                 <RotateCcw className="w-3 h-3" />
               </div>
             </div>

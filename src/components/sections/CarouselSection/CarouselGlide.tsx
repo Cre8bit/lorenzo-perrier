@@ -269,7 +269,7 @@ export const CarouselGlide: React.FC = () => {
 
   return (
     <section
-      className="min-h-[75vh] relative overflow-visible flex flex-col items-center justify-center py-16 -mt-[83vh]"
+      className="min-h-[75vh] relative overflow-visible flex flex-col items-center justify-center -mt-[83vh]"
       style={{ zIndex: 40 }}
       onMouseEnter={() => {
         setIsHovering(true);
@@ -280,15 +280,6 @@ export const CarouselGlide: React.FC = () => {
         reset();
       }}
     >
-      <div
-        className="absolute w-[400px] h-[400px] rounded-full opacity-[0.02] blur-3xl pointer-events-none"
-        style={{
-          background: `radial-gradient(circle, ${activeTint.bg} 0%, transparent 70%)`,
-          left: "15%",
-          top: "30%",
-        }}
-      />
-
       <div
         className="absolute left-0 right-0 z-10"
         style={{ top: "var(--carousel-title-offset-bigger)" }}
