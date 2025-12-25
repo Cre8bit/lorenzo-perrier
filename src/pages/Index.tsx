@@ -7,7 +7,7 @@ import { ScrollIndicator } from "@/components/ui/scroll-indicator";
 import { ContactLink, SocialLinks } from "@/components/ui/social-links";
 import { PhilosophyReveal } from "@/components/sections/PhilosophySection/PhilosophyReveal";
 import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGlide";
-import { TransitionPulseGate } from "@/components/sections/TransitionPulseGate";
+import { ScrollTransition } from "@/components/transitions/ScrollTransition";
 
 const Index = () => {
   return (
@@ -40,7 +40,7 @@ const Index = () => {
       <CarouselGlide />
 
       {/* Creative scroll transitions (POCs) */}
-      <TransitionPulseGate />
+      <ScrollTransition />
 
       {/* Scrollable experience/resume section */}
       <ExperienceSection />
