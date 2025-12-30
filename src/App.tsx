@@ -13,7 +13,7 @@ import {
   QualityControls,
   useQualityControls,
 } from "./components/ui/quality-controls";
-import { setParticleFieldQuality } from "./components/ui/particle-field";
+import { setParticleField3DQuality } from "./components/ui/particle-field-3d";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +29,7 @@ const App = () => {
         <PerformanceOverlay enabled={perfEnabled} />
         <QualityControls
           enabled={qualityEnabled}
-          onSettingsChange={setParticleFieldQuality}
+          onSettingsChange={setParticleField3DQuality}
         />
         <BrowserRouter>
           <Routes>

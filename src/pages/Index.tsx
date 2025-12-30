@@ -1,5 +1,5 @@
+import { lazy, Suspense } from "react";
 import { AmbientBackground } from "@/components/ui/ambient-background";
-import { ParticleField } from "@/components/ui/particle-field";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { LiquidNavigation } from "@/components/sections/LiquidNavigation";
 import { ExperienceSection } from "@/components/sections/ExperienceSection";
@@ -9,44 +9,58 @@ import { PhilosophyReveal } from "@/components/sections/PhilosophySection/Philos
 import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGlide";
 import { ScrollTransition } from "@/components/transitions/ScrollTransition";
 
+// Lazy load Three.js particle field for better initial bundle size
+const ParticleField3D = lazy(() => import("@/components/ui/particle-field-3d"));
+
 const Index = () => {
   return (
-    <main className="relative min-h-screen bg-background">
-      {/* Noise overlay for texture */}
-      <div className="noise-overlay" />
+    <main className="relative min-h-screen">
+      {/* Background stack - behind content but above page background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        {/* Solid background color layer */}
+        <div className="absolute inset-0 bg-background" />
 
-      {/* Social links - top right */}
-      <SocialLinks />
+        {/* Noise overlay for texture */}
+        <div className="noise-overlay" />
 
-      {/* Contact link - bottom left */}
-      <ContactLink />
+        {/* Ambient background with gradient orbs */}
+        <AmbientBackground />
 
-      {/* Ambient background with gradient orbs */}
-      <AmbientBackground />
+        {/* Interactive 3D particle field (lazy loaded) */}
+        <Suspense fallback={null}>
+          <ParticleField3D />
+        </Suspense>
+      </div>
 
-      {/* Interactive particle field */}
-      <ParticleField />
+      {/* Foreground stack */}
+      <div className="relative z-10">
+        {/* Social links - top right */}
+        <SocialLinks />
 
-      {/* Hero section with floating text */}
-      <HeroSection />
+        {/* Contact link - bottom left */}
+        <ContactLink />
 
-      {/* Scroll indicator with glow */}
-      <ScrollIndicator />
+        {/* Hero section with floating text */}
+        <HeroSection />
 
-      {/* Philosophy Section 2: Sequential Reveal with Timer + Overview */}
-      <PhilosophyReveal />
+        {/* Scroll indicator with glow */}
+        <ScrollIndicator />
 
-      {/* Carousel Showcase Section */}
-      <CarouselGlide />
+        {/* Philosophy Section 2: Sequential Reveal with Timer + Overview */}
+        <PhilosophyReveal />
 
-      {/* Creative scroll transitions (POCs) */}
-      <ScrollTransition />
+        {/* Carousel Showcase Section */}
+        <CarouselGlide />
 
-      {/* Scrollable experience/resume section */}
-      <ExperienceSection />
+        {/* Creative scroll transitions (POCs) */}
+        <ScrollTransition />
 
-      {/* Liquid horizontal navigation */}
-      <LiquidNavigation />
+        {/* Scrollable experience/resume section */}
+        <ExperienceSection />
+
+        {/* Liquid horizontal navigation */}
+        <LiquidNavigation />
+      </div>
     </main>
   );
 };
