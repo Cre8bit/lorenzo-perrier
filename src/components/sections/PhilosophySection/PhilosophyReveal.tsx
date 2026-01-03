@@ -353,9 +353,8 @@ export const PhilosophyReveal = () => {
       ref={sectionRef}
       className="min-h-[700vh] relative -mt-[100vh]"
     >
-
-       {/* Aurore boreal effect TODO Full-section background (spans the whole scroll section) */}
-  {/* <div
+      {/* Aurore boreal effect TODO Full-section background (spans the whole scroll section) */}
+      {/* <div
     className="absolute inset-0 pointer-events-none z-0"
     style={{
       // keep it stable across the whole section
@@ -373,8 +372,6 @@ export const PhilosophyReveal = () => {
   />
    */}
 
-
-  
       {/* Sticky container */}
       <div
         className="sticky top-0 h-screen flex items-center justify-center px-4 md:px-8 transition-opacity duration-300 ease-linear"
@@ -560,16 +557,6 @@ export const PhilosophyReveal = () => {
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                {/* Number */}
-                <span
-                  className="text-6xl md:text-8xl font-extralight text-primary/10 mb-3 md:mb-4"
-                  style={{
-                    transform: `translateY(${(1 - opacity) * -20}px)`,
-                    transition: "transform 0.3s ease-out",
-                  }}
-                >
-                  0{index + 1}
-                </span>
 
                 {/* Subtitle */}
                 <span className="text-xs uppercase tracking-[0.3em] text-primary/60 mb-4">
