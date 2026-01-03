@@ -102,3 +102,5 @@ Use `useRef` for values updated every frame (scroll position, mouse coordinates)
 - `strictNullChecks: false`
 
 When adding types, prefer interfaces over types for extensibility.
+
+Make sure that all added new code compiles and has no typescript errors.
