@@ -4,6 +4,7 @@ import { carouselContexts, sectionTitle } from "./CarouselData";
 import { GlassCarouselCard, type CarouselTint } from "./GlassCarouselCard";
 import { useAutoplayProgress } from "@/hooks/use-autoplay-progress";
 import { useCarouselTransition } from "@/hooks/use-carousel-transition";
+import { useInViewport } from "@/hooks/use-in-viewport";
 import { lerp } from "@/utils/animation";
 import { withHslAlpha } from "./tint";
 
@@ -186,12 +187,19 @@ function CardLayer(props: {
 export const CarouselGlide: React.FC = () => {
   const len = carouselContexts.length;
 
+  const { ref: sectionRef, inView } = useInViewport<HTMLElement>({
+    threshold: 0.45, // ~half visible
+    rootMargin: "0px 0px -10% 0px", // start a bit before it fully enters
+  });
+
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [flippedCards, setFlippedCards] = useState<Set<number>>(new Set());
   const [isHovering, setIsHovering] = useState(false);
   const [autoplayDir, setAutoplayDir] = useState<1 | -1>(1);
 
   const clearAllFlips = useCallback(() => setFlippedCards(new Set()), []);
+
+  const mid = Math.floor(len / 2);
 
   const {
     activeIndex,
@@ -206,13 +214,14 @@ export const CarouselGlide: React.FC = () => {
   } = useCarouselTransition(len, {
     durationMs: 620,
     onBeforeChange: clearAllFlips,
+    initialIndex: mid,
   });
 
-  const autoplayEnabled = isAutoPlaying && !isHovering && !isAnimating;
+  const autoplayEnabled =
+    inView && isAutoPlaying && !isHovering && !isAnimating;
 
-  // Deck rules: no wrap
-  const canPrev = activeIndex > 0 && !isAnimating;
-  const canNext = activeIndex < len - 1 && !isAnimating;
+  const canPrev = inView && activeIndex > 0 && !isAnimating;
+  const canNext = inView && activeIndex < len - 1 && !isAnimating;
 
   const safePrev = () => {
     if (!canPrev) return;
@@ -269,6 +278,7 @@ export const CarouselGlide: React.FC = () => {
 
   return (
     <section
+      ref={sectionRef}
       className="min-h-[75vh] relative overflow-visible flex flex-col items-center justify-center -mt-[83vh]"
       style={{ zIndex: 40 }}
       onMouseEnter={() => {

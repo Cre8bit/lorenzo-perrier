@@ -8,11 +8,16 @@ const easeInOutCubic = (t: number) =>
 
 export function useCarouselTransition(
   len: number,
-  options?: { durationMs?: number; onBeforeChange?: () => void }
+  options?: {
+    durationMs?: number;
+    onBeforeChange?: () => void;
+    initialIndex?: number;
+  }
 ) {
   const durationMs = options?.durationMs ?? 560;
+  const initialIndex = options?.initialIndex ?? 0;
 
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [isAnimating, setIsAnimating] = useState(false);
   const [direction, setDirection] = useState<Dir>(1);
   const [t, setT] = useState(0);
