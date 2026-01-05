@@ -10,14 +10,14 @@ export const philosophyItems: PhilosophyItem[] = [
   title: "Systems & Architecture",
   subtitle: "Scale & Structure",
   description:
-    "I design scalable, maintainable systems with a clear understanding of their constraints — from software to hardware.",
+    "Built to scale. Built to last.",
   keyword: "structure",
 },
 {
   title: "User-Centered Systems",
   subtitle: "Utility & Ergonomics",
   description:
-    "I build systems that serve users first: practical, intuitive, and reliable in real-world conditions.",
+    "Production is the product.",
   keyword: "users",
 },
 {
