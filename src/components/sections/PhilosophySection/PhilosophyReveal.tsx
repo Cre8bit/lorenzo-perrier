@@ -544,8 +544,8 @@ export const PhilosophyReveal = () => {
 
         {/* Central container */}
         <div
-          className="max-w-2xl w-full relative px-4"
-          style={{ minHeight: "300px", opacity: exitOpacity, zIndex: 20 }}
+          className="max-w-3xl w-full relative px-4"
+          style={{ minHeight: "340px", opacity: exitOpacity, zIndex: 20 }}
         >
           {/* Items */}
           {philosophyItems.map((item, index) => {
@@ -555,42 +555,77 @@ export const PhilosophyReveal = () => {
             return (
               <div
                 key={index}
-                className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 md:p-12 cursor-default"
+                className="absolute inset-0 flex flex-col items-center justify-center text-center cursor-default"
                 style={{
                   opacity,
-                  transform: `translateY(${(1 - opacity) * 20}px) scale(${
-                    0.95 + opacity * 0.05
+                  transform: `translateY(${(1 - opacity) * 30}px) scale(${
+                    0.92 + opacity * 0.08
                   })`,
                   pointerEvents: opacity > 0.5 ? "auto" : "none",
-                  transition: "transform 0.2s ease-out",
+                  transition: "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)",
                 }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                {/* Subtitle */}
-                <span className="text-xs uppercase tracking-[0.3em] text-primary/60 mb-4">
-                  {item.subtitle}
+                {/* Quote Mark - decorative */}
+                <span
+                  className="text-6xl md:text-7xl font-serif text-primary/20 leading-none select-none transition-all duration-500"
+                  style={{
+                    opacity: isHovered ? 0.35 : 0.15,
+                    transform: isHovered ? "scale(1.1)" : "scale(1)",
+                  }}
+                >
+                  "
                 </span>
 
-                {/* Title */}
-                <h3 className="text-2xl md:text-3xl font-light text-foreground mb-4 md:mb-6">
-                  {item.title}
-                </h3>
-
-                {/* Description */}
-                <p
-                  className={`text-base md:text-lg font-light leading-relaxed max-w-md transition-all duration-700 ${
+                {/* Quote / Description - the main statement */}
+                <blockquote
+                  className={`text-2xl md:text-4xl lg:text-5xl font-light leading-tight max-w-2xl transition-all duration-500 mt-2 mb-6 ${
                     isHovered
-                      ? "text-muted-foreground/90 blur-0"
-                      : "text-muted-foreground/70 blur-[0.3px]"
+                      ? "text-foreground"
+                      : "text-foreground/85"
                   }`}
+                  style={{
+                    fontStyle: "normal",
+                    letterSpacing: "-0.02em",
+                  }}
                 >
                   {highlightKeywords(
                     item.description,
                     item.keywords,
                     isHovered
                   )}
-                </p>
+                </blockquote>
+
+                {/* Attribution line - Title & Subtitle */}
+                <div className="flex flex-col items-center gap-1">
+                  {/* Decorative line */}
+                  <span
+                    className="block w-8 h-px bg-primary/40 mb-3 transition-all duration-500"
+                    style={{
+                      width: isHovered ? "48px" : "32px",
+                      opacity: isHovered ? 0.6 : 0.4,
+                    }}
+                  />
+                  
+                  {/* Title as attribution */}
+                  <h3
+                    className={`text-sm md:text-base uppercase tracking-[0.2em] font-medium transition-all duration-500 ${
+                      isHovered ? "text-foreground/90" : "text-foreground/60"
+                    }`}
+                  >
+                    {item.title}
+                  </h3>
+                  
+                  {/* Subtitle as context */}
+                  <span
+                    className={`text-xs tracking-[0.15em] transition-all duration-500 ${
+                      isHovered ? "text-primary/70" : "text-primary/40"
+                    }`}
+                  >
+                    {item.subtitle}
+                  </span>
+                </div>
               </div>
             );
           })}
