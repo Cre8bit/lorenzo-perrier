@@ -272,14 +272,24 @@ export const PhilosophyReveal = () => {
     return baseOpacity;
   };
 
-  const highlightKeyword = (
+  const highlightKeywords = (
     text: string,
-    keyword: string,
+    keywords: string[],
     isHovered: boolean
   ) => {
-    const parts = text.split(new RegExp(`(${keyword})`, "gi"));
+    if (!keywords.length) return text;
+
+    // Create single regex pattern for all keywords (more efficient than multiple splits)
+    const pattern = keywords
+      .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("|");
+    const parts = text.split(new RegExp(`(${pattern})`, "gi"));
+
+    // Create lowercase set for O(1) lookup
+    const keywordSet = new Set(keywords.map((k) => k.toLowerCase()));
+
     return parts.map((part, index) =>
-      part.toLowerCase() === keyword.toLowerCase() ? (
+      keywordSet.has(part.toLowerCase()) ? (
         <span
           key={index}
           className={`transition-all duration-700 ${
@@ -557,7 +567,6 @@ export const PhilosophyReveal = () => {
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-
                 {/* Subtitle */}
                 <span className="text-xs uppercase tracking-[0.3em] text-primary/60 mb-4">
                   {item.subtitle}
@@ -576,7 +585,11 @@ export const PhilosophyReveal = () => {
                       : "text-muted-foreground/70 blur-[0.3px]"
                   }`}
                 >
-                  {highlightKeyword(item.description, item.keyword, isHovered)}
+                  {highlightKeywords(
+                    item.description,
+                    item.keywords,
+                    isHovered
+                  )}
                 </p>
               </div>
             );
