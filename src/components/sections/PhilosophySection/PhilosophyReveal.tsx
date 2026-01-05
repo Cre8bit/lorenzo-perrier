@@ -547,11 +547,10 @@ export const PhilosophyReveal = () => {
           className="max-w-4xl w-full relative px-4"
           style={{ minHeight: "380px", opacity: exitOpacity, zIndex: 20 }}
         >
-          {/* Items - each with a different layout variant */}
+          {/* Items */}
           {philosophyItems.map((item, index) => {
             const opacity = getItemOpacity(index);
             const isHovered = hoveredIndex === index;
-            const variant = index % 4; // 0, 1, 2, 3
 
             return (
               <div
@@ -566,164 +565,51 @@ export const PhilosophyReveal = () => {
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                {/* VARIANT 0: Editorial Stack - centered, title on top */}
-                {variant === 0 && (
-                  <div className="flex flex-col items-center text-center max-w-2xl">
-                    {/* Subtitle */}
-                    <span
-                      className={`text-[10px] uppercase tracking-[0.4em] transition-all duration-500 ${
-                        isHovered ? "text-primary/70" : "text-primary/40"
-                      }`}
-                    >
-                      {item.subtitle}
-                    </span>
-                    
-                    {/* Title */}
-                    <h3
-                      className={`text-sm md:text-base uppercase tracking-[0.25em] font-medium mt-3 mb-6 transition-all duration-500 ${
-                        isHovered ? "text-foreground" : "text-foreground/70"
-                      }`}
-                    >
-                      {item.title}
-                    </h3>
-                    
-                    {/* Horizontal line */}
-                    <span
-                      className="block h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent mb-8 transition-all duration-600"
-                      style={{ width: isHovered ? "180px" : "120px" }}
-                    />
-                    
-                    {/* Quote */}
-                    <blockquote
-                      className={`font-display text-3xl md:text-5xl font-light italic leading-tight transition-all duration-500 ${
-                        isHovered ? "text-foreground" : "text-foreground/80"
-                      }`}
-                      style={{ letterSpacing: "0.01em" }}
-                    >
-                      "{highlightKeywords(item.description, item.keywords, isHovered)}"
-                    </blockquote>
-                  </div>
-                )}
+                <div className="flex flex-col items-center text-center max-w-2xl relative">
+                  {/* Title */}
+                  <h3
+                    className={`text-base md:text-lg uppercase tracking-[0.15em] font-medium mb-4 relative z-10 transition-all duration-500 ${
+                      isHovered ? "text-foreground" : "text-foreground/70"
+                    }`}
+                  >
+                    {item.title}
+                  </h3>
 
-                {/* VARIANT 1: Split Asymmetric - left title, right quote */}
-                {variant === 1 && (
-                  <div className="flex items-center gap-8 md:gap-16 w-full max-w-3xl">
-                    {/* Left: Title block */}
-                    <div className="flex-shrink-0 text-right pr-6 md:pr-10 border-r border-primary/20">
-                      <span
-                        className={`text-[10px] uppercase tracking-[0.3em] block mb-2 transition-all duration-500 ${
-                          isHovered ? "text-primary/60" : "text-primary/30"
-                        }`}
-                      >
-                        {item.subtitle}
-                      </span>
-                      <h3
-                        className={`text-xs md:text-sm uppercase tracking-[0.2em] font-medium transition-all duration-500 ${
-                          isHovered ? "text-foreground/90" : "text-foreground/60"
-                        }`}
-                      >
-                        {item.title}
-                      </h3>
-                    </div>
-                    
-                    {/* Right: Quote */}
-                    <blockquote
-                      className={`font-display text-2xl md:text-4xl lg:text-5xl font-light italic leading-snug transition-all duration-500 ${
-                        isHovered ? "text-foreground" : "text-foreground/75"
-                      }`}
-                    >
-                      {highlightKeywords(item.description, item.keywords, isHovered)}
-                    </blockquote>
-                  </div>
-                )}
-
-                {/* VARIANT 2: Centered Minimal - small caps, thin rules */}
-                {variant === 2 && (
-                  <div className="flex flex-col items-center text-center max-w-2xl">
-                    {/* Title in small caps */}
-                    <h3
-                      className={`text-[11px] md:text-xs uppercase tracking-[0.35em] font-normal transition-all duration-500 ${
-                        isHovered ? "text-foreground/80" : "text-foreground/50"
-                      }`}
-                      style={{ fontVariant: "small-caps" }}
-                    >
-                      {item.title}
-                    </h3>
-                    
-                    {/* Top thin rule */}
+                  {/* Quote with stylized quotation mark */}
+                  <blockquote
+                    className={`font-display text-2xl md:text-4xl lg:text-5xl font-light italic leading-snug relative z-10 transition-all duration-500 ${
+                      isHovered ? "text-foreground" : "text-foreground/80"
+                    }`}
+                  >
                     <span
-                      className="block w-12 h-[0.5px] bg-foreground/20 my-6 transition-all duration-500"
-                      style={{ opacity: isHovered ? 0.5 : 0.25 }}
-                    />
-                    
-                    {/* Quote - larger, lighter */}
-                    <blockquote
-                      className={`font-display text-3xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight transition-all duration-500 ${
-                        isHovered ? "text-foreground" : "text-foreground/85"
+                      className={`text-6xl md:text-7xl lg:text-8xl leading-none transition-all duration-500 ${
+                        isHovered ? "text-primary/60" : "text-primary/30"
                       }`}
-                    >
-                      {highlightKeywords(item.description, item.keywords, isHovered)}
-                    </blockquote>
-                    
-                    {/* Bottom thin rule */}
-                    <span
-                      className="block w-12 h-[0.5px] bg-foreground/20 my-6 transition-all duration-500"
-                      style={{ opacity: isHovered ? 0.5 : 0.25 }}
-                    />
-                    
-                    {/* Subtitle appears more on hover */}
-                    <span
-                      className={`text-[10px] uppercase tracking-[0.4em] transition-all duration-700 ${
-                        isHovered ? "text-primary/60 opacity-100" : "text-primary/30 opacity-60"
-                      }`}
-                    >
-                      {item.subtitle}
-                    </span>
-                  </div>
-                )}
-
-                {/* VARIANT 3: Bold Statement - numbered, dramatic */}
-                {variant === 3 && (
-                  <div className="flex flex-col items-center text-center max-w-2xl relative">
-                    {/* Large faded number */}
-                    <span
-                      className="absolute -top-8 md:-top-12 left-1/2 -translate-x-1/2 font-display text-[120px] md:text-[180px] font-light leading-none select-none transition-all duration-500"
                       style={{
-                        opacity: isHovered ? 0.08 : 0.04,
-                        color: "hsl(var(--primary))",
+                        fontFamily: "Georgia, serif",
+                        position: "relative",
+                        top: "0.15em",
+                        marginRight: "0.1em",
                       }}
                     >
-                      {String(index + 1).padStart(2, "0")}
+                      "
                     </span>
-                    
-                    {/* Title */}
-                    <h3
-                      className={`text-base md:text-lg uppercase tracking-[0.15em] font-medium mb-4 relative z-10 transition-all duration-500 ${
-                        isHovered ? "text-foreground" : "text-foreground/70"
-                      }`}
-                    >
-                      {item.title}
-                    </h3>
-                    
-                    {/* Quote with em dash */}
-                    <blockquote
-                      className={`font-display text-2xl md:text-4xl lg:text-5xl font-light italic leading-snug relative z-10 transition-all duration-500 ${
-                        isHovered ? "text-foreground" : "text-foreground/80"
-                      }`}
-                    >
-                      — {highlightKeywords(item.description, item.keywords, isHovered)}
-                    </blockquote>
-                    
-                    {/* Subtitle below */}
-                    <span
-                      className={`text-[10px] uppercase tracking-[0.35em] mt-6 relative z-10 transition-all duration-500 ${
-                        isHovered ? "text-primary/60" : "text-primary/35"
-                      }`}
-                    >
-                      {item.subtitle}
-                    </span>
-                  </div>
-                )}
+                    {highlightKeywords(
+                      item.description,
+                      item.keywords,
+                      isHovered
+                    )}
+                  </blockquote>
+
+                  {/* Subtitle below */}
+                  <span
+                    className={`text-[10px] uppercase tracking-[0.35em] mt-6 relative z-10 transition-all duration-500 ${
+                      isHovered ? "text-primary/60" : "text-primary/35"
+                    }`}
+                  >
+                    {item.subtitle}
+                  </span>
+                </div>
               </div>
             );
           })}
