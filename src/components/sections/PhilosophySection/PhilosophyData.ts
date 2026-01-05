@@ -2,36 +2,36 @@ export interface PhilosophyItem {
   title: string;
   subtitle: string;
   description: string;
-  keyword: string; // The word that will glow on hover
+  keywords: string[]; // Words that will glow on hover
 }
 
 export const philosophyItems: PhilosophyItem[] = [
   {
   title: "Systems & Architecture",
-  subtitle: "Scale & Structure",
+  subtitle: "Structure in Design",
   description:
     "Built to scale. Built to last.",
-  keyword: "structure",
+  keywords: ["scale", "last"],
 },
 {
   title: "User-Centered Systems",
-  subtitle: "Utility & Ergonomics",
+  subtitle: "Shipping to Reality",
   description:
     "Production is the product.",
-  keyword: "users",
+  keywords: ["Production", "product"],
 },
 {
-  title: "Intelligence & Reasoning",
-  subtitle: "AI & Systems",
+  title: "AI & Production",
+  subtitle: "From Research to Execution",
   description:
-    "I engineer intelligent systems that reason, adapt, and leverage state-of-the-art techniques responsibly.",
-  keyword: "intelligent",
+    "AI belongs in systems, not notebooks.",
+  keywords: ["systems", "AI"],
 },
 {
-  title: "Flow & Real-Time",
-  subtitle: "State & Reactivity",
+  title: "Reactivity & Adaptation",
+  subtitle: "Time as a Dimension",
   description:
-    "I design reactive systems where data, state, and decisions flow continuously and respond in real time.",
-  keyword: "flow",
+    "Systems improve through continuous response.",
+  keywords: ["continuous", "improve"],
 },
 ];
