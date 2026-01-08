@@ -70,11 +70,10 @@ const PRESETS: Record<PresetName, FieldPreset> = {
     name: "shipping",
     drift: 0.0001,
     damping: 0.985,
-    connectionDistance: 0.82,
-    maxEdgesPerPoint: 2,
+    connectionDistance: 0.65,
+    maxEdgesPerPoint: 1,
     signatureDuration: 1400, // slower signature
     vortexStrength: 0.00035,
-    pulseFreq: 0.55,
     mouseStrength: 0.35,
   },
   ai: {
@@ -225,8 +224,8 @@ const particleFragmentShader = `
     float glow = smoothstep(1.0, 0.0, d);
     float core = smoothstep(0.35, 0.0, d);
 
-    float tw = 0.78 + 0.22 * sin(uTime * vTwinkle);
-    float alpha = (0.45 * glow + 0.55 * core) * vOpacity * tw;
+    float tw = 0.38 + 0.12 * sin(uTime * vTwinkle);
+    float alpha = (0.3 * glow + 0.7 * core) * vOpacity * tw;
 
     vec3 glowColor = vec3(0.55, 0.78, 0.82);
     vec3 coreColor = vec3(0.72, 0.92, 1.00);
@@ -291,12 +290,12 @@ const shippingForce = (
 
   if (dist < 0.1) return { fx: 0, fy: 0 };
 
-  const strength = preset.vortexStrength || 0.0008;
+  const strength = (preset.vortexStrength || 0.0008) * 0.3;
   const tangentX = -dy / dist;
   const tangentY = dx / dist;
 
   // Inward spiral
-  const radialPull = 0.00015;
+  const radialPull = 0.00001;
 
   return {
     fx: tangentX * strength + (dx / dist) * radialPull,
@@ -376,6 +375,20 @@ const reactivityForce = (
 
   const strength = preset.flowStrength || 0.001;
 
+  // Center-attracting force to pull particles through visible area
+  const distFromCenter = Math.sqrt(p.x * p.x + p.y * p.y);
+  const centerPull = 0.00015; // gentle radial inward force
+
+  let centerX = 0;
+  let centerY = 0;
+
+  if (distFromCenter > 0.1) {
+    // Normalize and apply inward pull (stronger at edges, weaker near center)
+    const pullStrength = Math.min(1.0, distFromCenter / 4.0); // scale with distance
+    centerX = -(p.x / distFromCenter) * centerPull * pullStrength;
+    centerY = -(p.y / distFromCenter) * centerPull * pullStrength;
+  }
+
   // Mouse wake
   const dmx = p.x - ctx.mouseX;
   const dmy = p.y - ctx.mouseY;
@@ -391,8 +404,8 @@ const reactivityForce = (
   }
 
   return {
-    fx: -Math.sin(ny + curl) * strength + wakeX,
-    fy: Math.cos(nx + curl) * strength + wakeY,
+    fx: -Math.sin(ny + curl) * strength + wakeX + centerX,
+    fy: Math.cos(nx + curl) * strength + wakeY + centerY,
   };
 };
 
@@ -423,12 +436,6 @@ function ParticleSimulation({
       : "default";
   const currentPreset = PRESETS[currentPresetName];
 
-  // Debug logging for preset changes
-  useEffect(() => {
-    console.log(
-      `✨ ParticleField3D - Active Preset: "${currentPresetName}" (index: ${activePresetIndex})`
-    );
-  }, [currentPresetName, activePresetIndex]);
   const prevPresetRef = useRef(currentPreset);
   const transitionStartRef = useRef(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -617,11 +624,13 @@ function ParticleSimulation({
       setIsTransitioning(true);
       transitionStartRef.current = performance.now();
       signatureStartRef.current = performance.now();
+
+      const prevPresetName = prevPresetRef.current.name;
       prevPresetRef.current = currentPreset;
 
       // Re-scatter particles when transitioning to/from default or between major presets
       // This prevents clustering buildup
-      const isLeavingDefault = prevPresetRef.current.name === "default";
+      const isLeavingDefault = prevPresetName === "default";
       const isEnteringDefault = currentPreset.name === "default";
 
       if (isLeavingDefault || isEnteringDefault) {
@@ -633,6 +642,37 @@ function ParticleSimulation({
           const dist = Math.random() * scatterStrength;
           p.vx += Math.cos(angle) * dist * 0.01;
           p.vy += Math.sin(angle) * dist * 0.01;
+        }
+      }
+
+      // Explosive rescatter when transitioning from AI to shipping
+      if (prevPresetName === "ai" && currentPreset.name === "shipping") {
+        // Generate new stratified positions for smooth redistribution
+        const newPositions = stratifiedPositions(
+          particles.length,
+          viewport.width,
+          viewport.height
+        );
+
+        // Apply scatter force towards new positions
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          const target = newPositions[i];
+
+          // Calculate direction to new position
+          const dx = target.x - p.x;
+          const dy = target.y - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist > 0.1) {
+            // Add explosive velocity with randomization for natural scatter
+            const scatterForce = 0.09 + Math.random() * 0.01;
+            const explosionAngle =
+              Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.4;
+
+            p.vx = Math.cos(explosionAngle) * scatterForce;
+            p.vy = Math.sin(explosionAngle) * scatterForce;
+          }
         }
       }
 
@@ -660,7 +700,7 @@ function ParticleSimulation({
         }
       }
     }
-  }, [currentPreset, particles]);
+  }, [currentPreset, particles, viewport.width, viewport.height]);
 
   // resize: update pixel ratio
   useEffect(() => {
@@ -827,11 +867,6 @@ function ParticleSimulation({
         const f = shippingForce(p, ctx, currentPreset);
         fx = f.fx;
         fy = f.fy;
-
-        // Add pulse modulation to opacity
-        const pulseFreq = currentPreset.pulseFreq || 0.55;
-        const pulse = 0.03 * Math.sin(state.clock.elapsedTime * pulseFreq);
-        p.opacity = Math.min(0.7, Math.max(0.12, p.opacity + pulse * 0.35));
       } else if (currentPreset.name === "ai") {
         // Handle cluster transitions
         const currentTime = Date.now();

@@ -59,18 +59,6 @@ const IndexContent = () => {
         return { ...c, dist, center };
       });
 
-    console.log("🔍 Detection debug:", {
-      viewportCenter,
-      candidates: candidates.map((c) => ({
-        id: c.id,
-        ratio: c.ratio.toFixed(2),
-        dist: c.dist.toFixed(0),
-        center: c.center.toFixed(0),
-        isIntersecting: c.entry?.isIntersecting,
-      })),
-      current: currentSection,
-    });
-
     if (candidates.length === 0) return;
 
     // Find section closest to viewport center
@@ -94,11 +82,6 @@ const IndexContent = () => {
 
     // Switch to best section
     if (best.id !== currentSection) {
-      console.log(
-        `📍 Section detected: ${best.id.toUpperCase()} (ratio: ${best.ratio.toFixed(
-          2
-        )}, dist: ${best.dist.toFixed(0)}px)`
-      );
       setCurrentSection(best.id);
     }
   }, [
@@ -117,13 +100,6 @@ const IndexContent = () => {
   // Compute effective preset index based on section
   const effectivePresetIndex =
     currentSection === "philosophy" ? activePresetIndex : -1; // -1 = default preset
-
-  // Debug logging
-  useEffect(() => {
-    console.log(
-      `🎨 Current Section: ${currentSection} | Preset Index: ${effectivePresetIndex} | Philosophy Index: ${activePresetIndex}`
-    );
-  }, [currentSection, effectivePresetIndex, activePresetIndex]);
 
   return (
     <main className="relative min-h-screen">
@@ -147,7 +123,7 @@ const IndexContent = () => {
       {/* Foreground stack */}
       <div className="relative z-10">
         {/* Debug overlay - shows current section and preset */}
-        <div className="fixed top-4 left-4 z-50 bg-black/80 text-white px-4 py-2 rounded-lg font-mono text-xs space-y-1">
+        {/* <div className="fixed top-4 left-4 z-50 bg-black/80 text-white px-4 py-2 rounded-lg font-mono text-xs space-y-1">
           <div>
             Section: <span className="text-primary">{currentSection}</span>
           </div>
@@ -164,7 +140,7 @@ const IndexContent = () => {
             H:{hero.ratio.toFixed(2)} P:{philo.ratio.toFixed(2)} C:
             {carousel.ratio.toFixed(2)}
           </div>
-        </div>
+        </div> */}
 
         {/* Social links - top right */}
         <SocialLinks />
