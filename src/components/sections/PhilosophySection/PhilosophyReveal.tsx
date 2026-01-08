@@ -86,7 +86,6 @@ export const PhilosophyReveal = () => {
 
   // Sync effectiveActiveIndex to context for particle field
   useEffect(() => {
-    console.log(`🔄 Philosophy step changed to: ${effectiveActiveIndex}`);
     setActivePresetIndex(effectiveActiveIndex);
   }, [effectiveActiveIndex, setActivePresetIndex]);
 
