@@ -5,18 +5,35 @@ export function useInViewport<T extends HTMLElement>(
 ) {
   const ref = useRef<T | null>(null);
   const [inView, setInView] = useState(false);
+  const [ratio, setRatio] = useState(0);
+  const [entry, setEntry] = useState<IntersectionObserverEntry | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    const obs = new IntersectionObserver(([entry]) => {
-      setInView(entry.isIntersecting);
+    // Disconnect previous observer if it exists
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    // Create new observer with stable callback
+    observerRef.current = new IntersectionObserver(([e]) => {
+      setEntry(e);
+      setInView(e.isIntersecting);
+      setRatio(e.intersectionRatio);
     }, options);
 
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [options, options.root, options.rootMargin, options.threshold]);
+    observerRef.current.observe(el);
 
-  return { ref, inView };
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+    };
+  }, []); // Empty deps - observer is created once and persists
+
+  return { ref, inView, ratio, entry };
 }

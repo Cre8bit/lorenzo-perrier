@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { philosophyItems } from "./PhilosophyData";
 import { reportPerformance } from "@/components/ui/performance-overlay";
 import { clamp01, smoothstep } from "@/utils/animation";
+import { useParticleField } from "@/contexts/ParticleFieldContext";
 
 export const PhilosophyReveal = () => {
+  const { setActivePresetIndex } = useParticleField();
   // Reveal opacity (0..1) based on entering the section
   const [revealOpacity, setRevealOpacity] = useState(0);
 
@@ -81,6 +83,12 @@ export const PhilosophyReveal = () => {
   }, [progress, n]);
 
   const effectiveActiveIndex = lockedIndex ?? derivedActiveIndex;
+
+  // Sync effectiveActiveIndex to context for particle field
+  useEffect(() => {
+    console.log(`🔄 Philosophy step changed to: ${effectiveActiveIndex}`);
+    setActivePresetIndex(effectiveActiveIndex);
+  }, [effectiveActiveIndex, setActivePresetIndex]);
 
   // Compute the "target progress" for a given step
   const stepMidProgress = (index: number) => {
@@ -358,11 +366,7 @@ export const PhilosophyReveal = () => {
   };
 
   return (
-    <section
-      id="philosophy"
-      ref={sectionRef}
-      className="min-h-[700vh] relative -mt-[100vh]"
-    >
+    <section ref={sectionRef} className="min-h-[700vh] relative -mt-[100vh]">
       {/* Aurore boreal effect TODO Full-section background (spans the whole scroll section) */}
       {/* <div
     className="absolute inset-0 pointer-events-none z-0"
