@@ -1072,7 +1072,4 @@ export const ParticleField3D = ({
   <ParticleField3DCanvas activePresetIndex={activePresetIndex} />
 );
 
-// Re-export quality setter for convenience
-export { setParticleField3DQuality } from "./particle-quality";
-
 export default ParticleField3D;

@@ -13,7 +13,7 @@ import {
   QualityControls,
   useQualityControls,
 } from "./components/ui/quality-controls";
-import { setParticleField3DQuality } from "./components/ui/particle-field-3d";
+import { setParticleField3DQuality } from "./components/ui/particle-quality";
 
 const queryClient = new QueryClient();
 

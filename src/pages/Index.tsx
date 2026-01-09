@@ -8,11 +8,9 @@ import { ContactLink, SocialLinks } from "@/components/ui/social-links";
 import { PhilosophyReveal } from "@/components/sections/PhilosophySection/PhilosophyReveal";
 import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGlide";
 import { ScrollTransition } from "@/components/transitions/ScrollTransition";
-import {
-  ParticleFieldProvider,
-  useParticleField,
-} from "@/contexts/ParticleFieldContext";
 import { useInViewport } from "@/hooks/use-in-viewport";
+import { useParticleField } from "@/contexts/useParticleField";
+import { ParticleFieldProvider } from "@/contexts/ParticleFieldProvider";
 
 // Lazy load Three.js particle field for better initial bundle size
 const ParticleField3D = lazy(() => import("@/components/ui/particle-field-3d"));
