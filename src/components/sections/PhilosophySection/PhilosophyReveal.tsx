@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { philosophyItems } from "./PhilosophyData";
 import { reportPerformance } from "@/components/ui/performance-overlay";
 import { clamp01, smoothstep } from "@/utils/animation";
-import { useParticleField } from "@/contexts/ParticleFieldContext";
+import { useParticleField } from "@/contexts/useParticleField";
 
 export const PhilosophyReveal = () => {
   const { setActivePresetIndex } = useParticleField();
@@ -366,25 +366,6 @@ export const PhilosophyReveal = () => {
 
   return (
     <section ref={sectionRef} className="min-h-[700vh] relative -mt-[100vh]">
-      {/* Aurore boreal effect TODO Full-section background (spans the whole scroll section) */}
-      {/* <div
-    className="absolute inset-0 pointer-events-none z-0"
-    style={{
-      // keep it stable across the whole section
-      background: `
-        radial-gradient(ellipse 70% 60% at 50% 35%,
-          hsl(var(--primary) / 0.12) 0%,
-          transparent 65%
-        ),
-        radial-gradient(ellipse 60% 55% at 50% 70%,
-          hsl(var(--primary) / 0.08) 0%,
-          transparent 70%
-        )
-      `,
-    }}
-  />
-   */}
-
       {/* Sticky container */}
       <div
         className="sticky top-0 h-screen flex items-center justify-center px-4 md:px-8 transition-opacity duration-300 ease-linear"
