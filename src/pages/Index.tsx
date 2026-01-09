@@ -170,7 +170,9 @@ const IndexContent = () => {
         <ScrollTransition />
 
         {/* Scrollable experience/resume section */}
-        <ExperienceSection ref={experience.ref} />
+        <section id="experience" ref={experience.ref}>
+          <ExperienceSection />
+        </section>
 
         {/* Liquid horizontal navigation */}
         <LiquidNavigation />
