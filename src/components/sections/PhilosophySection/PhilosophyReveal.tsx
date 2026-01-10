@@ -3,6 +3,13 @@ import { philosophyItems } from "./PhilosophyData";
 import { reportPerformance } from "@/components/ui/performance-overlay";
 import { clamp01, smoothstep } from "@/utils/animation";
 import { useParticleField } from "@/contexts/useParticleField";
+import { StepperSelector, type StepperVariant } from "./StepperVariants";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHANGE THIS TO PREVIEW DIFFERENT STEPPER DESIGNS:
+// "whisper" | "capsule" | "breath" | "trail"
+// ═══════════════════════════════════════════════════════════════════════════
+const STEPPER_VARIANT: StepperVariant = "whisper";
 
 export const PhilosophyReveal = () => {
   const { setActivePresetIndex } = useParticleField();
@@ -371,120 +378,20 @@ export const PhilosophyReveal = () => {
           Is
         </h2>
 
-        {/* Stepper */}
+        {/* Stepper - using modular variant system */}
         <div
-          className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2"
+          className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2 z-10"
           style={{ opacity: exitOpacity }}
-          onMouseEnter={() => setStepperOpen(true)}
-          onMouseLeave={() => {
-            setStepperOpen(false);
-            setHoveredStep(null);
-          }}
         >
-          <div
-            className="flex flex-col items-start"
-            style={{
-              gap: stepperOpen ? 14 : 10,
-              transform: `scale(${stepperOpen ? 1.1 : 1})`,
-              transformOrigin: "left center",
-              transition: "transform 180ms ease, gap 180ms ease",
-            }}
-          >
-            {philosophyItems.map((_, index) => {
-              const isActive = index === effectiveActiveIndex;
-              const hasBeenSeen = allTraversed || index <= maxSeenIndex;
-              const isHovered = hoveredStep === index;
-
-              // Wave based on snapped progress (discrete feel)
-              const waveCenter = progress * (n - 1);
-              const dist = index - waveCenter;
-              const sigma = 1.05;
-              const envelope = Math.exp(-(dist * dist) / (2 * sigma * sigma));
-              const baseline = 0.2;
-              const wave = baseline + (1 - baseline) * envelope;
-
-              const baseW = stepperOpen ? 18 : 14;
-              const maxExtraW = stepperOpen ? 42 : 26;
-
-              const width =
-                baseW +
-                maxExtraW * wave +
-                (isActive ? 10 : 0) +
-                (isHovered ? 14 : 0);
-
-              const heightBase = isActive ? 3 : 2;
-              const height = stepperOpen
-                ? isHovered
-                  ? heightBase + 1
-                  : heightBase
-                : heightBase;
-
-              const trackOpacity = hasBeenSeen ? 0.28 : 0.18;
-              const fillOpacity = isActive ? 1 : isHovered ? 0.85 : 0.55;
-
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => handleStepperClick(index)}
-                  disabled={!hasBeenSeen}
-                  aria-label={`Go to step ${index + 1}`}
-                  onMouseEnter={() => setHoveredStep(index)}
-                  onMouseLeave={() => setHoveredStep(null)}
-                  className={[
-                    "group relative flex items-center select-none",
-                    hasBeenSeen
-                      ? "cursor-pointer"
-                      : "cursor-default opacity-60",
-                    // compact on mobile, roomier on md+
-                    "min-h-[22px] py-[4px] md:min-h-[34px] md:py-[10px]",
-                    // give a bit of horizontal touch padding without inflating height
-                    "px-1 md:px-0",
-                  ].join(" ")}
-                  style={{
-                    pointerEvents: hasBeenSeen ? "auto" : "none",
-                  }}
-                >
-                  <span
-                    className="relative block rounded-full"
-                    style={{
-                      // MOBILE FIRST sizing:
-                      // - inactive: dot
-                      // - active: short pill
-                      // then scale up on md via clamp
-                      width: isActive
-                        ? "clamp(18px, 8vw, 28px)" // active pill on mobile
-                        : "clamp(8px, 3.2vw, 10px)", // dot on mobile
-                      height: isActive
-                        ? "clamp(6px, 2.3vw, 8px)"
-                        : "clamp(6px, 2.3vw, 8px)",
-
-                      // keep your original feel
-                      background: `rgba(255,255,255,${trackOpacity})`,
-                      transition:
-                        "width 220ms cubic-bezier(0.2, 0.8, 0.2, 1), height 140ms ease, background 200ms ease, box-shadow 200ms ease",
-                      boxShadow: isActive
-                        ? "0 0 8px rgba(255,255,255,0.16)" // reduced glow (was 12px)
-                        : isHovered
-                        ? "0 0 10px rgba(255,255,255,0.12)" // reduced hover glow
-                        : "0 0 6px rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <span
-                      className="absolute inset-0 rounded-full"
-                      style={{
-                        background: "rgba(255,255,255,0.88)",
-                        transform: hasBeenSeen ? "scaleX(1)" : "scaleX(0)",
-                        transformOrigin: "left",
-                        opacity: hasBeenSeen ? fillOpacity : 0,
-                        transition: "transform 220ms ease, opacity 160ms ease",
-                      }}
-                    />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <StepperSelector
+            variant={STEPPER_VARIANT}
+            items={philosophyItems}
+            activeIndex={effectiveActiveIndex}
+            maxSeenIndex={maxSeenIndex}
+            allTraversed={allTraversed}
+            progress={progress}
+            onStepClick={handleStepperClick}
+          />
         </div>
 
         {/* Background glow */}
