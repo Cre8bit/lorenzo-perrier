@@ -37,13 +37,58 @@ export const PhilosophyReveal = () => {
   const [lockedIndex, setLockedIndex] = useState<number | null>(null);
 
   const scrollTimeoutRef = useRef<number | null>(null);
-  const tickingRef = useRef(false);
   const rafWatchRef = useRef<number | null>(null);
+
+  const settleRef = useRef(0);
+  const [settle, setSettle] = useState(0);
+  const settleRafRef = useRef<number | null>(null);
+
+  const isScrollingRef = useRef(false);
+  const lastScrollYRef = useRef<number>(window.scrollY);
 
   const [stepperOpen, setStepperOpen] = useState(false);
   const [hoveredStep, setHoveredStep] = useState<number | null>(null);
 
+  // Cached metrics for scroll calculations (avoids getBoundingClientRect per frame)
+  const metricsRef = useRef({ top: 0, height: 0, vh: 0, total: 1 });
+  // Last rendered values for thresholding
+  const lastRef = useRef({ reveal: 0, exit: 1, progress: 0, activeIndex: 0 });
+  // IntersectionObserver flag
+  const isNearRef = useRef(false);
+  // Snap-to-card animation ref
+  const snapRafRef = useRef<number | null>(null);
+
   const n = philosophyItems.length;
+
+  // Helper: get progress at center of a step
+  const stepCenterP = (idx: number) => (idx + 0.5) / n;
+
+  // Helper: find nearest card index from progress
+  const nearestIndexFromProgress = (p: number) => {
+    const idx = Math.round(p * n - 0.5);
+    return Math.max(0, Math.min(n - 1, idx));
+  };
+
+  // Helper: hard set progress without threshold checks
+  const setProgressHard = (p: number) => {
+    progressRef.current = p;
+    lastRef.current.progress = p;
+    setProgress(p);
+  };
+
+  // Measure section metrics (run on mount + resize)
+  const measure = () => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    const top = window.scrollY + rect.top;
+    const height = el.offsetHeight;
+    const vh = window.innerHeight;
+    const total = Math.max(1, height - vh);
+
+    metricsRef.current = { top, height, vh, total };
+  };
 
   const computeSectionProgress = (section: HTMLElement) => {
     const rect = section.getBoundingClientRect();
@@ -78,8 +123,8 @@ export const PhilosophyReveal = () => {
 
   // Derived active index (do NOT store separately)
   const derivedActiveIndex = useMemo(() => {
-    const idx = Math.min(n - 1, Math.floor(progress * n));
-    return idx;
+    return nearestIndexFromProgress(progress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress, n]);
 
   const effectiveActiveIndex = lockedIndex ?? derivedActiveIndex;
@@ -124,101 +169,204 @@ export const PhilosophyReveal = () => {
     const el = sectionRef.current;
     if (!el) return;
 
-    const onScrollOrResize = () => {
-      if (tickingRef.current) return;
-      tickingRef.current = true;
+    // Initial measurement
+    measure();
 
-      requestAnimationFrame(() => {
-        const scrollStart = performance.now();
-        tickingRef.current = false;
+    // IntersectionObserver to skip RAF loop when far away
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        isNearRef.current = entry.isIntersecting;
+      },
+      { root: null, threshold: 0, rootMargin: "200px 0px 200px 0px" }
+    );
 
-        // Skip heavy calculations when page is hidden
-        if (document.hidden) return;
+    io.observe(el);
+    window.addEventListener("resize", measure);
 
-        const op = computeRevealOpacity(el);
-        setRevealOpacity(op);
+    return () => {
+      io.disconnect();
+      window.removeEventListener("resize", measure);
+      // Refs are intentionally mutable for animation cleanup
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      if (rafWatchRef.current) cancelAnimationFrame(rafWatchRef.current);
+      if (snapRafRef.current) cancelAnimationFrame(snapRafRef.current);
+      if (settleRafRef.current) cancelAnimationFrame(settleRafRef.current);
+    };
+  }, []);
 
-        // Compute exit opacity (for fading out as carousel approaches)
-        const exitOp = computeExitOpacity(el);
-        setExitOpacity(exitOp);
+  // Single RAF loop - no scroll event handler
+  useEffect(() => {
+    let raf = 0;
 
-        // manual scroll state (only when not programmatic)
+    const tick = () => {
+      const tickStart = performance.now();
+      raf = requestAnimationFrame(tick);
+
+      // Skip when page is hidden or section is far away
+      if (document.hidden) return;
+      if (!isNearRef.current) return;
+
+      const el = sectionRef.current;
+      if (!el) return;
+
+      const { top, total } = metricsRef.current;
+
+      // Section progress 0..1 while sticky is active
+      const traveled = window.scrollY - top;
+      const sectionP = clamp01(traveled / total);
+
+      // Reveal opacity (fade in during first 10% of section)
+      const reveal = smoothstep(clamp01(sectionP / 0.1));
+
+      // Exit opacity (fade out near end)
+      const startFade = 0.93;
+      const endFade = 0.98;
+      let exit = 1;
+      if (sectionP >= endFade) exit = 0;
+      else if (sectionP > startFade) {
+        const t = (sectionP - startFade) / (endFade - startFade);
+        exit = 1 - smoothstep(t);
+      }
+
+      // Before reveal completes: hold progress at 0
+      if (reveal < 1) {
+        revealCompletedRef.current = false;
         if (!isProgrammaticScrollRef.current) {
-          setIsScrolling(true);
-          if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-          scrollTimeoutRef.current = window.setTimeout(
-            () => setIsScrolling(false),
-            250
-          );
-        }
-
-        // Before reveal completes: hold progress at 0 and reset "reveal completed"
-        if (op < 1) {
-          revealCompletedRef.current = false;
-          // During entry phase we keep at step 0 and progress 0.
-          if (!isProgrammaticScrollRef.current) {
+          // Only update if changed enough
+          if (Math.abs(lastRef.current.progress - 0) > 0.001) {
+            lastRef.current.progress = 0;
             progressRef.current = 0;
             setProgress(0);
           }
-          return;
         }
-
-        // Reveal just completed: capture the anchor scroll position once
+      } else {
+        // Reveal just completed: capture anchor position
         if (!revealCompletedRef.current) {
           revealCompletedRef.current = true;
 
           // Back-calculate where reveal completed (at p = 0.1 of section progress)
-          const rect = el.getBoundingClientRect();
-          const vh = window.innerHeight;
-          const total = rect.height - vh;
           const traveledAtReveal = 0.1 * total;
+          revealStartScrollRef.current = top + traveledAtReveal;
+        }
 
-          // Absolute position of section top + distance traveled for reveal
-          const sectionTop = window.scrollY + rect.top;
-          revealStartScrollRef.current = sectionTop + traveledAtReveal;
+        // After reveal: sync internal progress (skip if programmatic lock is active)
+        if (!isProgrammaticScrollRef.current) {
+          // Detect actual scroll movement
+          const y = window.scrollY;
+          const dy = Math.abs(y - lastScrollYRef.current);
+          lastScrollYRef.current = y;
 
-          // Sync progress immediately from current scroll position
+          // Treat tiny subpixel/jitter as no-scroll
+          const MOVING = dy > 0.5;
+
           const delta = Math.max(
             0,
             window.scrollY - revealStartScrollRef.current
           );
           const p = clamp01(delta / internalScrollDistance());
-
           progressRef.current = p;
-          setProgress(p);
 
-          // Set maxSeenIndex based on current progress
-          const idx = Math.min(n - 1, Math.floor(p * n));
-          setMaxSeenIndex(Math.max(0, idx));
+          // Only setProgress when it actually moves enough (threshold to avoid re-renders)
+          if (Math.abs(lastRef.current.progress - p) > 0.003) {
+            lastRef.current.progress = p;
+            setProgress(p);
 
-          return;
+            const idx = Math.min(n - 1, Math.floor(p * n));
+            if (idx !== lastRef.current.activeIndex) {
+              lastRef.current.activeIndex = idx;
+              setMaxSeenIndex((prev) => Math.max(prev, idx));
+            }
+          }
+
+          // Only when actual movement detected
+          if (MOVING) {
+            // Cancel any active snap animation when user resumes scrolling
+            cancelSnap();
+
+            if (!isScrollingRef.current) {
+              isScrollingRef.current = true;
+              setIsScrolling(true);
+            }
+
+            // Fade settle back to 0 smoothly when movement starts (prevents flicker)
+            if (settleRef.current > 0.01) {
+              cancelSettle();
+              const startSettle = settleRef.current;
+              const startTime = performance.now();
+              const FADE_OUT = 80; // quick fade to avoid flicker
+
+              const fadeOut = () => {
+                const t = clamp01((performance.now() - startTime) / FADE_OUT);
+                const v = startSettle * (1 - smoothstep(t));
+                settleRef.current = v;
+                setSettle(v);
+                if (t < 1) {
+                  settleRafRef.current = requestAnimationFrame(fadeOut);
+                } else {
+                  settleRafRef.current = null;
+                }
+              };
+
+              settleRafRef.current = requestAnimationFrame(fadeOut);
+            }
+
+            // Restart stop timer
+            if (scrollTimeoutRef.current)
+              clearTimeout(scrollTimeoutRef.current);
+            scrollTimeoutRef.current = window.setTimeout(() => {
+              isScrollingRef.current = false;
+              setIsScrolling(false);
+
+              // Start settle animation
+              if (isProgrammaticScrollRef.current) return;
+              if (!revealCompletedRef.current) return;
+
+              cancelSettle();
+              const start = performance.now();
+              const from = settleRef.current;
+              const DURATION = 220;
+
+              const animate = () => {
+                const t = clamp01((performance.now() - start) / DURATION);
+                const v = from + (1 - from) * smoothstep(t);
+                settleRef.current = v;
+                setSettle(v);
+                if (t < 1) {
+                  settleRafRef.current = requestAnimationFrame(animate);
+                } else {
+                  settleRafRef.current = null;
+                  // Update maxSeenIndex once settle completes
+                  const idx = nearestIndexFromProgress(progressRef.current);
+                  setMaxSeenIndex((prev) => Math.max(prev, idx));
+                }
+              };
+
+              settleRafRef.current = requestAnimationFrame(animate);
+            }, 160);
+          }
         }
+      }
 
-        // After reveal: sync internal progress (skip if programmatic lock is active)
-        if (!isProgrammaticScrollRef.current) {
-          syncProgressFromScroll();
-        }
+      // Thresholded opacity setState (avoid re-render for micro changes)
+      if (Math.abs(lastRef.current.reveal - reveal) > 0.01) {
+        lastRef.current.reveal = reveal;
+        setRevealOpacity(reveal);
+      }
+      if (Math.abs(lastRef.current.exit - exit) > 0.01) {
+        lastRef.current.exit = exit;
+        setExitOpacity(exit);
+      }
 
-        // Report scroll performance
-        const scrollDuration = performance.now() - scrollStart;
-        if (scrollDuration > 8) {
-          reportPerformance("PhilosophyReveal:scroll", scrollDuration);
-        }
-      });
+      // Report performance for frames that take too long
+      const tickDuration = performance.now() - tickStart;
+      if (tickDuration > 8) {
+        reportPerformance("PhilosophyReveal:RAF", tickDuration);
+      }
     };
 
-    // initial
-    onScrollOrResize();
-
-    window.addEventListener("scroll", onScrollOrResize, { passive: true });
-    window.addEventListener("resize", onScrollOrResize);
-
-    return () => {
-      window.removeEventListener("scroll", onScrollOrResize);
-      window.removeEventListener("resize", onScrollOrResize);
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-      if (rafWatchRef.current) cancelAnimationFrame(rafWatchRef.current);
-    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // Helper functions (nearestIndexFromProgress, stepCenterP, isScrolling state) are stable
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [n]);
 
@@ -243,7 +391,7 @@ export const PhilosophyReveal = () => {
     const itemRange = itemEnd - itemStart;
 
     // Small overlap prevents blank frames at exact boundaries
-    const overlap = itemRange * 0.02; // tune 0.02–0.08
+    const overlap = itemRange * 0.05; // tune 0.02–0.08
     const start = itemStart - overlap;
     const end = itemEnd + overlap;
 
@@ -268,15 +416,19 @@ export const PhilosophyReveal = () => {
       baseOpacity = 1 - (progress - fadeOutStart) / (end - fadeOutStart);
     }
 
-    // If user stops scrolling, ensure the derived active item is fully visible
-    if (!isScrolling && index === derivedActiveIndex && revealOpacity === 1) {
-      return 1;
+    // When not scrolling, ease toward a fully-visible single card
+    const active = effectiveActiveIndex;
+
+    // Once settle passes threshold, force winner-takes-all to prevent two cards
+    if (settle > 0.15) {
+      return index === active ? 1 : 0;
     }
 
-    const EPS_OPACITY = 0.2;
-    if (baseOpacity < EPS_OPACITY) baseOpacity = 0;
-    if (baseOpacity > 1 - EPS_OPACITY) baseOpacity = 1;
-    return baseOpacity;
+    // settle ramps 0->1 after scroll stops
+    const settledOpacity = index === active ? 1 : 0;
+    const blended = baseOpacity * (1 - settle) + settledOpacity * settle;
+
+    return blended;
   };
 
   const highlightKeywords = (
@@ -318,6 +470,16 @@ export const PhilosophyReveal = () => {
     rafWatchRef.current = null;
   };
 
+  const cancelSnap = () => {
+    if (snapRafRef.current) cancelAnimationFrame(snapRafRef.current);
+    snapRafRef.current = null;
+  };
+
+  const cancelSettle = () => {
+    if (settleRafRef.current) cancelAnimationFrame(settleRafRef.current);
+    settleRafRef.current = null;
+  };
+
   const handleStepperClick = (index: number) => {
     if (!sectionRef.current || !revealCompletedRef.current) return;
     if (!allTraversed && index > maxSeenIndex) return;
@@ -340,14 +502,33 @@ export const PhilosophyReveal = () => {
     // Smooth scroll the page
     window.scrollTo({ top: targetScroll, behavior: "smooth" });
 
+    // User interrupt handlers - drop lock if user scrolls during programmatic mode
+    const abortOnUserScroll = () => {
+      if (!isProgrammaticScrollRef.current) return;
+      isProgrammaticScrollRef.current = false;
+      lockedIndexRef.current = null;
+      setLockedIndex(null);
+      syncProgressFromScroll();
+
+      // Clean up listeners
+      window.removeEventListener("wheel", abortOnUserScroll);
+      window.removeEventListener("touchmove", abortOnUserScroll);
+    };
+
+    window.addEventListener("wheel", abortOnUserScroll, { passive: true });
+    window.addEventListener("touchmove", abortOnUserScroll, { passive: true });
+
     // Watch actual scroll position; exit lock when close enough
     cancelWatch();
-    const EPS = 2; // px tolerance
+    const EPS = 6; // bigger tolerance for smooth scrolling + fractional pixels
+    const MAX_MS = 1200; // timeout fallback
+    const startTime = performance.now();
 
     const watch = () => {
       const dist = Math.abs(window.scrollY - targetScroll);
+      const timedOut = performance.now() - startTime > MAX_MS;
 
-      if (dist <= EPS) {
+      if (dist <= EPS || timedOut) {
         // Exit programmatic lock
         isProgrammaticScrollRef.current = false;
         lockedIndexRef.current = null;
@@ -355,6 +536,10 @@ export const PhilosophyReveal = () => {
 
         // Final sync from real scroll position (keeps everything consistent)
         syncProgressFromScroll();
+
+        // Clean up listeners
+        window.removeEventListener("wheel", abortOnUserScroll);
+        window.removeEventListener("touchmove", abortOnUserScroll);
         return;
       }
 
