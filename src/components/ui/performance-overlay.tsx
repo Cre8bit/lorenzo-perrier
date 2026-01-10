@@ -21,7 +21,12 @@ export const PerformanceOverlay = ({
   const monitorRef = useRef<PerformanceMonitor | null>(null);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setPerformanceOverlayEnabled(false);
+      return;
+    }
+
+    setPerformanceOverlayEnabled(true);
 
     // Start FPS monitoring
     const monitor = new PerformanceMonitor((avgFps) => {
@@ -38,19 +43,25 @@ export const PerformanceOverlay = ({
     }, 1000);
 
     // Listen for performance measurements from components
-    const handlePerformance = (event: CustomEvent) => {
-      const { name, duration } = event.detail;
+    const handlePerformance = (event: Event) => {
+      const { name, duration } = (
+        event as CustomEvent<{ name: string; duration: number }>
+      ).detail;
 
       setMetrics((prev) => {
         const newMetrics = new Map(prev);
         const existing = newMetrics.get(name);
 
         if (existing) {
-          existing.avgTime =
-            (existing.avgTime * existing.callCount + duration) /
-            (existing.callCount + 1);
-          existing.callCount++;
-          existing.lastUpdate = Date.now();
+          // Create new object instead of mutating
+          newMetrics.set(name, {
+            name,
+            avgTime:
+              (existing.avgTime * existing.callCount + duration) /
+              (existing.callCount + 1),
+            callCount: existing.callCount + 1,
+            lastUpdate: Date.now(),
+          });
         } else {
           newMetrics.set(name, {
             name,
@@ -82,6 +93,7 @@ export const PerformanceOverlay = ({
       monitor.stop();
       clearInterval(fpsInterval);
       window.removeEventListener("performance-metric", handlePerformance);
+      setPerformanceOverlayEnabled(false);
     };
   }, [enabled]);
 
@@ -130,7 +142,7 @@ export const PerformanceOverlay = ({
       {sortedMetrics.length > 0 && (
         <>
           <div className="text-white/50 text-[10px] mb-2">
-            Component Times (ms/frame):
+            Component Times (avg ms/frame, last ~1s):
           </div>
           <div className="space-y-1 max-h-[200px] overflow-y-auto">
             {sortedMetrics.map((metric) => (
@@ -211,10 +223,52 @@ export const usePerformanceOverlay = () => {
   return enabled;
 };
 
+// Global flag to guard dispatch overhead when overlay is disabled
+let performanceOverlayEnabled = false;
+
+export const setPerformanceOverlayEnabled = (enabled: boolean) => {
+  performanceOverlayEnabled = enabled;
+};
+
 // Utility to report performance metrics from components
 export const reportPerformance = (name: string, duration: number) => {
+  if (!performanceOverlayEnabled) return; // Guard: avoid dispatch if overlay is off
+
   const event = new CustomEvent("performance-metric", {
     detail: { name, duration },
   });
   window.dispatchEvent(event);
+};
+
+// Frame accumulator for true ms/frame average
+const frameAccumulators = new Map<
+  string,
+  { total: number; count: number; lastReport: number }
+>();
+
+export const reportFramePerformance = (name: string, startTime: number) => {
+  if (!performanceOverlayEnabled) return; // Guard: skip accumulation if overlay is off
+
+  const duration = performance.now() - startTime;
+
+  let acc = frameAccumulators.get(name);
+  if (!acc) {
+    acc = { total: 0, count: 0, lastReport: Date.now() };
+    frameAccumulators.set(name, acc);
+  }
+
+  acc.total += duration;
+  acc.count++;
+
+  // Report average every ~1 second (time-based, works at any framerate)
+  const now = Date.now();
+  if (now - acc.lastReport >= 1000) {
+    const avgDuration = acc.total / acc.count;
+    reportPerformance(name, avgDuration);
+
+    // Reset accumulator
+    acc.total = 0;
+    acc.count = 0;
+    acc.lastReport = now;
+  }
 };

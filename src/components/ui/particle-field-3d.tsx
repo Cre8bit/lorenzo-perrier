@@ -1,15 +1,16 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { reportPerformance } from "./performance-overlay";
-import { getExternalQualitySettings } from "./particle-quality";
+import { reportFramePerformance } from "./performance-overlay";
+import {
+  getExternalQualitySettings,
+  resolveRuntimeQuality,
+} from "./particle-quality";
+import { type QualitySettings } from "@/lib/performance";
+import { useQualitySettingsState } from "@/hooks/use-quality-settings";
 
-export interface QualitySettings {
-  maxParticles: number;
-  connectionDistance: number; // in px (screen space)
-  densityFactor: number;
-  skipConnectionFrames: number;
-}
+// Helper: Get clamped pixel ratio for sprite sizing (independent of Canvas DPR)
+const getPixelRatioUniform = () => Math.min(window.devicePixelRatio || 1, 1.5);
 
 // ============================================================================
 // Preset System
@@ -115,42 +116,6 @@ type Particle = {
   flowPhase?: number;
 };
 
-const getQualitySettings = (): QualitySettings => {
-  const width = window.innerWidth;
-  const pixelRatio = window.devicePixelRatio || 1;
-
-  // @ts-expect-error experimental
-  const memory = navigator.deviceMemory;
-  const cores = navigator.hardwareConcurrency || 4;
-
-  const isLowPower = memory && memory < 4;
-  const isSmallScreen = width < 768;
-  const isHighDPI = pixelRatio > 2;
-
-  const prefersReducedMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)"
-  ).matches;
-
-  if (prefersReducedMotion) {
-    return {
-      densityFactor: 0.3,
-      maxParticles: 70,
-      connectionDistance: 90,
-      skipConnectionFrames: 4,
-    };
-  }
-
-  return {
-    densityFactor: isSmallScreen ? 0.9 : isLowPower ? 1.0 : 1.3,
-    maxParticles: isLowPower ? 240 : isSmallScreen ? 320 : 560,
-    connectionDistance: isLowPower ? 120 : 140,
-    skipConnectionFrames: isLowPower || cores < 4 || isHighDPI ? 2 : 1,
-  };
-};
-
-// Allow external tuning - moved to particle-quality.ts
-// Usage: import { setParticleField3DQuality } from "@/components/ui/particle-quality"
-
 // ============================================================================
 // Small helper: evenly spread initial positions (stratified jitter)
 // ============================================================================
@@ -158,7 +123,7 @@ const getQualitySettings = (): QualitySettings => {
 function stratifiedPositions(count: number, halfW: number, halfH: number) {
   const cols = Math.ceil(Math.sqrt(count));
   const rows = Math.ceil(count / cols);
-
+  console.log(`Stratified scatter: ${count} points in ${cols}x${rows} grid`);
   const cellW = (2 * halfW) / cols;
   const cellH = (2 * halfH) / rows;
 
@@ -189,6 +154,15 @@ function stratifiedPositions(count: number, halfW: number, halfH: number) {
 }
 
 // ============================================================================
+// Helper: Deterministic hash for hot loop randomness (faster than Math.random)
+// ============================================================================
+
+const hash01 = (a: number) => {
+  const x = Math.sin(a * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+// ============================================================================
 // Shaders
 // ============================================================================
 
@@ -212,7 +186,7 @@ const particleVertexShader = `
 `;
 
 const particleFragmentShader = `
-  precision highp float;
+  precision mediump float;
   varying float vOpacity;
   varying float vTwinkle;
   uniform float uTime;
@@ -245,7 +219,7 @@ const lineVertexShader = `
 `;
 
 const lineFragmentShader = `
-  precision highp float;
+  precision mediump float;
   varying float vOpacity;
   void main() {
     vec3 color = vec3(0.53, 0.77, 0.80);
@@ -397,7 +371,8 @@ const reactivityForce = (
   let wakeX = 0;
   let wakeY = 0;
 
-  if (dm < 2.0) {
+  if (dm > 1e-6 && dm < 2.0) {
+    // guard against divide-by-zero
     const t = 1 - dm / 2.0;
     wakeX = (dmx / dm) * t * 0.003;
     wakeY = (dmy / dm) * t * 0.003;
@@ -411,17 +386,26 @@ const reactivityForce = (
 
 interface ParticleSimulationProps {
   activePresetIndex?: number; // -1 = default preset, 0-3 = philosophy presets
+  baseQuality: QualitySettings; // Single source of truth from parent
 }
 
 function ParticleSimulation({
   activePresetIndex = -1,
+  baseQuality,
 }: ParticleSimulationProps) {
   const { viewport } = useThree();
 
   const mouseRef = useRef({ x: 0, y: 0 });
   const isInHeroRef = useRef(true);
   const frameCountRef = useRef(0);
-  const qualityRef = useRef(getQualitySettings());
+
+  // Optimized spatial hash: numeric keys + bucket pooling
+  const spatialGridRef = useRef(new Map<number, number[]>());
+  const bucketPoolRef = useRef<number[][]>([]);
+
+  // Separate spatial grid for connection line building
+  const connectionGridRef = useRef(new Map<number, number[]>());
+  const connectionBucketPoolRef = useRef<number[][]>([]);
 
   // Preset state
   const presetNames: PresetName[] = [
@@ -471,8 +455,7 @@ function ParticleSimulation({
     lineOpacities,
     maxLineVerts,
   } = useMemo(() => {
-    const q = qualityRef.current;
-    const max = q.maxParticles;
+    const max = baseQuality.maxParticles;
 
     const particles: Particle[] = new Array(max).fill(null).map((_, i) => {
       const r = Math.random();
@@ -501,18 +484,32 @@ function ParticleSimulation({
     const opacities = new Float32Array(max);
     const twinkles = new Float32Array(max);
 
+    // Initialize static attributes (sizes, twinkles) once - never updated again
+    for (let i = 0; i < max; i++) {
+      sizes[i] = particles[i].size * 8.0;
+      twinkles[i] = particles[i].twinkleSpeed;
+    }
+
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
     geometry.setAttribute("aOpacity", new THREE.BufferAttribute(opacities, 1));
     geometry.setAttribute("aTwinkle", new THREE.BufferAttribute(twinkles, 1));
 
+    // Set dynamic usage hints for frequently updated buffers
+    (geometry.attributes.position as THREE.BufferAttribute).setUsage(
+      THREE.DynamicDrawUsage
+    );
+    (geometry.attributes.aOpacity as THREE.BufferAttribute).setUsage(
+      THREE.DynamicDrawUsage
+    );
+
     const material = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       uniforms: {
-        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) },
+        uPixelRatio: { value: getPixelRatioUniform() },
         uScale: { value: 52.0 },
         uTime: { value: 0 },
       },
@@ -538,6 +535,14 @@ function ParticleSimulation({
     );
     lineGeometry.setDrawRange(0, 0);
 
+    // Set dynamic usage hints for frequently updated buffers
+    (lineGeometry.attributes.position as THREE.BufferAttribute).setUsage(
+      THREE.DynamicDrawUsage
+    );
+    (lineGeometry.attributes.aOpacity as THREE.BufferAttribute).setUsage(
+      THREE.DynamicDrawUsage
+    );
+
     const lineMaterial = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
@@ -560,7 +565,7 @@ function ParticleSimulation({
       lineOpacities,
       maxLineVerts,
     };
-  }, []);
+  }, [baseQuality.maxParticles]);
 
   // even scatter once viewport is known
   useEffect(() => {
@@ -702,17 +707,30 @@ function ParticleSimulation({
     }
   }, [currentPreset, particles, viewport.width, viewport.height]);
 
-  // resize: update pixel ratio
+  // Update uPixelRatio uniform when viewport changes (tracks real DPR, not Canvas DPR)
   useEffect(() => {
-    const onResize = () => {
-      material.uniforms.uPixelRatio.value = Math.min(
-        window.devicePixelRatio || 1,
-        1.5
-      );
+    const updatePixelRatio = () => {
+      material.uniforms.uPixelRatio.value = getPixelRatioUniform();
     };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+
+    window.addEventListener("resize", updatePixelRatio);
+    window.visualViewport?.addEventListener("resize", updatePixelRatio);
+
+    return () => {
+      window.removeEventListener("resize", updatePixelRatio);
+      window.visualViewport?.removeEventListener("resize", updatePixelRatio);
+    };
   }, [material]);
+
+  // Dispose GPU resources on unmount to prevent VRAM leaks
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+      material.dispose();
+      lineGeometry.dispose();
+      lineMaterial.dispose();
+    };
+  }, [geometry, material, lineGeometry, lineMaterial]);
 
   useFrame((state) => {
     const frameStart = performance.now();
@@ -723,7 +741,7 @@ function ParticleSimulation({
 
     const now = performance.now();
 
-    // Transition progress (for parameter interpolation)
+    // Transition progress tracking
     const transitionDuration = 1200;
     let transitionT = 0;
     if (isTransitioning) {
@@ -737,25 +755,23 @@ function ParticleSimulation({
     // Signature progress (for the "signature moment" boost)
     const sigElapsed = now - signatureStartRef.current;
     const sigDuration = currentPreset.signatureDuration;
-    signatureProgressRef.current = Math.max(
-      0,
-      Math.min(1, sigElapsed / sigDuration)
+    signatureProgressRef.current =
+      sigDuration > 0 ? Math.min(1, sigElapsed / sigDuration) : 0;
+
+    // Resolve runtime quality: base + external overrides (with safe clamping)
+    const settings = resolveRuntimeQuality(
+      baseQuality,
+      getExternalQualitySettings()
     );
-
-    // Smoothstep for nicer transitions
-    const smoothT = transitionT * transitionT * (3 - 2 * transitionT);
-
-    // allow external quality updates later (kept minimal: only updates connection distance behavior)
-    const settings = getExternalQualitySettings() || qualityRef.current;
 
     material.uniforms.uTime.value = state.clock.elapsedTime;
 
-    // Interpolate preset parameters during transition
+    // Preset parameters
     const effectiveDamping = currentPreset.damping;
     const effectiveDrift = currentPreset.drift;
     const effectiveConnDistMult = currentPreset.connectionDistance;
 
-    // world distance equivalent for the px-based threshold
+    // Convert px-based connection distance to world space
     const baseConnDist =
       (settings.connectionDistance / window.innerWidth) * viewport.width * 2;
     const worldConnDist = baseConnDist * effectiveConnDistMult;
@@ -777,6 +793,7 @@ function ParticleSimulation({
 
     // mouse pull (baseline interaction)
     const maxMouseDist = 1.4;
+    const maxMouseDist2 = maxMouseDist * maxMouseDist; // squared distance for cheaper check
     const basePull = 0.0016;
     const pull = basePull * cursorStrength;
 
@@ -785,31 +802,53 @@ function ParticleSimulation({
     const minDist2 = minDist * minDist;
     const cellSize = minDist; // grid cell size
 
-    const grid = new Map<string, number[]>();
-    const keyOf = (x: number, y: number) => {
-      const cx = Math.floor(x / cellSize);
-      const cy = Math.floor(y / cellSize);
-      return `${cx},${cy}`;
-    };
+    // Numeric key hash (avoids string allocations)
+    const keyOf = (cx: number, cy: number) => (cx << 16) ^ (cy & 0xffff);
 
-    // Build spatial hash grid
-    for (let i = 0; i < particles.length; i++) {
-      const k = keyOf(particles[i].x, particles[i].y);
-      const bucket = grid.get(k);
-      if (bucket) bucket.push(i);
-      else grid.set(k, [i]);
+    // Calculate active particle count based on densityFactor
+    const activeCount = Math.max(
+      1,
+      Math.floor(baseQuality.maxParticles * settings.densityFactor)
+    );
+
+    // Reuse spatial grid and bucket arrays
+    const grid = spatialGridRef.current;
+    const pool = bucketPoolRef.current;
+
+    // Return previous buckets to pool
+    for (const arr of grid.values()) {
+      arr.length = 0;
+      pool.push(arr);
+    }
+    grid.clear();
+
+    // Build spatial hash grid (only for active particles)
+    for (let i = 0; i < activeCount; i++) {
+      const cx = Math.floor(particles[i].x / cellSize);
+      const cy = Math.floor(particles[i].y / cellSize);
+      const k = keyOf(cx, cy);
+
+      let bucket = grid.get(k);
+      if (!bucket) {
+        bucket = pool.pop() ?? [];
+        grid.set(k, bucket);
+      }
+      bucket.push(i);
     }
 
-    // update particles
-    for (let i = 0; i < particles.length; i++) {
+    // Deterministic noise constants (replace Math.random drift)
+    const noiseTimeScale = state.clock.elapsedTime * 0.3;
+
+    for (let i = 0; i < activeCount; i++) {
       const p = particles[i];
 
       // Mouse interaction (baseline, modulated by preset)
       const dxm = mouseRef.current.x - p.x;
       const dym = mouseRef.current.y - p.y;
-      const dm = Math.sqrt(dxm * dxm + dym * dym);
+      const dm2 = dxm * dxm + dym * dym; // squared distance - cheaper than sqrt
 
-      if (isInHeroRef.current && dm < maxMouseDist && cursorStrength > 0) {
+      if (isInHeroRef.current && dm2 < maxMouseDist2 && cursorStrength > 0) {
+        const dm = Math.sqrt(dm2); // only compute sqrt when interaction happens
         const t = 1 - dm / maxMouseDist;
         const g = pull * t * t;
         p.vx += dxm * g;
@@ -823,14 +862,18 @@ function ParticleSimulation({
       // Apply minimum distance enforcement using spatial hash
       const cx = Math.floor(p.x / cellSize);
       const cy = Math.floor(p.y / cellSize);
+      const MAX_CANDIDATES_PER_CELL = 24; // budget to prevent worst-case crowding
 
       for (let gx = cx - 1; gx <= cx + 1; gx++) {
         for (let gy = cy - 1; gy <= cy + 1; gy++) {
-          const bucket = grid.get(`${gx},${gy}`);
+          const k = keyOf(gx, gy);
+          const bucket = grid.get(k);
           if (!bucket) continue;
 
+          let checked = 0;
           for (const j of bucket) {
-            if (j === i) continue;
+            if (checked++ > MAX_CANDIDATES_PER_CELL) break;
+            if (j === i || j >= activeCount) continue; // skip self and inactive
             const p2 = particles[j];
 
             const dx = p.x - p2.x;
@@ -852,13 +895,6 @@ function ParticleSimulation({
       let fx = 0;
       let fy = 0;
 
-      // Debug: log force application every 120 frames for first particle
-      if (i === 0 && frame % 120 === 0) {
-        console.log(
-          `🎯 Frame ${frame} - Applying forces for preset: "${currentPreset.name}"`
-        );
-      }
-
       if (currentPreset.name === "architecture") {
         const f = architectureForce(p, ctx, currentPreset);
         fx = f.fx;
@@ -875,8 +911,9 @@ function ParticleSimulation({
           const clusterCount = currentPreset.clusterCount || 6;
           const currentCluster = p.clusterId || 0;
 
-          // Pick adjacent cluster (creates flowing pattern)
-          const direction = Math.random() > 0.5 ? 1 : -1;
+          // Pick adjacent cluster (creates flowing pattern) - deterministic hash
+          const rdir = hash01(i * 13.37 + ((currentTime * 0.001) | 0));
+          const direction = rdir > 0.5 ? 1 : -1;
           p.nextClusterId =
             (currentCluster + direction + clusterCount) % clusterCount;
 
@@ -889,8 +926,9 @@ function ParticleSimulation({
           if (distToNext < 0.8) {
             p.clusterId = p.nextClusterId;
             p.nextClusterId = undefined;
-            // Set next transition time (2-6 seconds)
-            p.clusterTransitionTime = currentTime + Math.random() * 4000 + 2000;
+            // Set next transition time (2-6 seconds) - deterministic hash
+            const rt = hash01(i * 91.7 + ((currentTime * 0.001) | 0));
+            p.clusterTransitionTime = currentTime + 2000 + rt * 4000;
           }
         }
 
@@ -907,9 +945,14 @@ function ParticleSimulation({
       p.vx += fx;
       p.vy += fy;
 
-      // gentle baseline drift
-      p.vx += (Math.random() - 0.5) * effectiveDrift;
-      p.vy += (Math.random() - 0.5) * effectiveDrift;
+      // Deterministic drift (replaces Math.random for performance)
+      const nx = Math.sin(i * 12.9898 + noiseTimeScale * 0.7) * 43758.5453;
+      const ny = Math.sin(i * 78.233 + noiseTimeScale * 1.1) * 43758.5453;
+      const rx = nx - Math.floor(nx) - 0.5; // -0.5 to 0.5
+      const ry = ny - Math.floor(ny) - 0.5;
+
+      p.vx += rx * effectiveDrift;
+      p.vy += ry * effectiveDrift;
 
       p.x += p.vx;
       p.y += p.vy;
@@ -925,82 +968,132 @@ function ParticleSimulation({
       if (p.y < -halfH) p.y = halfH;
       if (p.y > halfH) p.y = -halfH;
 
-      // buffers
+      // buffers (only update dynamic attributes: position, opacity)
       positions[i * 3 + 0] = p.x;
       positions[i * 3 + 1] = p.y;
       positions[i * 3 + 2] = 0;
 
-      sizes[i] = p.size * 8.0;
       opacities[i] = p.opacity;
-      twinkles[i] = p.twinkleSpeed;
     }
 
-    (geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
-    (geometry.attributes.aSize as THREE.BufferAttribute).needsUpdate = true;
-    (geometry.attributes.aOpacity as THREE.BufferAttribute).needsUpdate = true;
-    (geometry.attributes.aTwinkle as THREE.BufferAttribute).needsUpdate = true;
+    // Update draw range for active particles only (handles inactive particles automatically)
+    geometry.setDrawRange(0, activeCount);
 
-    // lines (connection graph with preset-specific rules)
-    if (frame % settings.skipConnectionFrames === 0) {
+    // Only update dynamic attributes (position, opacity) - aSize and aTwinkle are static
+    (geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+    (geometry.attributes.aOpacity as THREE.BufferAttribute).needsUpdate = true;
+
+    // lines (connection graph with spatial grid optimization - O(N*k) instead of O(N²))
+    const skipFramesBase = Math.max(1, settings.skipConnectionFrames | 0);
+    const skipFrames = isInHeroRef.current
+      ? skipFramesBase
+      : skipFramesBase * 3; // adaptive: reduce line updates when not in view
+    if (frame % skipFrames === 0) {
       let li = 0;
       const maxPerParticle = currentPreset.maxEdgesPerPoint;
 
       // For AI preset: intra-cluster vs inter-cluster logic
       const isAIPreset = currentPreset.name === "ai";
 
-      for (let i = 0; i < particles.length && li < maxLineVerts; i++) {
+      // Build spatial grid for connection search
+      const cellSizeConn = worldConnDist * 0.75; // smaller cells = fewer candidates per bucket
+      const keyConn = (cx: number, cy: number) => (cx << 16) ^ (cy & 0xffff);
+
+      const gridConn = connectionGridRef.current;
+      const poolConn = connectionBucketPoolRef.current;
+
+      // Return previous buckets to pool
+      for (const arr of gridConn.values()) {
+        arr.length = 0;
+        poolConn.push(arr);
+      }
+      gridConn.clear();
+
+      // Build spatial hash for active particles only
+      for (let i = 0; i < activeCount; i++) {
+        const cx = Math.floor(particles[i].x / cellSizeConn);
+        const cy = Math.floor(particles[i].y / cellSizeConn);
+        const k = keyConn(cx, cy);
+
+        let bucket = gridConn.get(k);
+        if (!bucket) {
+          bucket = poolConn.pop() ?? [];
+          gridConn.set(k, bucket);
+        }
+        bucket.push(i);
+      }
+
+      // Build connections using spatial grid (neighbor search only)
+      const worldConnDist2 = worldConnDist * worldConnDist;
+
+      for (let i = 0; i < activeCount && li < maxLineVerts; i++) {
         const p1 = particles[i];
+        const cx = Math.floor(p1.x / cellSizeConn);
+        const cy = Math.floor(p1.y / cellSizeConn);
         let made = 0;
 
-        for (
-          let j = i + 1;
-          j < particles.length && made < maxPerParticle && li < maxLineVerts;
-          j++
-        ) {
-          const p2 = particles[j];
+        // Check only neighboring cells (9 cells total)
+        const MAX_CANDIDATES_PER_CELL = 24; // budget to prevent worst-case crowding
+        for (let gx = cx - 1; gx <= cx + 1 && made < maxPerParticle; gx++) {
+          for (let gy = cy - 1; gy <= cy + 1 && made < maxPerParticle; gy++) {
+            const bucket = gridConn.get(keyConn(gx, gy));
+            if (!bucket) continue;
 
-          // AI preset: prefer intra-cluster connections
-          if (isAIPreset && p1.clusterId !== p2.clusterId) {
-            // Rare inter-cluster connection during signature moment
-            if (Math.random() > signatureProgressRef.current * 0.15) continue;
+            let checked = 0;
+            for (const j of bucket) {
+              if (checked++ > MAX_CANDIDATES_PER_CELL) break;
+              if (j <= i) continue; // Avoid duplicates and self
+              if (made >= maxPerParticle || li >= maxLineVerts) break;
+
+              const p2 = particles[j];
+
+              // AI preset: prefer intra-cluster connections
+              if (isAIPreset && p1.clusterId !== p2.clusterId) {
+                // Rare inter-cluster connection during signature moment (deterministic hash)
+                const r = hash01(i * 10007 + j * 37 + frame * 0.1);
+                if (r > signatureProgressRef.current * 0.15) continue;
+              }
+
+              const dx = p1.x - p2.x;
+              const dy = p1.y - p2.y;
+              const d2 = dx * dx + dy * dy;
+              if (d2 > worldConnDist2) continue;
+
+              const d = Math.sqrt(d2); // Only compute sqrt after distance check passes
+              let baseAlpha =
+                0.22 *
+                (1 - d / worldConnDist) *
+                Math.min(p1.opacity, p2.opacity);
+
+              // Boost line visibility with clamping to prevent bloom
+              baseAlpha = Math.min(0.22, baseAlpha * 1.1);
+
+              // Shipping preset: brighten connections during signature loop-close
+              if (
+                currentPreset.name === "shipping" &&
+                signatureProgressRef.current > 0.3
+              ) {
+                const boost = signatureProgressRef.current * 0.08;
+                baseAlpha = Math.min(0.28, baseAlpha + boost);
+              }
+
+              linePositions[li * 3 + 0] = p1.x;
+              linePositions[li * 3 + 1] = p1.y;
+              linePositions[li * 3 + 2] = 0;
+              lineOpacities[li] = baseAlpha;
+              li++;
+
+              if (li >= maxLineVerts) break;
+
+              linePositions[li * 3 + 0] = p2.x;
+              linePositions[li * 3 + 1] = p2.y;
+              linePositions[li * 3 + 2] = 0;
+              lineOpacities[li] = baseAlpha;
+              li++;
+
+              made++;
+            }
           }
-
-          const dx = p1.x - p2.x;
-          const dy = p1.y - p2.y;
-          const d2 = dx * dx + dy * dy;
-          if (d2 > worldConnDist * worldConnDist) continue;
-
-          const d = Math.sqrt(d2);
-          let baseAlpha =
-            0.22 * (1 - d / worldConnDist) * Math.min(p1.opacity, p2.opacity);
-
-          // Boost line visibility with clamping to prevent bloom
-          baseAlpha = Math.min(0.22, baseAlpha * 1.1);
-
-          // Shipping preset: brighten connections during signature loop-close
-          if (
-            currentPreset.name === "shipping" &&
-            signatureProgressRef.current > 0.3
-          ) {
-            const boost = signatureProgressRef.current * 0.08;
-            baseAlpha = Math.min(0.28, baseAlpha + boost);
-          }
-
-          linePositions[li * 3 + 0] = p1.x;
-          linePositions[li * 3 + 1] = p1.y;
-          linePositions[li * 3 + 2] = 0;
-          lineOpacities[li] = baseAlpha;
-          li++;
-
-          if (li >= maxLineVerts) break;
-
-          linePositions[li * 3 + 0] = p2.x;
-          linePositions[li * 3 + 1] = p2.y;
-          linePositions[li * 3 + 2] = 0;
-          lineOpacities[li] = baseAlpha;
-          li++;
-
-          made++;
         }
       }
 
@@ -1011,9 +1104,9 @@ function ParticleSimulation({
         true;
     }
 
-    if (frame % 60 === 0) {
-      const duration = performance.now() - frameStart;
-      reportPerformance("ParticleField3D", duration);
+    // Sample performance monitoring less frequently (every 10 frames) to reduce overhead
+    if (frame % 10 === 0) {
+      reportFramePerformance("ParticleField3D", frameStart);
     }
   });
 
@@ -1040,17 +1133,17 @@ interface ParticleField3DCanvasProps {
 function ParticleField3DCanvas({
   activePresetIndex = -1,
 }: ParticleField3DCanvasProps) {
-  const quality = getQualitySettings();
-  const dpr =
-    quality.densityFactor < 0.5
-      ? 1
-      : Math.min(window.devicePixelRatio || 1, 1.5);
+  const quality = useQualitySettingsState();
+
+  // Get external overrides for maxParticles runtime control
+  const external = getExternalQualitySettings();
+  const effectiveMaxParticles = external?.maxParticles ?? quality.maxParticles;
 
   return (
     <Canvas
       className="absolute inset-0 pointer-events-none"
       style={{ zIndex: 0 }}
-      dpr={dpr}
+      dpr={quality.dpr}
       gl={{
         antialias: false,
         alpha: true,
@@ -1061,7 +1154,11 @@ function ParticleField3DCanvas({
       camera={{ position: [0, 0, 5], near: 0.1, far: 100 }}
       frameloop="always"
     >
-      <ParticleSimulation activePresetIndex={activePresetIndex} />
+      <ParticleSimulation
+        key={effectiveMaxParticles} // Force remount when maxParticles changes
+        activePresetIndex={activePresetIndex}
+        baseQuality={{ ...quality, maxParticles: effectiveMaxParticles }}
+      />
     </Canvas>
   );
 }
