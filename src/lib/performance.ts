@@ -2,6 +2,14 @@
  * Performance utilities for monitoring and optimizing the portfolio site
  */
 
+export interface QualitySettings {
+  maxParticles: number;
+  connectionDistance: number; // in px (screen space)
+  densityFactor: number;
+  skipConnectionFrames: number;
+  dpr: number; // devicePixelRatio to use for canvas
+}
+
 // Check if user prefers reduced motion
 export const prefersReducedMotion = (): boolean => {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -40,6 +48,38 @@ export const getOptimalDPR = (): number => {
     default:
       return Math.min(baseDpr, 1.5);
   }
+};
+
+// Unified quality settings computation
+export const getQualitySettings = (): QualitySettings => {
+  const width = window.innerWidth;
+  const pixelRatio = window.devicePixelRatio || 1;
+
+  // @ts-expect-error experimental
+  const memory = navigator.deviceMemory;
+  const cores = navigator.hardwareConcurrency || 4;
+
+  const isLowPower = memory && memory < 4;
+  const isSmallScreen = width < 768;
+  const isHighDPI = pixelRatio > 2;
+
+  if (prefersReducedMotion()) {
+    return {
+      densityFactor: 0.3,
+      maxParticles: 70,
+      connectionDistance: 90,
+      skipConnectionFrames: 4,
+      dpr: 1,
+    };
+  }
+
+  return {
+    densityFactor: isSmallScreen ? 0.9 : isLowPower ? 1.0 : 1.3,
+    maxParticles: isLowPower ? 240 : isSmallScreen ? 320 : 560,
+    connectionDistance: isLowPower ? 120 : 140,
+    skipConnectionFrames: isLowPower || cores < 4 || isHighDPI ? 2 : 1,
+    dpr: getOptimalDPR(),
+  };
 };
 
 // Monitor FPS and log warnings if performance is poor
