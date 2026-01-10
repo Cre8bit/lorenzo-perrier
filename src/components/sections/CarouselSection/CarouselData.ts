@@ -7,6 +7,9 @@ export interface CarouselContext {
   // Back card content
   backTitle: string;
   backDetails: string[];
+  // Optional: Editorial / Logo info
+  companyLine?: string; // e.g., "Bpifrance - B2C Platform"
+  logoUrl?: string;
 }
 
 export const carouselContexts: CarouselContext[] = [
@@ -23,6 +26,9 @@ export const carouselContexts: CarouselContext[] = [
       "Restructuring the flow to support multiple investment assets running in parallel.",
       "Shaping architecture complexity to match real product needs and delivery constraints.",
     ],
+    // Example: Add company line for editorial variants
+    companyLine: "Bpifrance — B2C Platform",
+    // logoUrl: "/logos/bpifrance.svg", // Add when you have the logo
   },
   {
     id: "intelligence",
@@ -37,6 +43,7 @@ export const carouselContexts: CarouselContext[] = [
       "Dynamic task graphs with real-time replanning",
       "Hybrid reasoning: symbolic + neural approaches",
     ],
+    // companyLine: "Your Company — Project Type",
   },
   {
     id: "perception",
