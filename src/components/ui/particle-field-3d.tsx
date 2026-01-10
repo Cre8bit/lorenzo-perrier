@@ -198,7 +198,7 @@ const particleFragmentShader = `
     float glow = smoothstep(1.0, 0.0, d);
     float core = smoothstep(0.35, 0.0, d);
 
-    float tw = 0.38 + 0.12 * sin(uTime * vTwinkle);
+    float tw = 0.58 + 0.12 * sin(uTime * vTwinkle);
     float alpha = (0.3 * glow + 0.7 * core) * vOpacity * tw;
 
     vec3 glowColor = vec3(0.55, 0.78, 0.82);

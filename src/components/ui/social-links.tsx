@@ -79,7 +79,7 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
 
 export const SocialLinks = () => {
   return (
-    <div className="fixed top-8 right-8 z-30 flex items-center gap-3">
+    <div className="fixed top-8 right-8 z-50 flex items-center gap-3">
       <SocialButton
         href="https://github.com/cre8bit"
         icon={<Github className="w-4 h-4" strokeWidth={1.5} />}
@@ -98,7 +98,7 @@ export const SocialLinks = () => {
 
 export const ContactLink = () => {
   return (
-    <div className="fixed bottom-8 left-8 z-30 flex items-center gap-3">
+    <div className="fixed bottom-8 left-8 z-50 flex items-center gap-3">
       <ContactButton />
     </div>
   );

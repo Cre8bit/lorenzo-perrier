@@ -3,13 +3,7 @@ import { philosophyItems } from "./PhilosophyData";
 import { reportPerformance } from "@/components/ui/performance-overlay";
 import { clamp01, smoothstep } from "@/utils/animation";
 import { useParticleField } from "@/contexts/useParticleField";
-import { StepperSelector, type StepperVariant } from "./StepperVariants";
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CHANGE THIS TO PREVIEW DIFFERENT STEPPER DESIGNS:
-// "whisper" | "capsule" | "breath" | "trail"
-// ═══════════════════════════════════════════════════════════════════════════
-const STEPPER_VARIANT: StepperVariant = "whisper";
+import { TrailStepper } from "./TrailStepper";
 
 export const PhilosophyReveal = () => {
   const { setActivePresetIndex } = useParticleField();
@@ -378,18 +372,16 @@ export const PhilosophyReveal = () => {
           Is
         </h2>
 
-        {/* Stepper - using modular variant system */}
+        {/* Stepper */}
         <div
           className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2 z-10"
           style={{ opacity: exitOpacity }}
         >
-          <StepperSelector
-            variant={STEPPER_VARIANT}
+          <TrailStepper
             items={philosophyItems}
             activeIndex={effectiveActiveIndex}
             maxSeenIndex={maxSeenIndex}
             allTraversed={allTraversed}
-            progress={progress}
             onStepClick={handleStepperClick}
           />
         </div>
