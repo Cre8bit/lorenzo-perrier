@@ -2,11 +2,18 @@ import React, { useCallback, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { carouselContexts, sectionTitle } from "./CarouselData";
 import { GlassCarouselCard, type CarouselTint } from "./GlassCarouselCard";
+import { CardVariants, type CardVariantKey, type ExtendedCarouselContext } from "./CardDesignVariants";
 import { useAutoplayProgress } from "@/hooks/use-autoplay-progress";
 import { useCarouselTransition } from "@/hooks/use-carousel-transition";
 import { useInViewport } from "@/hooks/use-in-viewport";
 import { lerp } from "@/utils/animation";
 import { withHslAlpha } from "./tint";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CARD VARIANT SELECTOR - Change this to preview different designs:
+// Options: "editorial" | "minimal" | "layered" | "interactive" | "compact" | "original"
+// ═══════════════════════════════════════════════════════════════════════════
+const CARD_VARIANT: CardVariantKey | "original" = "editorial";
 
 const cardTints: CarouselTint[] = [
   {
@@ -126,7 +133,7 @@ function CardLayer(props: {
   } = props;
 
   const tint = cardTints[index % cardTints.length];
-  const context = carouselContexts[index];
+  const context = carouselContexts[index] as ExtendedCarouselContext;
 
   const stackDepth = Math.abs(offset) < 0.001 ? null : Math.abs(offset) - 1;
 
@@ -135,8 +142,6 @@ function CardLayer(props: {
     : poseForOffset(offset);
 
   // Blend the "active" styling during the same transition as the motion.
-  // - Center card fades out as it leaves
-  // - Incoming card fades in as it arrives
   const activeStrength = isAnimating
     ? offset === 0
       ? 1 - t
@@ -151,6 +156,11 @@ function CardLayer(props: {
   const zIndex = 1000 - Math.abs(offset) * 10 + (isActive ? 100 : 0);
 
   const clickable = !isActive;
+
+  // Get the appropriate card component based on variant selection
+  const CardComponent = CARD_VARIANT === "original" 
+    ? null 
+    : CardVariants[CARD_VARIANT];
 
   return (
     <div
@@ -171,15 +181,26 @@ function CardLayer(props: {
         pointerEvents: clickable ? "auto" : "auto",
       }}
     >
-      <GlassCarouselCard
-        context={context}
-        tint={tint}
-        isActive={isActive}
-        activeStrength={activeStrength}
-        stackDepth={stackDepth}
-        isFlipped={isFlipped}
-        onFlip={onFlip}
-      />
+      {CardComponent ? (
+        <CardComponent
+          context={context}
+          tint={tint}
+          isActive={isActive}
+          activeStrength={activeStrength}
+          isFlipped={isFlipped}
+          onFlip={onFlip}
+        />
+      ) : (
+        <GlassCarouselCard
+          context={context}
+          tint={tint}
+          isActive={isActive}
+          activeStrength={activeStrength}
+          stackDepth={stackDepth}
+          isFlipped={isFlipped}
+          onFlip={onFlip}
+        />
+      )}
     </div>
   );
 }
