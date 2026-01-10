@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ConstellationCanvas } from "./constellation-canvas";
+import { useParticleField } from "@/contexts/useParticleField";
 
 interface SubtitleSegment {
   text: string;
@@ -9,15 +10,6 @@ interface SubtitleSegment {
 
 interface Subtitle {
   segments: SubtitleSegment[];
-}
-
-interface Dot {
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
-  vx: number;
-  vy: number;
 }
 
 const SUBTITLES: Subtitle[] = [
@@ -93,17 +85,20 @@ const SUBTITLES: Subtitle[] = [
   },
 ];
 
-const DOT_COUNT = 30;
-const CONNECTION_DISTANCE = 100;
-const ACCENT_COLOR = "hsl(185, 50%, 55%)";
-
 export const AnimatedSubtitle = () => {
+  const { currentSection } = useParticleField();
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [usedIndices, setUsedIndices] = useState<number[]>([0]);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [textVisible, setTextVisible] = useState(true);
   const [transitionKey, setTransitionKey] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout>();
+
+  // Only show/animate the constellation in the HERO section
+  const isHero = currentSection === "hero";
+  const shouldRenderCanvas = isHero; // avoid mounting/RAF work outside hero
+  const canvasActive = isHero && isTransitioning; // keep your "only during transition" behavior
 
   useEffect(() => {
     const scheduleNext = () => {
@@ -119,7 +114,8 @@ export const AnimatedSubtitle = () => {
 
         // swap index mid-transition (after fade out)
         setTimeout(() => {
-          let nextIndex;
+          let nextIndex: number;
+
           const available = Array.from(
             { length: SUBTITLES.length },
             (_, i) => i
@@ -127,14 +123,11 @@ export const AnimatedSubtitle = () => {
 
           if (usedIndices.length >= SUBTITLES.length) {
             setUsedIndices([currentIndex]);
-            nextIndex = available[Math.floor(Math.random() * available.length)];
+            nextIndex = available[(Math.random() * available.length) | 0];
           } else {
             const unused = available.filter((i) => !usedIndices.includes(i));
-            nextIndex = (unused.length ? unused : available)[
-              Math.floor(
-                Math.random() * (unused.length ? unused : available).length
-              )
-            ];
+            const pool = unused.length ? unused : available;
+            nextIndex = pool[(Math.random() * pool.length) | 0];
           }
 
           setCurrentIndex(nextIndex);
@@ -159,8 +152,10 @@ export const AnimatedSubtitle = () => {
 
   return (
     <div className="relative mx-auto max-w-md min-h-[3.5rem] md:min-h-[4rem] flex items-center justify-center">
-      {/* constellation only during transition */}
-      <ConstellationCanvas active={isTransitioning} seed={transitionKey} />
+      {/* Constellation only exists in HERO, and only animates during transitions */}
+      {shouldRenderCanvas && (
+        <ConstellationCanvas active={canvasActive} seed={transitionKey} />
+      )}
 
       <p
         className={[

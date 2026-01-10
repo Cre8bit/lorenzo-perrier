@@ -8,6 +8,7 @@ import {
 } from "./particle-quality";
 import { type QualitySettings } from "@/lib/performance";
 import { useQualitySettingsState } from "@/hooks/use-quality-settings";
+import { useParticleField } from "@/contexts/useParticleField";
 
 // Helper: Get clamped pixel ratio for sprite sizing (independent of Canvas DPR)
 const getPixelRatioUniform = () => Math.min(window.devicePixelRatio || 1, 1.5);
@@ -94,7 +95,7 @@ const PRESETS: Record<PresetName, FieldPreset> = {
     connectionDistance: 1.05,
     maxEdgesPerPoint: 3,
     signatureDuration: 1100,
-    flowStrength: 0.0004, // reduced from 0.0012 for slower flow
+    flowStrength: 0.0004,
     mouseStrength: 0.4,
   },
 };
@@ -123,7 +124,6 @@ type Particle = {
 function stratifiedPositions(count: number, halfW: number, halfH: number) {
   const cols = Math.ceil(Math.sqrt(count));
   const rows = Math.ceil(count / cols);
-  console.log(`Stratified scatter: ${count} points in ${cols}x${rows} grid`);
   const cellW = (2 * halfW) / cols;
   const cellH = (2 * halfH) / rows;
 
@@ -386,7 +386,7 @@ const reactivityForce = (
 
 interface ParticleSimulationProps {
   activePresetIndex?: number; // -1 = default preset, 0-3 = philosophy presets
-  baseQuality: QualitySettings; // Single source of truth from parent
+  baseQuality: QualitySettings;
 }
 
 function ParticleSimulation({
@@ -1134,10 +1134,13 @@ function ParticleField3DCanvas({
   activePresetIndex = -1,
 }: ParticleField3DCanvasProps) {
   const quality = useQualitySettingsState();
+  const { currentSection } = useParticleField();
 
   // Get external overrides for maxParticles runtime control
   const external = getExternalQualitySettings();
   const effectiveMaxParticles = external?.maxParticles ?? quality.maxParticles;
+
+  const isParticleFieldActive = currentSection !== "experience";
 
   return (
     <Canvas
@@ -1152,7 +1155,7 @@ function ParticleField3DCanvas({
         depth: false,
       }}
       camera={{ position: [0, 0, 5], near: 0.1, far: 100 }}
-      frameloop="always"
+      frameloop={isParticleFieldActive ? "always" : "never"}
     >
       <ParticleSimulation
         key={effectiveMaxParticles} // Force remount when maxParticles changes
