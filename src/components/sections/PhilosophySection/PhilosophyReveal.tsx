@@ -430,29 +430,44 @@ export const PhilosophyReveal = () => {
                   disabled={!hasBeenSeen}
                   aria-label={`Go to step ${index + 1}`}
                   onMouseEnter={() => setHoveredStep(index)}
-                  className={`group relative flex items-center ${
-                    hasBeenSeen ? "cursor-pointer" : "cursor-default"
-                  }`}
+                  onMouseLeave={() => setHoveredStep(null)}
+                  className={[
+                    "group relative flex items-center select-none",
+                    hasBeenSeen
+                      ? "cursor-pointer"
+                      : "cursor-default opacity-60",
+                    // compact on mobile, roomier on md+
+                    "min-h-[22px] py-[4px] md:min-h-[34px] md:py-[10px]",
+                    // give a bit of horizontal touch padding without inflating height
+                    "px-1 md:px-0",
+                  ].join(" ")}
                   style={{
                     pointerEvents: hasBeenSeen ? "auto" : "none",
-                    minHeight: stepperOpen ? 34 : 26,
-                    paddingTop: stepperOpen ? 10 : 7,
-                    paddingBottom: stepperOpen ? 10 : 7,
                   }}
                 >
                   <span
                     className="relative block rounded-full"
                     style={{
-                      width,
-                      height,
+                      // MOBILE FIRST sizing:
+                      // - inactive: dot
+                      // - active: short pill
+                      // then scale up on md via clamp
+                      width: isActive
+                        ? "clamp(18px, 8vw, 28px)" // active pill on mobile
+                        : "clamp(8px, 3.2vw, 10px)", // dot on mobile
+                      height: isActive
+                        ? "clamp(6px, 2.3vw, 8px)"
+                        : "clamp(6px, 2.3vw, 8px)",
+
+                      // keep your original feel
                       background: `rgba(255,255,255,${trackOpacity})`,
                       transition:
                         "width 220ms cubic-bezier(0.2, 0.8, 0.2, 1), height 140ms ease, background 200ms ease, box-shadow 200ms ease",
                       boxShadow: isActive
-                        ? "0 0 12px rgba(255,255,255,0.22)"
+                        ? "0 0 8px rgba(255,255,255,0.16)" // reduced glow (was 12px)
                         : isHovered
-                        ? "0 0 14px rgba(255,255,255,0.18)"
-                        : "0 0 8px rgba(255,255,255,0.10)",
+                        ? "0 0 10px rgba(255,255,255,0.12)" // reduced hover glow
+                        : "0 0 6px rgba(255,255,255,0.08)",
                     }}
                   >
                     <span
