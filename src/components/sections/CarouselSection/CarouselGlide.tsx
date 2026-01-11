@@ -1,19 +1,16 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { carouselContexts, sectionTitle } from "./CarouselData";
-import { GlassCarouselCard, type CarouselTint } from "./GlassCarouselCard";
-import { CardVariants, type CardVariantKey, type ExtendedCarouselContext } from "./CardDesignVariants";
+import {
+  EditorialCard,
+  type CarouselTint,
+  type ExtendedCarouselContext,
+} from "./EditorialCard";
 import { useAutoplayProgress } from "@/hooks/use-autoplay-progress";
 import { useCarouselTransition } from "@/hooks/use-carousel-transition";
 import { useInViewport } from "@/hooks/use-in-viewport";
 import { lerp } from "@/utils/animation";
 import { withHslAlpha } from "./tint";
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CARD VARIANT SELECTOR - Change this to preview different designs:
-// Options: "editorial" | "minimal" | "layered" | "interactive" | "compact" | "original"
-// ═══════════════════════════════════════════════════════════════════════════
-const CARD_VARIANT: CardVariantKey | "original" = "editorial";
 
 const cardTints: CarouselTint[] = [
   {
@@ -157,11 +154,6 @@ function CardLayer(props: {
 
   const clickable = !isActive;
 
-  // Get the appropriate card component based on variant selection
-  const CardComponent = CARD_VARIANT === "original" 
-    ? null 
-    : CardVariants[CARD_VARIANT];
-
   return (
     <div
       className={clickable ? "cursor-pointer" : undefined}
@@ -181,26 +173,14 @@ function CardLayer(props: {
         pointerEvents: clickable ? "auto" : "auto",
       }}
     >
-      {CardComponent ? (
-        <CardComponent
-          context={context}
-          tint={tint}
-          isActive={isActive}
-          activeStrength={activeStrength}
-          isFlipped={isFlipped}
-          onFlip={onFlip}
-        />
-      ) : (
-        <GlassCarouselCard
-          context={context}
-          tint={tint}
-          isActive={isActive}
-          activeStrength={activeStrength}
-          stackDepth={stackDepth}
-          isFlipped={isFlipped}
-          onFlip={onFlip}
-        />
-      )}
+      <EditorialCard
+        context={context}
+        tint={tint}
+        isActive={isActive}
+        activeStrength={activeStrength}
+        isFlipped={isFlipped}
+        onFlip={onFlip}
+      />
     </div>
   );
 }
