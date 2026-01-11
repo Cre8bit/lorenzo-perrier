@@ -75,7 +75,7 @@ const PRESETS: Record<PresetName, FieldPreset> = {
     connectionDistance: 0.65,
     maxEdgesPerPoint: 1,
     signatureDuration: 1400, // slower signature
-    vortexStrength: 0.00035,
+    vortexStrength: 0.00045,
     mouseStrength: 0.35,
   },
   ai: {

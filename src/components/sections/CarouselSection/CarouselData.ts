@@ -17,7 +17,7 @@ export const carouselContexts: CarouselContext[] = [
     id: "production",
     title: "Production Systems at Scale",
     problem:
-      "Evolving live systems to support parallel workflows without compounding operational complexity.",
+      "Evolving live B2C platform to support parallel workflows without compounding operational complexity.",
     signals: ["async workflows", "scale", "constraints"],
     visualType: "flow",
     backTitle: "What this looks like",
@@ -26,38 +26,40 @@ export const carouselContexts: CarouselContext[] = [
       "Restructuring the flow to support multiple investment assets running in parallel.",
       "Shaping architecture complexity to match real product needs and delivery constraints.",
     ],
-    // Example: Add company line for editorial variants
-    companyLine: "Bpifrance — B2C Platform",
-    // logoUrl: "/logos/bpifrance.svg", // Add when you have the logo
+    companyLine: "Bpifrance — Investing Platform",
+    logoUrl: "public/logos/logo_BPI.png",
   },
   {
     id: "intelligence",
-    title: "Intelligent & Agent-based Systems",
+    title: "AI & Agent-based Systems",
     problem:
-      "Designing reasoning architectures where agents coordinate, adapt, and execute with precision.",
-    signals: ["agents", "execution graphs", "real-time"],
+      "Turning experimental LLM reasoning workflows into reliable, executable systems.",
+    signals: ["agents", "reasoning", "execution"],
     visualType: "network",
     backTitle: "What this looks like",
     backDetails: [
-      "Multi-agent coordination with shared memory",
-      "Dynamic task graphs with real-time replanning",
-      "Hybrid reasoning: symbolic + neural approaches",
+      "Structuring multi-agent systems by separating planning, execution, and tool invocation.",
+      "Designing agent tools to safely query and reason over internal engineering databases.",
+      "Making LLM reasoning steps observable, interruptible, and debuggable in real time.",
     ],
-    // companyLine: "Your Company — Project Type",
+    companyLine: "BMW Group — LLM Reasoning",
+    logoUrl: "public/logos/BMW_logo.png",
   },
   {
     id: "perception",
-    title: "Perception & Real-time Constraints",
+    title: "Perception & Real-time",
     problem:
-      "Creating systems that perceive, process, and respond faster than conscious thought.",
+      "Designing systems where latency, accuracy, and resources must be balanced continuously.",
     signals: ["LiDAR", "physics", "real-time"],
     visualType: "layers",
     backTitle: "What this looks like",
     backDetails: [
-      "Sub-millisecond sensor fusion pipelines",
-      "GPU-accelerated point cloud processing",
-      "Predictive state estimation under uncertainty",
+      "Optimizing models and applications to meet strict real-time performance budgets.",
+      "Designing spatial data pipelines where latency directly affects perception and interaction.",
+      "Balancing model complexity, accuracy, and responsiveness under hardware constraints.",
     ],
+    companyLine:
+      "Applied across VR & Simulation",
   },
 ];
 
