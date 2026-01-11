@@ -5,6 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import VariationsIndex from "./pages/variations/index";
+import VariationA from "./pages/variations/VariationA";
+import VariationB from "./pages/variations/VariationB";
+import VariationC from "./pages/variations/VariationC";
+import VariationD from "./pages/variations/VariationD";
+import VariationE from "./pages/variations/VariationE";
 import {
   PerformanceOverlay,
   usePerformanceOverlay,
@@ -34,6 +40,12 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/variations" element={<VariationsIndex />} />
+            <Route path="/variations/a" element={<VariationA />} />
+            <Route path="/variations/b" element={<VariationB />} />
+            <Route path="/variations/c" element={<VariationC />} />
+            <Route path="/variations/d" element={<VariationD />} />
+            <Route path="/variations/e" element={<VariationE />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
