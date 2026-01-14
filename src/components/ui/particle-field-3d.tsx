@@ -1134,7 +1134,7 @@ function ParticleField3DCanvas({
   activePresetIndex = -1,
 }: ParticleField3DCanvasProps) {
   const quality = useQualitySettingsState();
-  const { currentSection } = useParticleField();
+  const { currentSection, setIsInitialized } = useParticleField();
 
   // Get external overrides for maxParticles runtime control
   const external = getExternalQualitySettings();
@@ -1155,7 +1155,10 @@ function ParticleField3DCanvas({
         depth: false,
       }}
       camera={{ position: [0, 0, 5], near: 0.1, far: 100 }}
-      frameloop={isParticleFieldActive ? "always" : "never"}
+      frameloop={isParticleFieldActive ? "always" : "demand"}
+      onCreated={() => {
+        setIsInitialized(true);
+      }}
     >
       <ParticleSimulation
         key={effectiveMaxParticles} // Force remount when maxParticles changes

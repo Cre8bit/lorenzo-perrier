@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useMemo } from "react";
 import { AmbientBackground } from "@/components/ui/ambient-background";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { LiquidNavigation } from "@/components/sections/LiquidNavigation";
-import { ExperienceSection } from "@/components/sections/ExperienceSection";
 import { ScrollIndicator } from "@/components/ui/scroll-indicator";
 import { ContactLink, SocialLinks } from "@/components/ui/social-links";
 import { PhilosophyReveal } from "@/components/sections/PhilosophySection/PhilosophyReveal";
@@ -11,13 +10,19 @@ import { ScrollTransition } from "@/components/transitions/ScrollTransition";
 import { useInViewport } from "@/hooks/use-in-viewport";
 import { useParticleField } from "@/contexts/useParticleField";
 import { ParticleFieldProvider } from "@/contexts/ParticleFieldProvider";
+import ExperienceSection from "@/components/sections/ExperienceSection";
+import { ConstellationRevealLoader } from "@/components/transitions/ConstellationRevealLoader";
 
 // Lazy load Three.js particle field for better initial bundle size
 const ParticleField3D = lazy(() => import("@/components/ui/particle-field-3d"));
 
 const IndexContent = () => {
-  const { activePresetIndex, currentSection, setCurrentSection } =
-    useParticleField();
+  const {
+    activePresetIndex,
+    currentSection,
+    setCurrentSection,
+    isInitialized,
+  } = useParticleField();
 
   // Stable spy options - memoized to prevent observer recreation
   const spyOptions = useMemo<IntersectionObserverInit>(
@@ -101,6 +106,25 @@ const IndexContent = () => {
 
   return (
     <main className="relative min-h-screen">
+      {/* Loading overlay - shown until Three.js initializes */}
+      {!isInitialized && (
+        <div className="fixed inset-0 z-50 bg-gradient-to-b from-background via-background to-background flex items-center justify-center pointer-events-auto">
+          <div className="text-center space-y-4">
+            <ConstellationRevealLoader
+              size={190}
+              points={14}
+              durationMs={4200} // slower
+              seed={Math.floor(Math.random() * 10000)}
+              maxLinkDist={38}
+              neighbors={2}
+            />
+            <p className="text-sm text-muted-foreground font-body">
+              Initializing…
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Background stack - behind content but above page background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         {/* Solid background color layer */}
@@ -141,7 +165,7 @@ const IndexContent = () => {
         </div> */}
 
         {/* Social links - top right */}
-        <SocialLinks />
+        <SocialLinks hide={currentSection === "experience"} />
 
         {/* Contact link - bottom left */}
         <ContactLink />

@@ -107,7 +107,7 @@ export const ScrollTransition: React.FC<ScrollTransitionProps> = ({
         <div
           className="flex flex-col items-center gap-2 text-muted-foreground/50"
           style={{
-            opacity: isVisible ? Math.max(0, 1 - scrollProgress * 2) : 0,
+            opacity: isVisible ? Math.max(0, 1 - scrollProgress) : 0,
             transform: `translateY(${scrollProgress * 20}px)`,
             transition: "opacity 300ms ease",
           }}
