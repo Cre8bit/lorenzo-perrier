@@ -11,6 +11,8 @@ export interface ParticleFieldContextType {
   setActivePresetIndex: (index: number) => void;
   currentSection: ParticleFieldSection;
   setCurrentSection: (section: ParticleFieldSection) => void;
+  isInitialized: boolean;
+  setIsInitialized: (initialized: boolean) => void;
 }
 
 export const ParticleFieldContext = createContext<

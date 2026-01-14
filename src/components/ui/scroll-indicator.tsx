@@ -85,14 +85,16 @@ export const ScrollIndicator = () => {
     }
   };
 
+  if (!isVisible) {
+    return null;
+  }
+
   return (
     <button
       type="button"
       onClick={handleClick}
       aria-label="Scroll to about"
-      className={`fixed left-1/2 -translate-x-1/2 z-20 transition-all duration-1000 ${
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-      }`}
+      className="fixed left-1/2 -translate-x-1/2 z-20 transition-all duration-1000 opacity-100 translate-y-0"
       style={{ bottom: "140px" }}
     >
       <div className="flex flex-col items-center gap-3 group cursor-pointer animate-float">

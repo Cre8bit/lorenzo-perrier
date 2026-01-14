@@ -4,10 +4,13 @@ import {
   ParticleFieldSection,
 } from "./ParticleFieldContext";
 
-export const ParticleFieldProvider: FC<{ children: ReactNode }> = ({ children }) => {
+export const ParticleFieldProvider: FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [activePresetIndex, setActivePresetIndex] = useState(0);
   const [currentSection, setCurrentSection] =
     useState<ParticleFieldSection>("hero");
+  const [isInitialized, setIsInitialized] = useState(false);
 
   return (
     <ParticleFieldContext.Provider
@@ -16,6 +19,8 @@ export const ParticleFieldProvider: FC<{ children: ReactNode }> = ({ children })
         setActivePresetIndex,
         currentSection,
         setCurrentSection,
+        isInitialized,
+        setIsInitialized,
       }}
     >
       {children}

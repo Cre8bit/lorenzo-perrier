@@ -77,9 +77,16 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
   );
 };
 
-export const SocialLinks = () => {
+export const SocialLinks = ({ hide = false }: { hide?: boolean }) => {
   return (
-    <div className="fixed top-8 right-8 z-50 flex items-center gap-3">
+    <div
+      className="fixed top-8 right-8 z-50 flex items-center gap-3 transition-all duration-500 ease-out"
+      style={{
+        opacity: hide ? 0 : 1,
+        pointerEvents: hide ? "none" : "auto",
+        transform: hide ? "translateY(-8px)" : "translateY(0)",
+      }}
+    >
       <SocialButton
         href="https://github.com/cre8bit"
         icon={<Github className="w-4 h-4" strokeWidth={1.5} />}
