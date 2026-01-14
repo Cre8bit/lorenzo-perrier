@@ -98,7 +98,7 @@ const ExperienceSection = () => {
       {/* Sticky header (mounted always, but invisible until showSticky=true) */}
       <header
         className={[
-          "sticky top-0 z-50 border-b border-border/30 bg-background/80 backdrop-blur-xl",
+          "sticky top-0 z-40 border-b border-border/30 bg-background/80 backdrop-blur-xl",
           "transition-all duration-500 ease-out",
           showSticky
             ? "opacity-100 translate-y-0"
@@ -240,7 +240,7 @@ const ExperienceSection = () => {
             {/* Right: Profile picture */}
             <div className="flex-shrink-0">
               <img
-                src="public/logos/Lorenzo_in_vietnam.jpg"
+                src="Lorenzo_in_vietnam.jpg"
                 alt={profile.name.first}
                 className="w-40 h-40 md:w-56 md:h-56 rounded-full object-cover border-2 border-primary/20 shadow-lg"
               />
