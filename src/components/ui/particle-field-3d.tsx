@@ -764,6 +764,8 @@ function ParticleSimulation({
       getExternalQualitySettings()
     );
 
+    const density = Math.max(0, Math.min(1, settings.densityFactor));
+
     material.uniforms.uTime.value = state.clock.elapsedTime;
 
     // Preset parameters
@@ -805,10 +807,11 @@ function ParticleSimulation({
     // Numeric key hash (avoids string allocations)
     const keyOf = (cx: number, cy: number) => (cx << 16) ^ (cy & 0xffff);
 
-    // Calculate active particle count based on densityFactor
-    const activeCount = Math.max(
-      1,
-      Math.floor(baseQuality.maxParticles * settings.densityFactor)
+    // Calculate active particle count based on densityFactor (clamped to allocated array size)
+    const maxParticles = particles.length;
+    const activeCount = Math.min(
+      maxParticles,
+      Math.max(1, Math.floor(maxParticles * density))
     );
 
     // Reuse spatial grid and bucket arrays
