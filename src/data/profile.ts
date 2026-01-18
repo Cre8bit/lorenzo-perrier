@@ -36,7 +36,7 @@ export const experiences = [
     expandedContent:
       "The platform has experienced remarkable growth since launch, with funds collected accelerating from €1.8M in mid-October to over €20M by early December. This exponential trajectory reflects strong market demand and the effectiveness of our scalable architecture in handling increasing transaction volumes and user adoption. Applied Agile and Lean practices with weekly sprints and CI/CD pipelines.",
     tags: ["Angular", "Spring Boot", "TypeScript", "Java"],
-    logo: "/logos/Logo_Theodo.png",
+    logo: "/lorenzo-perrier/logos/Logo_Theodo.png",
   },
   {
     role: "AI Technologies Intern",
@@ -49,7 +49,7 @@ export const experiences = [
     expandedContent:
       "Dramatically improved data accessibility for BMW engineers by implementing a sophisticated multi-agent system capable of orchestrating 10+ specialized agents. Designed an execution-graph architecture to optimize LLM reasoning using a Plan-and-Execute approach, enabling complex queries to be decomposed and solved efficiently. Integrated the system into a production-ready web application using BMW's design library.",
     tags: ["LangGraph", "FastAPI", "React", "WebSocket"],
-    logo: "/logos/BMW_logo.png",
+    logo: "/lorenzo-perrier/logos/BMW_logo.png",
   },
   {
     role: "CV Research Intern",
