@@ -118,7 +118,9 @@ const ContactButton = () => {
   const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [hoveredIntent, setHoveredIntent] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Prevent background scrolling when modal is open
   useEffect(() => {
@@ -184,12 +186,44 @@ const ContactButton = () => {
     setStep(1);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission (e.g., send email, API call, etc.)
-    console.log({ intent: selectedIntent, email, message });
-    // Show success message or close modal
-    closeModal();
+    setIsLoading(true);
+
+    const SCRIPT_URL =
+      "https://script.google.com/macros/s/AKfycby7jRqm2FZY6Lfv2hO1k_ILbCAXN1_1cbxMnGHL6AV5eAPsLdsgs72BrIJpT6MOfQT-/exec";
+
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
+
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      let payload = null;
+      try {
+        payload = await res.json();
+      } catch {
+        // Response is not JSON, ignore
+      }
+
+      if (!res.ok || (payload && payload.result !== "success")) {
+        throw new Error("Failed to send message");
+      }
+
+      // Success
+      setEmail("");
+      setMessage("");
+      setHoneypot("");
+      closeModal();
+    } catch (err) {
+      console.error("Form submission error:", err);
+      // TODO: Show error toast/message to user
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -404,6 +438,33 @@ const ContactButton = () => {
                   </div>
 
                   <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+                    {/* Honeypot (hidden anti-spam field) */}
+                    <input
+                      type="text"
+                      name="company"
+                      value={honeypot}
+                      onChange={(e) => setHoneypot(e.target.value)}
+                      tabIndex={-1}
+                      autoComplete="off"
+                      className="hidden"
+                      aria-hidden="true"
+                    />
+
+                    {/* Hidden fields */}
+                    <input
+                      type="hidden"
+                      name="formGoogleSheetName"
+                      value="responses"
+                    />
+                    <input
+                      type="hidden"
+                      name="intent"
+                      value={
+                        FUN_INTENTS.find((i) => i.value === selectedIntent)
+                          ?.label ?? ""
+                      }
+                    />
+
                     {/* Email Input */}
                     <div>
                       <label
@@ -415,6 +476,7 @@ const ContactButton = () => {
                       <input
                         type="email"
                         id="email"
+                        name="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -437,6 +499,7 @@ const ContactButton = () => {
                       </label>
                       <textarea
                         id="message"
+                        name="message"
                         required
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
@@ -454,7 +517,8 @@ const ContactButton = () => {
                       <button
                         type="button"
                         onClick={backToStep1}
-                        className="h-9 px-4 rounded-lg text-sm border bg-transparent transition-colors hover:bg-white/5"
+                        disabled={isLoading}
+                        className="h-9 px-4 rounded-lg text-sm border bg-transparent transition-colors hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{
                           borderColor: "hsl(var(--foreground) / 0.12)",
                         }}
@@ -463,14 +527,19 @@ const ContactButton = () => {
                       </button>
                       <button
                         type="submit"
-                        className="h-9 px-4 rounded-lg text-sm border transition-all flex items-center gap-2"
+                        disabled={isLoading}
+                        className="h-9 px-4 rounded-lg text-sm border transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         style={{
                           borderColor: "hsl(var(--primary) / 0.35)",
                           background: "hsl(var(--primary) / 0.12)",
                         }}
                       >
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        Send message
+                        <Sparkles
+                          className={`w-4 h-4 text-primary transition-transform ${
+                            isLoading ? "animate-spin" : ""
+                          }`}
+                        />
+                        {isLoading ? "Sending..." : "Send message"}
                       </button>
                     </div>
                   </form>
