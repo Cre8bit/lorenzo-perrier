@@ -209,7 +209,7 @@ const ExperienceSection = () => {
         {/* Two-column layout */}
         <div className="grid lg:grid-cols-[2fr,1fr] gap-16">
           {/* Main content */}
-          <div className="space-y-16">
+          <div className="space-y-8">
             {/* Experience */}
             <section>
               <h2 className="text-sm font-medium text-foreground tracking-wider uppercase mb-8 flex items-center gap-3">
@@ -217,113 +217,121 @@ const ExperienceSection = () => {
                 Experience
               </h2>
 
-              <div className="space-y-10">
+              <div className="space-y-6">
                 {experiences.map((exp, i) => {
                   const isExpanded = expandedCards.has(i);
                   return (
-                    <article key={i} className="group">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="text-lg font-medium group-hover:text-primary transition-colors duration-300">
-                            {exp.role}
-                          </h3>
-                          <p className="text-muted-foreground">
-                            {exp.website ? (
-                              <a
-                                href={exp.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-muted-foreground hover:text-primary transition-all duration-300 relative inline-block group/link"
-                              >
-                                <span className="relative">
-                                  {exp.company}
-                                  <span className="absolute bottom-0 left-0 w-0 h-px bg-primary group-hover/link:w-full transition-all duration-300" />
-                                </span>
-                              </a>
-                            ) : (
-                              exp.company
-                            )}
-                            {exp.logo && (
-                              <img
-                                src={exp.logo}
-                                alt=""
-                                className="inline-block w-4 h-4 ml-2 opacity-50"
-                              />
-                            )}
-                          </p>
-                        </div>
-                        <div className="text-right text-sm text-muted-foreground group-hover:text-primary/70 transition-colors duration-300">
-                          <div className="font-medium">{exp.period}</div>
-                          <div className="flex items-center justify-end gap-1">
-                            <MapPin className="w-3 h-3" />
-                            <span>{exp.location}</span>
+                    <article
+                      key={i}
+                      className="group relative rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]"
+                    >
+                      {/* Subtle glow on hover */}
+                      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-primary/5 to-transparent" />
+
+                      <div className="relative">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="text-lg font-medium group-hover:text-primary transition-colors duration-300">
+                              {exp.role}
+                            </h3>
+                            <p className="text-muted-foreground">
+                              {exp.website ? (
+                                <a
+                                  href={exp.website}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-muted-foreground hover:text-primary transition-all duration-300 relative inline-block group/link"
+                                >
+                                  <span className="relative">
+                                    {exp.company}
+                                    <span className="absolute bottom-0 left-0 w-0 h-px bg-primary group-hover/link:w-full transition-all duration-300" />
+                                  </span>
+                                </a>
+                              ) : (
+                                exp.company
+                              )}
+                              {exp.logo && (
+                                <img
+                                  src={exp.logo}
+                                  alt=""
+                                  className="inline-block w-4 h-4 ml-2 opacity-50"
+                                />
+                              )}
+                            </p>
                           </div>
-                        </div>
-                      </div>
-                      <p className="text-muted-foreground leading-relaxed mb-3 group-hover:text-foreground/90 transition-colors duration-300">
-                        {exp.summary}
-                      </p>
-
-                      {/* Expandable content */}
-                      {exp.expandedContent && (
-                        <>
-                          <button
-                            onClick={() => toggleExpanded(i)}
-                            className="group/btn text-xs text-primary/50 hover:text-primary tracking-wide mb-4 inline-flex items-center gap-2 transition-all duration-500"
-                          >
-                            <span>
-                              {isExpanded ? "Show less" : "Show more"}
-                            </span>
-                            <svg
-                              className={`w-3 h-3 transition-transform duration-500 ${
-                                isExpanded ? "rotate-180" : "rotate-0"
-                              }`}
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M19 9l-7 7-7-7"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </button>
-
-                          <div
-                            ref={(el) => contentRefs.current.set(i, el)}
-                            className="overflow-hidden mb-4"
-                            style={{
-                              maxHeight: isExpanded
-                                ? `${contentHeightsRef.current.get(i) ?? 480}px`
-                                : "0px",
-                              opacity: isExpanded ? 1 : 0,
-                              transform: isExpanded
-                                ? "translateY(0)"
-                                : "translateY(-6px)",
-                              transition:
-                                "max-height 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 450ms ease, transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
-                            }}
-                          >
-                            <div className="pt-2 pb-4">
-                              <p className="text-muted-foreground/80 leading-relaxed text-sm group-hover:text-foreground/90 transition-colors duration-300">
-                                {exp.expandedContent}
-                              </p>
+                          <div className="text-right text-sm text-muted-foreground group-hover:text-primary/70 transition-colors duration-300">
+                            <div className="font-medium">{exp.period}</div>
+                            <div className="flex items-center justify-end gap-1">
+                              <MapPin className="w-3 h-3" />
+                              <span>{exp.location}</span>
                             </div>
                           </div>
-                        </>
-                      )}
+                        </div>
+                        <p className="text-muted-foreground leading-relaxed mb-3 group-hover:text-foreground/90 transition-colors duration-300">
+                          {exp.summary}
+                        </p>
 
-                      <div className="flex flex-wrap gap-2">
-                        {exp.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                        {/* Expandable content */}
+                        {exp.expandedContent && (
+                          <>
+                            <button
+                              onClick={() => toggleExpanded(i)}
+                              className="group/btn text-xs text-primary/50 hover:text-primary tracking-wide mb-4 inline-flex items-center gap-2 transition-all duration-500"
+                            >
+                              <span>
+                                {isExpanded ? "Show less" : "Show more"}
+                              </span>
+                              <svg
+                                className={`w-3 h-3 transition-transform duration-500 ${
+                                  isExpanded ? "rotate-180" : "rotate-0"
+                                }`}
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  d="M19 9l-7 7-7-7"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+
+                            <div
+                              ref={(el) => contentRefs.current.set(i, el)}
+                              className="overflow-hidden mb-4"
+                              style={{
+                                maxHeight: isExpanded
+                                  ? `${contentHeightsRef.current.get(i) ?? 480}px`
+                                  : "0px",
+                                opacity: isExpanded ? 1 : 0,
+                                transform: isExpanded
+                                  ? "translateY(0)"
+                                  : "translateY(-6px)",
+                                transition:
+                                  "max-height 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 450ms ease, transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+                              }}
+                            >
+                              <div className="pt-2 pb-4">
+                                <p className="text-muted-foreground/80 leading-relaxed text-sm group-hover:text-foreground/90 transition-colors duration-300">
+                                  {exp.expandedContent}
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        <div className="flex flex-wrap gap-2">
+                          {exp.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-0.5 text-xs rounded bg-muted/50 text-muted-foreground border border-border/10"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </article>
                   );
@@ -333,9 +341,9 @@ const ExperienceSection = () => {
           </div>
 
           {/* Sidebar */}
-          <aside className="space-y-12">
-            {/* Education */}
-            <section>
+          <aside className="space-y-6">
+            {/* Education - Glass Panel */}
+            <section className="rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]">
               <h2 className="text-sm font-medium text-foreground tracking-wider uppercase mb-6">
                 Education
               </h2>
@@ -354,8 +362,8 @@ const ExperienceSection = () => {
               </div>
             </section>
 
-            {/* Skills by category */}
-            <section>
+            {/* Skills by category - Glass Panel */}
+            <section className="rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]">
               <h2 className="text-sm font-medium text-foreground tracking-wider uppercase mb-6">
                 Technical Skills
               </h2>
@@ -387,37 +395,37 @@ const ExperienceSection = () => {
               </div>
             </section>
 
-            {/* Links */}
-            <section>
+            {/* Links - Glass Panel */}
+            <section className="rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]">
               <h2 className="text-sm font-medium text-foreground tracking-wider uppercase mb-6">
                 Links
               </h2>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <a
                   href={profile.links.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group/link"
                 >
-                  <Github className="w-3 h-3" />
-                  GitHub
-                  <ExternalLink className="w-2.5 h-2.5 ml-auto" />
+                  <Github className="w-4 h-4" />
+                  <span>GitHub</span>
+                  <ExternalLink className="w-3 h-3 ml-auto opacity-0 group-hover/link:opacity-100 transition-opacity" />
                 </a>
                 <a
                   href={profile.links.linkedin}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group/link"
                 >
-                  <Linkedin className="w-3 h-3" />
-                  LinkedIn
-                  <ExternalLink className="w-2.5 h-2.5 ml-auto" />
+                  <Linkedin className="w-4 h-4" />
+                  <span>LinkedIn</span>
+                  <ExternalLink className="w-3 h-3 ml-auto opacity-0 group-hover/link:opacity-100 transition-opacity" />
                 </a>
               </div>
             </section>
 
             {/* CTA block */}
-            <section className="mt-8">
+            <section>
               <div className="rounded-2xl bg-gradient-to-br from-foreground to-foreground/90 text-background p-6">
                 <h2 className="font-display text-lg font-medium mb-2">
                   Let's build something together!
