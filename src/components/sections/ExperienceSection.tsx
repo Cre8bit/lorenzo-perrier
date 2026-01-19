@@ -16,6 +16,10 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { SkillsGraph } from "@/components/ui/skills-graph";
+import { heroVariants, HeroVariant } from "./ExperienceHeroVariants";
+
+// Change this to switch between hero variants: 'A' | 'B' | 'C' | 'D' | 'E'
+const HERO_VARIANT: HeroVariant = "D";
 
 const ExperienceSection = () => {
   const [showSticky, setShowSticky] = useState(false);
@@ -184,69 +188,16 @@ const ExperienceSection = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 relative z-10">
-        {/* Hero summary */}
-        <section className="mb-20">
-          <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-center">
-            {/* Left: Text content */}
-            <div className="flex-1">
-              {/* Put the name at the top of the hero (non-sticky) */}
-              <div
-                className="mb-6 transition-all duration-500 ease-out"
-                style={{
-                  opacity: showSticky ? 0 : 1,
-                  transform: showSticky ? "translateY(-8px)" : "translateY(0)",
-                }}
-              >
-                <h1 className="font-display text-4xl md:text-5xl font-medium leading-tight">
-                  {profile.name.first}
-                </h1>
-                <p className="text-muted-foreground mt-2">{profile.title}</p>
-              </div>
-
-              {/* Sentinel: when this crosses the top (accounting for sticky height), sticky appears */}
-              <div ref={heroSentinelRef} className="h-px w-full" />
-
-              <div
-                className="flex items-center gap-2 text-sm text-primary mb-4 mt-6 transition-all duration-500 ease-out"
-                style={{
-                  opacity: showSticky ? 0 : 1,
-                  transform: showSticky ? "translateY(-8px)" : "translateY(0)",
-                }}
-              >
-                <MapPin className="w-3 h-3" />
-                <span>{profile.location}</span>
-                <span className="mx-2">·</span>
-                <span className="text-muted-foreground">{profile.seeking}</span>
-              </div>
-
-              <p className="text-xl md:text-2xl font-light text-foreground/90 max-w-3xl leading-relaxed">
-                {profile.summary}
-              </p>
-
-              <div className="flex flex-wrap gap-8 mt-8">
-                {profile.highlights.map((h, i) => (
-                  <div key={i} className="flex items-baseline gap-2">
-                    <span className="text-2xl font-display text-primary">
-                      {h.label}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {h.description}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Profile picture */}
-            <div className="flex-shrink-0">
-              <img
-                src="Lorenzo_in_vietnam.jpg"
-                alt={profile.name.first}
-                className="w-40 h-40 md:w-56 md:h-56 rounded-full object-cover border-2 border-primary/20 shadow-lg"
-              />
-            </div>
-          </div>
-        </section>
+        {/* Hero - Using selected variant */}
+        {(() => {
+          const HeroComponent = heroVariants[HERO_VARIANT];
+          return (
+            <HeroComponent
+              showSticky={showSticky}
+              heroSentinelRef={heroSentinelRef}
+            />
+          );
+        })()}
 
         {/* Skills Graph */}
         <section className="mb-20">
