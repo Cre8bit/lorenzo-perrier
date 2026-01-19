@@ -16,10 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { SkillsGraph } from "@/components/ui/skills-graph";
-import { heroVariants, HeroVariant } from "./ExperienceHeroVariants";
-
-// Change this to switch between hero variants: 'A' | 'B' | 'C' | 'D' | 'E'
-const HERO_VARIANT: HeroVariant = "D";
+import Hero from "./ExperienceHero";
 
 const ExperienceSection = () => {
   const [showSticky, setShowSticky] = useState(false);
@@ -90,7 +87,7 @@ const ExperienceSection = () => {
         threshold: 0,
         // Trigger when the sentinel crosses the top *minus* sticky header height.
         rootMargin: `-${STICKY_HEIGHT}px 0px 0px 0px`,
-      }
+      },
     );
 
     observer.observe(el);
@@ -188,16 +185,8 @@ const ExperienceSection = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 relative z-10">
-        {/* Hero - Using selected variant */}
-        {(() => {
-          const HeroComponent = heroVariants[HERO_VARIANT];
-          return (
-            <HeroComponent
-              showSticky={showSticky}
-              heroSentinelRef={heroSentinelRef}
-            />
-          );
-        })()}
+        {/* Hero */}
+        <Hero showSticky={showSticky} heroSentinelRef={heroSentinelRef} />
 
         {/* Skills Graph */}
         <section className="mb-20">
