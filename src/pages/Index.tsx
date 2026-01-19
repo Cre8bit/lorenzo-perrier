@@ -10,7 +10,7 @@ import { ScrollTransition } from "@/components/transitions/ScrollTransition";
 import { useInViewport } from "@/hooks/use-in-viewport";
 import { useParticleField } from "@/contexts/useParticleField";
 import { ParticleFieldProvider } from "@/contexts/ParticleFieldProvider";
-import ExperienceSection from "@/components/sections/ExperienceSection";
+import ExperienceSection from "@/components/sections/ExperienceSection/ExperienceSection";
 import { ConstellationRevealLoader } from "@/components/transitions/ConstellationRevealLoader";
 
 // Lazy load Three.js particle field for better initial bundle size
@@ -31,7 +31,7 @@ const IndexContent = () => {
       rootMargin: "-20% 0px -20% 0px", // Balanced margins for reliable detection
       threshold: Array.from({ length: 21 }, (_, i) => i / 20),
     }),
-    []
+    [],
   );
 
   const hero = useInViewport<HTMLElement>(spyOptions);

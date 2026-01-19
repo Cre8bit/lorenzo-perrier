@@ -16,7 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { SkillsGraph } from "@/components/ui/skills-graph";
-import Hero from "./ExperienceSection/ExperienceHero";
+import Hero from "./ExperienceHero";
 
 const ExperienceSection = () => {
   const [showSticky, setShowSticky] = useState(false);
