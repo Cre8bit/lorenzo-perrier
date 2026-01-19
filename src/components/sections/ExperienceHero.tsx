@@ -1,5 +1,6 @@
 import { MapPin } from "lucide-react";
 import { profile } from "@/data/profile";
+import { useEffect, useState, useRef } from "react";
 
 const QUOTE =
   "I'm drawn to teams building ambitious products, where AI systems move from experimentation to real-world impact.";
@@ -8,6 +9,103 @@ interface HeroSectionProps {
   showSticky: boolean;
   heroSentinelRef: React.RefObject<HTMLDivElement>;
 }
+
+// Animated KPI component
+const AnimatedKPI = ({
+  label,
+  description,
+  delay,
+}: {
+  label: string;
+  description: string;
+  delay: number;
+}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const hasAnimated = useRef(false);
+
+  // Parse label to extract number and suffix (e.g., "3+" -> 3, "+")
+  const match = label.match(/^(\d+)(.*)$/);
+  const targetValue = match ? parseInt(match[1], 10) : 0;
+  const suffix = match ? match[2] : label;
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          setTimeout(() => setIsVisible(true), delay);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, [delay]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const duration = 1200;
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Easing: smooth deceleration
+      const easeOutExpo = 1 - Math.pow(2, -10 * progress);
+      setCount(Math.round(easeOutExpo * targetValue));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [isVisible, targetValue]);
+
+  return (
+    <div
+      ref={ref}
+      className="text-center transition-all duration-700"
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.9)",
+      }}
+    >
+      <div
+        className="text-2xl md:text-3xl font-display text-primary transition-all duration-500"
+        style={{
+          filter: isVisible ? "blur(0px)" : "blur(4px)",
+        }}
+      >
+        {targetValue > 0 ? (
+          <>
+            {count}
+            {suffix}
+          </>
+        ) : (
+          label
+        )}
+      </div>
+      <div
+        className="text-xs text-muted-foreground mt-1 transition-all duration-500"
+        style={{
+          opacity: isVisible ? 1 : 0,
+          transitionDelay: "200ms",
+        }}
+      >
+        {description}
+      </div>
+    </div>
+  );
+};
 
 const ExperienceHero = ({ showSticky, heroSentinelRef }: HeroSectionProps) => (
   <section className="mb-20">
@@ -60,17 +158,15 @@ const ExperienceHero = ({ showSticky, heroSentinelRef }: HeroSectionProps) => (
         </div>
       </div>
 
-      {/* KPIs at bottom of card */}
+      {/* KPIs at bottom of card with animation */}
       <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-border/20">
         {profile.highlights.map((h, i) => (
-          <div key={i} className="text-center">
-            <div className="text-2xl md:text-3xl font-display text-primary">
-              {h.label}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {h.description}
-            </div>
-          </div>
+          <AnimatedKPI
+            key={i}
+            label={h.label}
+            description={h.description}
+            delay={i * 150}
+          />
         ))}
       </div>
     </div>
