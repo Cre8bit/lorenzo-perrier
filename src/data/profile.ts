@@ -31,7 +31,7 @@ export const experiences = [
     role: "Software Engineer",
     company: "Theodo",
     website: "https://www.theodo.com/",
-    period: "Feb 2025 — Present",
+    period: "Feb 2025 - Present",
     location: "Paris, France",
     summary:
       "Full-stack B2C platform for Bpifrance's private equity investment funds.",
@@ -71,7 +71,7 @@ export const experiences = [
     role: "Computer Vision Research",
     company: "CTA & University of Sherbrooke",
     website: "https://www.cta-brp-udes.com/",
-    period: "May — Aug 2023",
+    period: "May - Aug 2023",
     location: "Sherbrooke, Canada",
     summary:
       "Real-time LiDAR perception system for autonomous off-road vehicles.",
@@ -88,10 +88,10 @@ export const experiences = [
   },
   {
     role: "3D & VR Consultant",
-    company: "TAEP – ENSTA",
+    company: "TAEP - ENSTA",
     website:
       "https://www.ensta.fr/campus/vie-associative/clubs-et-associations/taep",
-    period: "Nov 2022 — Jun 2023",
+    period: "Nov 2022 - Jun 2023",
     location: "Paris, France",
     summary:
       "Optimized real-time 3D environments for virtual reality experiences.",
@@ -132,12 +132,12 @@ export const education = [
   {
     degree: "M.Sc. AI & Visual Computing",
     school: "École Polytechnique",
-    period: "2024 — 2025",
+    period: "2024 - 2025",
   },
   {
     degree: "M.Eng Engineering Diploma",
     school: "ENSTA Paris",
-    period: "2021 — 2025",
+    period: "2021 - 2025",
   },
 ];
 
