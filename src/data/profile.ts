@@ -17,10 +17,12 @@ export const profile = {
   },
   summary:
     "AI & Software engineer bridging modern AI and machine learning systems with production-grade software engineering.",
+  quote:
+    "I enjoy building AI systems that move past experimentation and become part of real products.",
   highlights: [
-    { label: "$30M+", description: "investment capital processed" },
-    { label: "10+", description: "LLM agents orchestrated" },
-    { label: "30k+", description: "users served" },
+    { label: "$50M+", description: "raised on platform" },
+    { label: "20+", description: "LLM agents orchestrated" },
+    { label: "35k+", description: "users served" },
   ],
 };
 
@@ -30,50 +32,99 @@ export const experiences = [
     company: "Theodo",
     website: "https://www.theodo.com/",
     period: "Feb 2025 — Present",
-    location: "Paris",
+    location: "Paris, France",
     summary:
-      "Full-stack B2C platform for Bpifrance's €20M+ private equity fund serving 20k+ users. Async ID verification, parallel fund management, Defense Fund launch.",
-    expandedContent:
-      "The platform has experienced remarkable growth since launch, with funds collected accelerating from €1.8M in mid-October to over €20M by early December. This exponential trajectory reflects strong market demand and the effectiveness of our scalable architecture in handling increasing transaction volumes and user adoption. Applied Agile and Lean practices with weekly sprints and CI/CD pipelines.",
+      "Full-stack B2C platform for Bpifrance's private equity investment funds.",
+    summaryLink: "https://fonds-entreprises.bpifrance.fr/",
+    expandedContent: {
+      description:
+        "Contributed to the evolution of a live, regulated B2C investment platform serving tens of thousands of users.<br><br>Focused on enabling parallel fund lifecycles and asynchronous identity verification workflows, while maintaining reliability and user clarity under increasing scale.<br><br>Took ownership of architectural and quality-critical topics, improving CI stability, navigation robustness, and data-fetching strategies to reduce unnecessary backend load and improve perceived performance in real usage conditions.",
+      keyContributions: [
+        "Designed AI agent workflows around a “right the first time” philosophy, with feedback loops that enabled continuous improvement and faster team delivery.",
+        "Integrated complex, state-driven identity verification flows within a single-page architecture.",
+        "Improved platform performance and UX by simplifying navigation logic and eliminating redundant data fetching.",
+      ],
+    },
     tags: ["Angular", "Spring Boot", "TypeScript", "Java"],
-    logo: "/lorenzo-perrier/logos/Logo_Theodo.png",
+    logo: "/Logo_Theodo.png",
   },
   {
-    role: "AI Technologies Intern",
+    role: "AI Engineer",
     company: "BMW Group",
     website: "https://www.bmwgroup.com/",
     period: "May — Oct 2024",
-    location: "Munich",
+    location: "Munich, Germany",
     summary:
-      "Built multi-agent LLM system with 10+ agents for data querying. Designed execution-graph architecture with Plan-and-Execute approach. WebSocket APIs for real-time interaction.",
-    expandedContent:
-      "Dramatically improved data accessibility for BMW engineers by implementing a sophisticated multi-agent system capable of orchestrating 10+ specialized agents. Designed an execution-graph architecture to optimize LLM reasoning using a Plan-and-Execute approach, enabling complex queries to be decomposed and solved efficiently. Integrated the system into a production-ready web application using BMW's design library.",
-    tags: ["LangGraph", "FastAPI", "React", "WebSocket"],
-    logo: "/lorenzo-perrier/logos/BMW_logo.png",
+      "Plan-and-execute multi-agent LLM system for internal data access.",
+    expandedContent: {
+      description:
+        "Designed a multi-agent LLM system to improve access to complex internal engineering data.<br><br>The system relied on an explicit plan-and-execute execution graph, enabling queries to be decomposed, coordinated across specialized agents, and resolved efficiently.<br><br>Emphasis was placed on reasoning structure, real-time interaction, and integration into a production-ready web interface used by engineers in daily workflows.",
+      keyContributions: [
+        "Orchestrated multiple specialized agents to handle complex, domain-specific queries over dense engineering data.",
+        "Built real-time interaction layers using asynchronous APIs and WebSocket-based communication.",
+      ],
+    },
+    tags: ["LangGraph", "FastAPI", "Angular", "WebSocket"],
+    logo: "/BMW_logo.png",
   },
   {
-    role: "CV Research Intern",
+    role: "Computer Vision Research",
     company: "CTA & University of Sherbrooke",
-    website: "https://www.usherbrooke.ca/",
+    website: "https://www.cta-brp-udes.com/",
     period: "May — Aug 2023",
-    location: "Canada",
+    location: "Sherbrooke, Canada",
     summary:
-      "Scene semantic segmentation for autonomous off-road vehicles using LiDAR. Integrated Ouster LiDAR with Nvidia Drive and real-time ML models.",
-    expandedContent:
-      "Conducted cutting-edge research on scene semantic segmentation for autonomous off-road navigation. Integrated high-resolution Ouster LiDAR sensors with Nvidia Drive platform, implementing state-of-the-art real-time segmentation models optimized for outdoor terrain classification and obstacle detection.",
+      "Real-time LiDAR perception system for autonomous off-road vehicles.",
+    expandedContent: {
+      description:
+        "Worked on real-time perception pipelines for autonomous off-road navigation using LiDAR data.<br><br>The focus was on semantic scene understanding under outdoor constraints, combining high-resolution sensor integration with machine learning models optimized for latency and robustness.<br><br>Emphasis was placed on bridging perception research and deployable systems, ensuring models and pipelines could operate reliably in real driving conditions.",
+      keyContributions: [
+        "Integrated high-resolution Ouster LiDAR sensors with the Nvidia Drive platform.",
+        "Adapted real-time perception models to meet latency and robustness constraints in outdoor environments.",
+      ],
+    },
     tags: ["LiDAR", "Computer Vision", "ML"],
+    logo: "/BRP_logo.png",
   },
   {
     role: "3D & VR Consultant",
     company: "TAEP – ENSTA",
-    website: "https://www.ensta-paris.fr/",
+    website:
+      "https://www.ensta.fr/campus/vie-associative/clubs-et-associations/taep",
     period: "Nov 2022 — Jun 2023",
-    location: "Paris",
+    location: "Paris, France",
     summary:
-      "Created optimized 3D environments and VR experiences. Hosted virtual open house with 50+ participants in 3D replica of ENSTA Paris.",
-    expandedContent:
-      "Designed and developed immersive 3D environments and VR experiences optimized for cross-platform deployment. Successfully hosted a virtual open house event with 50+ concurrent participants exploring a meticulously crafted 3D replica of ENSTA Paris' campus, demonstrating expertise in real-time rendering optimization and multiplayer VR networking.",
+      "Optimized real-time 3D environments for virtual reality experiences.",
+    expandedContent: {
+      description:
+        "Designed and built real-time 3D environments for immersive virtual reality experiences.<br><br>The work focused on rendering performance, interaction fidelity, and cross-platform constraints, ensuring environments remained responsive under multi-user conditions.<br><br>This included delivering a large-scale virtual open house, where dozens of participants explored a shared 3D space in real time.",
+      keyContributions: [
+        "Designed and optimized real-time 3D environments for VR across different hardware constraints.",
+        "Built a shared virtual space supporting dozens of concurrent users in real time.",
+        "Modeled and integrated a detailed 3D replica of a physical campus for interactive exploration.",
+      ],
+    },
     tags: ["Unity", "Blender", "VR"],
+    logo: "/taep_logo.png",
+  },
+  {
+    role: "Software Engineer",
+    company: "OUTSIGHT",
+    website: "https://www.outsight.ai/",
+    period: "Jul 2022 - Aug 2022",
+    location: "Paris, France",
+    summary: "Interactive LiDAR visualization and simulation platform.",
+    expandedContent: {
+      description:
+        "Worked on interactive visualization tools for LiDAR-based spatial intelligence systems.<br><br>The focus was on simulating realistic environments and motion patterns, enabling clearer interpretation of LiDAR data in dynamic scenarios.<br><br>This involved bridging algorithmic logic and real-time rendering to support exploratory and debugging workflows around sensor data.",
+      keyContributions: [
+        "Developed interactive LiDAR visualization features within a real-time 3D environment.",
+        "Implemented traffic and motion simulations to model dynamic LiDAR scenes.",
+        "Translated algorithmic prototypes into production-ready components for real-time execution.",
+      ],
+    },
+    tags: ["Unity", "C#", "LiDAR"],
+    logo: "/outsight_logo.jpeg",
   },
 ];
 
