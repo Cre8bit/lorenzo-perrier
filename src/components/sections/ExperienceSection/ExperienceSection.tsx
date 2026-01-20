@@ -23,7 +23,6 @@ const ExperienceSection = () => {
   const lastScrollY = useRef(0);
   const isScrollingDown = useRef(false);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
-  const contentHeightsRef = useRef<Map<number, number>>(new Map());
   const contentRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
 
   // This marker decides when the sticky header should appear.
@@ -40,19 +39,6 @@ const ExperienceSection = () => {
       return newSet;
     });
   };
-
-  useEffect(() => {
-    // Measure content heights after mount for smooth animations
-    experiences.forEach((_, idx) => {
-      const el = contentRefs.current.get(idx);
-      if (el) {
-        el.style.maxHeight = "none";
-        const h = el.scrollHeight;
-        contentHeightsRef.current.set(idx, h);
-        el.style.maxHeight = "0px";
-      }
-    });
-  }, []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -217,123 +203,191 @@ const ExperienceSection = () => {
                 Experience
               </h2>
 
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {experiences.map((exp, i) => {
                   const isExpanded = expandedCards.has(i);
+                  const isEven = i % 2 === 0;
+
                   return (
-                    <article
+                    <div
                       key={i}
-                      className="group relative rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/10 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]"
+                      className={`relative ${isEven ? "md:mr-12" : "md:ml-12"}`}
                     >
-                      {/* Subtle glow on hover */}
-                      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-primary/5 to-transparent" />
+                      {/* Connection line */}
+                      <div
+                        className={`hidden md:block absolute top-8 w-12 h-px bg-gradient-to-${isEven ? "r" : "l"} from-primary/30 to-transparent ${isEven ? "right-full" : "left-full"}`}
+                      />
 
-                      <div className="relative">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="text-lg font-medium group-hover:text-primary transition-colors duration-300">
-                              {exp.role}
-                            </h3>
-                            <p className="text-muted-foreground">
-                              {exp.website ? (
-                                <a
-                                  href={exp.website}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-muted-foreground hover:text-primary transition-all duration-300 relative inline-block group/link"
-                                >
-                                  <span className="relative">
-                                    {exp.company}
-                                    <span className="absolute bottom-0 left-0 w-0 h-px bg-primary group-hover/link:w-full transition-all duration-300" />
-                                  </span>
-                                </a>
-                              ) : (
-                                exp.company
-                              )}
-                              {exp.logo && (
-                                <img
-                                  src={exp.logo}
-                                  alt=""
-                                  className="inline-block w-4 h-4 ml-2 opacity-50"
-                                />
-                              )}
-                            </p>
-                          </div>
-                          <div className="text-right text-sm text-muted-foreground group-hover:text-primary/70 transition-colors duration-300">
-                            <div className="font-medium">{exp.period}</div>
-                            <div className="flex items-center justify-end gap-1">
-                              <MapPin className="w-3 h-3" />
-                              <span>{exp.location}</span>
+                      <article className="group relative rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-4 transition-all duration-500 hover:border-primary/10 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]">
+                        {/* Subtle glow on hover */}
+                        <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-primary/5 to-transparent" />
+
+                        <div className="relative">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h3 className="text-lg font-medium group-hover:text-primary transition-colors duration-300">
+                                {exp.role}
+                              </h3>
+                              <p className="text-muted-foreground">
+                                {exp.website ? (
+                                  <a
+                                    href={exp.website}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-muted-foreground hover:text-primary transition-all duration-300 relative inline-block group/link"
+                                  >
+                                    <span className="relative">
+                                      {exp.company}
+                                      <span className="absolute bottom-0 left-0 w-0 h-px bg-primary group-hover/link:w-full transition-all duration-300" />
+                                    </span>
+                                  </a>
+                                ) : (
+                                  exp.company
+                                )}
+                                {exp.logo && (
+                                  <img
+                                    src={exp.logo}
+                                    alt=""
+                                    className="inline-block w-4 h-4 ml-2 opacity-50"
+                                  />
+                                )}
+                              </p>
                             </div>
-                          </div>
-                        </div>
-                        <p className="text-muted-foreground leading-relaxed mb-3 group-hover:text-foreground/90 transition-colors duration-300">
-                          {exp.summary}
-                        </p>
-
-                        {/* Expandable content */}
-                        {exp.expandedContent && (
-                          <>
-                            <button
-                              onClick={() => toggleExpanded(i)}
-                              className="group/btn text-xs text-primary/50 hover:text-primary tracking-wide mb-4 inline-flex items-center gap-2 transition-all duration-500"
-                            >
-                              <span>
-                                {isExpanded ? "Show less" : "Show more"}
-                              </span>
-                              <svg
-                                className={`w-3 h-3 transition-transform duration-500 ${
-                                  isExpanded ? "rotate-180" : "rotate-0"
-                                }`}
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  d="M19 9l-7 7-7-7"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </button>
-
-                            <div
-                              ref={(el) => contentRefs.current.set(i, el)}
-                              className="overflow-hidden mb-4"
-                              style={{
-                                maxHeight: isExpanded
-                                  ? `${contentHeightsRef.current.get(i) ?? 480}px`
-                                  : "0px",
-                                opacity: isExpanded ? 1 : 0,
-                                transform: isExpanded
-                                  ? "translateY(0)"
-                                  : "translateY(-6px)",
-                                transition:
-                                  "max-height 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 450ms ease, transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
-                              }}
-                            >
-                              <div className="pt-2 pb-4">
-                                <p className="text-muted-foreground/80 leading-relaxed text-sm group-hover:text-foreground/90 transition-colors duration-300">
-                                  {exp.expandedContent}
-                                </p>
+                            <div className="text-right text-sm text-muted-foreground group-hover:text-primary/70 transition-colors duration-300">
+                              <div className="font-medium">{exp.period}</div>
+                              <div className="flex items-center justify-end gap-1">
+                                <MapPin className="w-3 h-3" />
+                                <span>{exp.location}</span>
                               </div>
                             </div>
-                          </>
-                        )}
-
-                        <div className="flex flex-wrap gap-2">
-                          {exp.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="px-2 py-0.5 text-xs rounded bg-muted/50 text-muted-foreground border border-border/10"
+                          </div>
+                          {exp.summaryLink ? (
+                            <a
+                              href={exp.summaryLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 text-sm text-muted-foreground leading-relaxed transition-colors duration-300 group/summary hover:text-primary"
                             >
-                              {tag}
-                            </span>
-                          ))}
+                              <span className="group-hover/summary:text-primary transition-colors duration-300">
+                                {exp.summary}
+                              </span>
+                              <ExternalLink className="w-3 h-3 flex-shrink-0 transition-all duration-300 group-hover/summary:text-primary group-hover/summary:translate-x-0.5" />
+                            </a>
+                          ) : (
+                            <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-foreground/90 transition-colors duration-300">
+                              {exp.summary}
+                            </p>
+                          )}
+
+                          {/* Expandable content */}
+                          {exp.expandedContent && (
+                            <>
+                              <button
+                                onClick={() => toggleExpanded(i)}
+                                className="group/btn text-xs text-primary/50 hover:text-primary tracking-wide mb-2 inline-flex items-center gap-2 transition-all duration-500"
+                              >
+                                <span>
+                                  {isExpanded ? "Show less" : "Show more"}
+                                </span>
+                                <svg
+                                  className={`w-3 h-3 transition-transform duration-500 ${
+                                    isExpanded ? "rotate-180" : "rotate-0"
+                                  }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    d="M19 9l-7 7-7-7"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+
+                              <div
+                                ref={(el) => contentRefs.current.set(i, el)}
+                                className="overflow-hidden transition-all duration-700"
+                                style={{
+                                  maxHeight: isExpanded ? "2000px" : "0px",
+                                  opacity: isExpanded ? 1 : 0,
+                                }}
+                              >
+                                <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wider mb-2">
+                                  Description
+                                </h4>
+                                <div className="pt-1 pb-2">
+                                  {typeof exp.expandedContent === "string" ? (
+                                    <p className="text-muted-foreground/80 leading-relaxed text-sm group-hover:text-foreground/90 transition-colors duration-300 mb-3">
+                                      {exp.expandedContent}
+                                    </p>
+                                  ) : (
+                                    <>
+                                      <div className="mb-4 pl-4 relative">
+                                        {/* Vertical connector bar */}
+                                        <div className="absolute left-0 top-6 h-[calc(100%-1.5rem)] w-px bg-gradient-to-b from-transparent via-primary/70 to-transparent" />
+
+                                        <div
+                                          className="text-muted-foreground/80 leading-relaxed text-sm group-hover:text-foreground/90 transition-colors duration-300"
+                                          dangerouslySetInnerHTML={{
+                                            __html:
+                                              exp.expandedContent.description,
+                                          }}
+                                        />
+                                      </div>
+
+                                      {exp.expandedContent.keyContributions &&
+                                        exp.expandedContent.keyContributions
+                                          .length > 0 && (
+                                          <div className="mb-4">
+                                            <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wider mb-2">
+                                              Key Contributions
+                                            </h4>
+                                            <ul className="space-y-1.5 text-sm text-muted-foreground/80">
+                                              {exp.expandedContent.keyContributions.map(
+                                                (contribution, idx) => (
+                                                  <li
+                                                    key={idx}
+                                                    className="flex items-start gap-2"
+                                                  >
+                                                    <span className="text-primary shrink-0">
+                                                      •
+                                                    </span>
+                                                    <span className="leading-relaxed group-hover:text-foreground/90 transition-colors duration-300">
+                                                      {contribution}
+                                                    </span>
+                                                  </li>
+                                                ),
+                                              )}
+                                            </ul>
+                                          </div>
+                                        )}
+
+                                      <div>
+                                        <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wider mb-2">
+                                          Technologies
+                                        </h4>
+                                        <div className="flex flex-wrap gap-2">
+                                          {exp.tags.map((tag) => (
+                                            <span
+                                              key={tag}
+                                              className="px-2 py-0.5 text-xs rounded bg-muted/50 text-muted-foreground border border-border/10"
+                                            >
+                                              {tag}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
-                      </div>
-                    </article>
+                      </article>
+                    </div>
                   );
                 })}
               </div>
@@ -448,7 +502,7 @@ const ExperienceSection = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/30 py-12 px-6">
+      <footer className="border-t border-border/30 py-12 px-6 mt-20 bg-background/80 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             © 2025 {profile.name.first}. Open to opportunities.

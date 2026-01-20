@@ -2,9 +2,6 @@ import { MapPin } from "lucide-react";
 import { profile } from "@/data/profile";
 import { useEffect, useState, useRef } from "react";
 
-const QUOTE =
-  "I'm drawn to teams building ambitious products, where AI systems move from experimentation to real-world impact.";
-
 interface HeroSectionProps {
   showSticky: boolean;
   heroSentinelRef: React.RefObject<HTMLDivElement>;
@@ -25,10 +22,12 @@ const AnimatedKPI = ({
   const ref = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
 
-  // Parse label to extract number and suffix (e.g., "3+" -> 3, "+")
-  const match = label.match(/^(\d+)(.*)$/);
-  const targetValue = match ? parseInt(match[1], 10) : 0;
-  const suffix = match ? match[2] : label;
+  // Parse label to extract number and suffix (e.g., "$30M+" -> 30, "M+")
+  // Handles prefixes like $ and extracts the first number sequence
+  const match = label.match(/(\D*)(\d+)(.*)/);
+  const prefix = match ? match[1] : "";
+  const targetValue = match ? parseInt(match[2], 10) : 0;
+  const suffix = match ? match[3] : label;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -51,7 +50,7 @@ const AnimatedKPI = ({
   useEffect(() => {
     if (!isVisible) return;
 
-    const duration = 1200;
+    const duration = 3000;
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {
@@ -87,6 +86,7 @@ const AnimatedKPI = ({
       >
         {targetValue > 0 ? (
           <>
+            {prefix}
             {count}
             {suffix}
           </>
@@ -152,7 +152,7 @@ const ExperienceHero = ({ showSticky, heroSentinelRef }: HeroSectionProps) => (
           <div className="mt-6 flex items-start gap-3">
             <div className="w-1 h-16 bg-gradient-to-b from-primary to-primary/20 rounded-full flex-shrink-0" />
             <p className="text-base text-foreground/70 italic leading-relaxed">
-              {QUOTE}
+              {profile.quote}
             </p>
           </div>
         </div>

@@ -267,9 +267,23 @@ const ExperienceSection = () => {
                             </div>
                           </div>
                         </div>
-                        <p className="text-muted-foreground leading-relaxed mb-3 group-hover:text-foreground/90 transition-colors duration-300">
-                          {exp.summary}
-                        </p>
+                        {exp.summaryLink ? (
+                          <a
+                            href={exp.summaryLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-muted-foreground leading-relaxed mb-3 transition-colors duration-300 group/summary hover:text-primary"
+                          >
+                            <span className="group-hover/summary:text-primary transition-colors duration-300">
+                              {exp.summary}
+                            </span>
+                            <ExternalLink className="w-3 h-3 flex-shrink-0 transition-all duration-300 group-hover/summary:text-primary group-hover/summary:translate-x-0.5" />
+                          </a>
+                        ) : (
+                          <p className="text-muted-foreground leading-relaxed mb-3 group-hover:text-foreground/90 transition-colors duration-300">
+                            {exp.summary}
+                          </p>
+                        )}
 
                         {/* Expandable content */}
                         {exp.expandedContent && (
