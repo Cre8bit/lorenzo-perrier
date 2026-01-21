@@ -19,6 +19,7 @@ export const profile = {
     "AI & Software engineer bridging modern AI and machine learning systems with production-grade software engineering.",
   quote:
     "I enjoy building AI systems that move past experimentation and become part of real products.",
+  quote2: "Off-screen: slacklining, bouldering, playing the piano and learning (paragliding soon!).",
   highlights: [
     { label: "$50M+", description: "raised on platform" },
     { label: "20+", description: "LLM agents orchestrated" },
@@ -38,11 +39,12 @@ export const experiences = [
     summaryLink: "https://fonds-entreprises.bpifrance.fr/",
     expandedContent: {
       description:
-        "Contributed to the evolution of a live, regulated B2C investment platform serving tens of thousands of users.<br><br>Focused on enabling parallel fund lifecycles and asynchronous identity verification workflows, while maintaining reliability and user clarity under increasing scale.<br><br>Took ownership of architectural and quality-critical topics, improving CI stability, navigation robustness, and data-fetching strategies to reduce unnecessary backend load and improve perceived performance in real usage conditions.",
+        "Worked on a live, regulated B2C investment platform serving tens of thousands of users, contributing to platform changes that enabled the launch of the $500M Defense Fund.<br><br>The platform supports end-to-end digital onboarding, investment workflows, and regulatory compliance for private equity funds.",
       keyContributions: [
-        "Designed AI agent workflows around a “right the first time” philosophy, with feedback loops that enabled continuous improvement and faster team delivery.",
-        "Integrated complex, state-driven identity verification flows within a single-page architecture.",
-        "Improved platform performance and UX by simplifying navigation logic and eliminating redundant data fetching.",
+        "Enabled parallel fund lifecycles and asynchronous identity verification workflows under scale.",
+        "Owned architectural and quality-critical topics, stabilizing CI workflows, simplifying navigation logic and removing redundant data fetching.",
+        "Designed AI agent workflows following a “right the first time” philosophy, with feedback loops improving reliability and team delivery.",
+        "Supported team adoption of AI coding agents through internal documentation, knowledge sharing, and hands-on enablement.",
       ],
     },
     tags: ["Angular", "Spring Boot", "TypeScript", "Java"],
@@ -52,14 +54,15 @@ export const experiences = [
     role: "AI Engineer",
     company: "BMW Group",
     website: "https://www.bmwgroup.com/",
-    period: "May — Oct 2024",
+    period: "May - Oct 2024",
     location: "Munich, Germany",
     summary:
       "Plan-and-execute multi-agent LLM system for internal data access.",
     expandedContent: {
       description:
-        "Designed a multi-agent LLM system to improve access to complex internal engineering data.<br><br>The system relied on an explicit plan-and-execute execution graph, enabling queries to be decomposed, coordinated across specialized agents, and resolved efficiently.<br><br>Emphasis was placed on reasoning structure, real-time interaction, and integration into a production-ready web interface used by engineers in daily workflows.",
+        "Designed a multi-agent LLM system as an early adoption of agentic AI, centered on structured reasoning over complex internal engineering data.<br><br>Implemented a plan-and-execute execution graph coordinating specialized agents across multiple data sources, allowing real-time interaction in a production web interface.",
       keyContributions: [
+        "Research and implementation of agentic reasoning loops (ReAct, CoT) using LangGraph.",
         "Orchestrated multiple specialized agents to handle complex, domain-specific queries over dense engineering data.",
         "Built real-time interaction layers using asynchronous APIs and WebSocket-based communication.",
       ],
@@ -69,7 +72,7 @@ export const experiences = [
   },
   {
     role: "Computer Vision Research",
-    company: "CTA & University of Sherbrooke",
+    company: "CTA & Bombardier Recreational Products",
     website: "https://www.cta-brp-udes.com/",
     period: "May - Aug 2023",
     location: "Sherbrooke, Canada",
@@ -77,10 +80,10 @@ export const experiences = [
       "Real-time LiDAR perception system for autonomous off-road vehicles.",
     expandedContent: {
       description:
-        "Worked on real-time perception pipelines for autonomous off-road navigation using LiDAR data.<br><br>The focus was on semantic scene understanding under outdoor constraints, combining high-resolution sensor integration with machine learning models optimized for latency and robustness.<br><br>Emphasis was placed on bridging perception research and deployable systems, ensuring models and pipelines could operate reliably in real driving conditions.",
+        "Worked on real-time perception pipelines for autonomous off-road navigation using LiDAR data.<br><br>The focus was on semantic scene understanding under outdoor constraints, combining high-resolution sensor integration with machine learning models optimized for latency and robustness.",
       keyContributions: [
         "Integrated high-resolution Ouster LiDAR sensors with the Nvidia Drive platform.",
-        "Adapted real-time perception models to meet latency and robustness constraints in outdoor environments.",
+        "Adapted real-time perception models (PointNet, VoxelNet) to meet latency and robustness constraints in outdoor environments.",
       ],
     },
     tags: ["LiDAR", "Computer Vision", "ML"],
@@ -97,11 +100,11 @@ export const experiences = [
       "Optimized real-time 3D environments for virtual reality experiences.",
     expandedContent: {
       description:
-        "Designed and built real-time 3D environments for immersive virtual reality experiences.<br><br>The work focused on rendering performance, interaction fidelity, and cross-platform constraints, ensuring environments remained responsive under multi-user conditions.<br><br>This included delivering a large-scale virtual open house, where dozens of participants explored a shared 3D space in real time.",
+        "Worked for different clients to design and build real-time 3D environments of their premises for immersive virtual reality experiences.",
       keyContributions: [
-        "Designed and optimized real-time 3D environments for VR across different hardware constraints.",
-        "Built a shared virtual space supporting dozens of concurrent users in real time.",
-        "Modeled and integrated a detailed 3D replica of a physical campus for interactive exploration.",
+        "Designed and optimized real-time 3D environments for crossplatform.",
+        "Hosted a virtual open house, allowing 50+ participants to explore the school's premises and discover its programs.",
+        "Modeled and integrated a detailed 3D replica of ELITYS physical premises for interactive exploration.",
       ],
     },
     tags: ["Unity", "Blender", "VR"],
@@ -116,11 +119,9 @@ export const experiences = [
     summary: "Interactive LiDAR visualization and simulation platform.",
     expandedContent: {
       description:
-        "Worked on interactive visualization tools for LiDAR-based spatial intelligence systems.<br><br>The focus was on simulating realistic environments and motion patterns, enabling clearer interpretation of LiDAR data in dynamic scenarios.<br><br>This involved bridging algorithmic logic and real-time rendering to support exploratory and debugging workflows around sensor data.",
+        "Worked on an interactive visualization tool for LiDAR-based spatial intelligence systems.<br><br>The focus was on simulating realistic environments and motion patterns, allowing clients to preview how LiDAR sensors would behave in their specific setups.",
       keyContributions: [
-        "Developed interactive LiDAR visualization features within a real-time 3D environment.",
-        "Implemented traffic and motion simulations to model dynamic LiDAR scenes.",
-        "Translated algorithmic prototypes into production-ready components for real-time execution.",
+        "Implemented traffic and motion simulations using Bézier curves and path generation to model dynamic LiDAR scenes.",
       ],
     },
     tags: ["Unity", "C#", "LiDAR"],
@@ -130,8 +131,8 @@ export const experiences = [
 
 export const education = [
   {
-    degree: "M.Sc. AI & Visual Computing",
-    school: "École Polytechnique",
+    degree: "M.Sc. Artificial Intelligence",
+    school: "Institut Polytechnique de Paris",
     period: "2024 - 2025",
   },
   {
@@ -142,10 +143,10 @@ export const education = [
 ];
 
 export const skills = {
-  languages: ["TypeScript", "Python", "Rust", "Go", "Java"],
-  systems: ["Distributed Systems", "Real-time ML", "LLM Orchestration"],
-  frontend: ["React", "Angular", "Three.js"],
-  tools: ["Kubernetes", "FastAPI", "LangGraph"],
+  languages: ["Python", "Rust", "TypeScript", "Java", "C++"],
+  stacks: ["Angular", "React", "Spring Boot", "FastAPI", "Firebase", "Three.js"],
+  tools: ["Docker", "Datadog", "Kafka", "GitHub Copilot", "Claude Code"],
+  MLtools: ["Pytorch", "TensorFlow", "CUDA", "LangGraph"],
 };
 
 export const philosophy = [

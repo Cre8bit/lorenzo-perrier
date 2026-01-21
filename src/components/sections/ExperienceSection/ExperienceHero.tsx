@@ -37,7 +37,7 @@ const AnimatedKPI = ({
           setTimeout(() => setIsVisible(true), delay);
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.3 },
     );
 
     if (ref.current) {
@@ -75,7 +75,9 @@ const AnimatedKPI = ({
       className="text-center transition-all duration-700"
       style={{
         opacity: isVisible ? 1 : 0,
-        transform: isVisible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.9)",
+        transform: isVisible
+          ? "translateY(0) scale(1)"
+          : "translateY(20px) scale(0.9)",
       }}
     >
       <div
@@ -157,9 +159,12 @@ const ExperienceHero = ({ showSticky, heroSentinelRef }: HeroSectionProps) => (
           </div>
         </div>
       </div>
+      <p className="text-base text-foreground/40 italic text-center mt-4 font-light">
+        {profile.quote2}
+      </p>
 
       {/* KPIs at bottom of card with animation */}
-      <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-border/20">
+      <div className="grid grid-cols-3 gap-4 mt-6 pt-8 border-t border-border/20">
         {profile.highlights.map((h, i) => (
           <AnimatedKPI
             key={i}
