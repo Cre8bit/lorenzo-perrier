@@ -27,7 +27,7 @@ export const carouselContexts: CarouselContext[] = [
       "Shaping architecture complexity to match real product needs and delivery constraints.",
     ],
     companyLine: "Bpifrance — Investing Platform",
-    logoUrl: "/logo_BPI.png",
+    logoUrl: "logo_BPI.png",
   },
   {
     id: "intelligence",
@@ -43,7 +43,7 @@ export const carouselContexts: CarouselContext[] = [
       "Making LLM reasoning steps observable, interruptible, and debuggable in real time.",
     ],
     companyLine: "BMW Group — LLM Reasoning",
-    logoUrl: "/BMW_logo.png",
+    logoUrl: "BMW_logo.png",
   },
   {
     id: "perception",

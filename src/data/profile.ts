@@ -46,7 +46,7 @@ export const experiences = [
       ],
     },
     tags: ["Angular", "Spring Boot", "TypeScript", "Java"],
-    logo: "/Logo_Theodo.png",
+    logo: "Logo_Theodo.png",
   },
   {
     role: "AI Engineer",
@@ -65,7 +65,7 @@ export const experiences = [
       ],
     },
     tags: ["LangGraph", "FastAPI", "Angular", "WebSocket"],
-    logo: "/BMW_logo.png",
+    logo: "BMW_logo.png",
   },
   {
     role: "Computer Vision Research",
@@ -84,7 +84,7 @@ export const experiences = [
       ],
     },
     tags: ["LiDAR", "Computer Vision", "ML"],
-    logo: "/BRP_logo.png",
+    logo: "BRP_logo.png",
   },
   {
     role: "3D & VR Consultant",
@@ -105,7 +105,7 @@ export const experiences = [
       ],
     },
     tags: ["Unity", "Blender", "VR"],
-    logo: "/taep_logo.png",
+    logo: "taep_logo.png",
   },
   {
     role: "Software Engineer",
@@ -124,7 +124,7 @@ export const experiences = [
       ],
     },
     tags: ["Unity", "C#", "LiDAR"],
-    logo: "/outsight_logo.jpeg",
+    logo: "outsight_logo.jpeg",
   },
 ];
 
