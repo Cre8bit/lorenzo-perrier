@@ -369,7 +369,7 @@ const ExperienceSection = () => {
                                           Technologies
                                         </h4>
                                         <div className="flex flex-wrap gap-2">
-                                          {exp.tags.map((tag) => (
+                                          {exp.tags.slice(0, 4).map((tag) => (
                                             <span
                                               key={tag}
                                               className="px-2 py-0.5 text-xs rounded bg-muted/50 text-muted-foreground border border-border/10"
@@ -424,27 +424,27 @@ const ExperienceSection = () => {
               <div className="space-y-4">
                 <div>
                   <h4 className="text-xs text-muted-foreground uppercase mb-2">
-                    Languages
+                    Stacks I've Shipped
                   </h4>
-                  <p className="text-sm">{skills.languages.join(" · ")}</p>
+                  <p className="text-sm">{skills.stacks.join(" · ")}</p>
                 </div>
                 <div>
                   <h4 className="text-xs text-muted-foreground uppercase mb-2">
-                    Systems
-                  </h4>
-                  <p className="text-sm">{skills.systems.join(" · ")}</p>
-                </div>
-                <div>
-                  <h4 className="text-xs text-muted-foreground uppercase mb-2">
-                    Frontend
-                  </h4>
-                  <p className="text-sm">{skills.frontend.join(" · ")}</p>
-                </div>
-                <div>
-                  <h4 className="text-xs text-muted-foreground uppercase mb-2">
-                    Tools
+                    Tools I use
                   </h4>
                   <p className="text-sm">{skills.tools.join(" · ")}</p>
+                </div>
+                <div>
+                  <h4 className="text-xs text-muted-foreground uppercase mb-2">
+                    ML tools
+                  </h4>
+                  <p className="text-sm">{skills.MLtools.join(" · ")}</p>
+                </div>
+                <div>
+                  <h4 className="text-xs text-muted-foreground uppercase mb-2">
+                    Core languages
+                  </h4>
+                  <p className="text-sm">{skills.languages.join(" · ")}</p>
                 </div>
               </div>
             </section>
