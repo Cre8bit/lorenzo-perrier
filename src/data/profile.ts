@@ -19,7 +19,8 @@ export const profile = {
     "AI & Software engineer bridging modern AI and machine learning systems with production-grade software engineering.",
   quote:
     "I enjoy building AI systems that move past experimentation and become part of real products.",
-  quote2: "Off-screen: slacklining, bouldering, playing the piano and learning (paragliding soon!).",
+  quote2:
+    "Off-screen: slacklining, bouldering, playing the piano and learning (paragliding soon!).",
   highlights: [
     { label: "$50M+", description: "raised on platform" },
     { label: "20+", description: "LLM agents orchestrated" },
@@ -47,7 +48,19 @@ export const experiences = [
         "Supported team adoption of AI coding agents through internal documentation, knowledge sharing, and hands-on enablement.",
       ],
     },
-    tags: ["Angular", "Spring Boot", "TypeScript", "Java"],
+    tags: [
+      "Angular",
+      "Spring Boot",
+      "TypeScript",
+      "Java",
+      "Kafka",
+      "Datadog",
+      "CI/CD",
+      "Agile & Lean",
+      "AI Agents",
+      "ReAct",
+      "Chain-of-Thought",
+    ],
     logo: "Logo_Theodo.png",
   },
   {
@@ -67,7 +80,21 @@ export const experiences = [
         "Built real-time interaction layers using asynchronous APIs and WebSocket-based communication.",
       ],
     },
-    tags: ["LangGraph", "FastAPI", "Angular", "WebSocket"],
+    tags: [
+      "Python",
+      "LangGraph",
+      "FastAPI",
+      "Angular",
+      "WebSocket",
+      "AI Agents",
+      "RAG",
+      "Vector Store",
+      "Real-time Systems",
+      "ReAct",
+      "Chain-of-Thought",
+      "TypeScript",
+      "Python",
+    ],
     logo: "BMW_logo.png",
   },
   {
@@ -86,7 +113,19 @@ export const experiences = [
         "Adapted real-time perception models (PointNet, VoxelNet) to meet latency and robustness constraints in outdoor environments.",
       ],
     },
-    tags: ["LiDAR", "Computer Vision", "ML"],
+    tags: [
+      "LiDAR",
+      "Machine Learning",
+      "PyTorch",
+      "Semantic Segmentation",
+      "Python",
+      "Computer Vision",
+      "PointNet",
+      "VoxelNet",
+      "Real-time Systems",
+      "GPU Computing",
+      "Point Clouds",
+    ],
     logo: "BRP_logo.png",
   },
   {
@@ -107,7 +146,15 @@ export const experiences = [
         "Modeled and integrated a detailed 3D replica of ELITYS physical premises for interactive exploration.",
       ],
     },
-    tags: ["Unity", "Blender", "VR"],
+    tags: [
+      "Unity",
+      "Blender",
+      "VR",
+      "Cross-platform",
+      "3D Graphics",
+      "Real-time Rendering",
+      "Simulation",
+    ],
     logo: "taep_logo.png",
   },
   {
@@ -124,7 +171,14 @@ export const experiences = [
         "Implemented traffic and motion simulations using Bézier curves and path generation to model dynamic LiDAR scenes.",
       ],
     },
-    tags: ["Unity", "C#", "LiDAR"],
+    tags: [
+      "Unity",
+      "C#",
+      "LiDAR",
+      "Simulation",
+      "Real-time Visualization",
+      "Spatial Computing",
+    ],
     logo: "outsight_logo.jpeg",
   },
 ];
@@ -144,7 +198,14 @@ export const education = [
 
 export const skills = {
   languages: ["Python", "Rust", "TypeScript", "Java", "C++"],
-  stacks: ["Angular", "React", "Spring Boot", "FastAPI", "Firebase", "Three.js"],
+  stacks: [
+    "Angular",
+    "React",
+    "Spring Boot",
+    "FastAPI",
+    "Firebase",
+    "Three.js",
+  ],
   tools: ["Docker", "Datadog", "Kafka", "GitHub Copilot", "Claude Code"],
   MLtools: ["Pytorch", "TensorFlow", "CUDA", "LangGraph"],
 };
