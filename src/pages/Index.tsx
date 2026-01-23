@@ -8,10 +8,11 @@ import { PhilosophyReveal } from "@/components/sections/PhilosophySection/Philos
 import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGlide";
 import { ScrollTransition } from "@/components/transitions/ScrollTransition";
 import { useInViewport } from "@/hooks/use-in-viewport";
-import { useParticleField } from "@/contexts/useParticleField";
-import { ParticleFieldProvider } from "@/contexts/ParticleFieldProvider";
+import { useAppContext } from "@/contexts/useAppContext";
+import { AppProvider } from "@/contexts/AppProvider";
 import ExperienceSection from "@/components/sections/ExperienceSection/ExperienceSection";
 import { ConstellationRevealLoader } from "@/components/transitions/ConstellationRevealLoader";
+import { reportPerformance } from "@/components/ui/performance-overlay";
 
 // Lazy load Three.js particle field for better initial bundle size
 const ParticleField3D = lazy(() => import("@/components/ui/particle-field-3d"));
@@ -22,7 +23,7 @@ const IndexContent = () => {
     currentSection,
     setCurrentSection,
     isInitialized,
-  } = useParticleField();
+  } = useAppContext();
 
   // Stable spy options - memoized to prevent observer recreation
   const spyOptions = useMemo<IntersectionObserverInit>(
@@ -40,6 +41,7 @@ const IndexContent = () => {
   const experience = useInViewport<HTMLElement>(spyOptions);
 
   useEffect(() => {
+    const t0 = performance.now();
     const viewportCenter = window.innerHeight / 2;
 
     const allCandidates = [
@@ -62,7 +64,10 @@ const IndexContent = () => {
         return { ...c, dist, center };
       });
 
-    if (candidates.length === 0) return;
+    if (candidates.length === 0) {
+      reportPerformance("Index:sectionSpy", performance.now() - t0);
+      return;
+    }
 
     // Find section closest to viewport center
     const best = candidates.reduce((a, b) => (b.dist < a.dist ? b : a));
@@ -72,13 +77,17 @@ const IndexContent = () => {
     const distanceThreshold = 100; // pixels
     const ratioThreshold = 0.001; // minimal visibility required
 
-    if (best.ratio < ratioThreshold) return; // Skip if barely visible
+    if (best.ratio < ratioThreshold) {
+      reportPerformance("Index:sectionSpy", performance.now() - t0);
+      return; // Skip if barely visible
+    }
 
     // If current section is still visible, require best to be significantly closer
     if (currentCandidate && currentCandidate.entry?.isIntersecting) {
       const improvement = currentCandidate.dist - best.dist;
       if (improvement < distanceThreshold && best.id !== currentSection) {
         // Not enough improvement, keep current section
+        reportPerformance("Index:sectionSpy", performance.now() - t0);
         return;
       }
     }
@@ -86,7 +95,9 @@ const IndexContent = () => {
     // Switch to best section
     if (best.id !== currentSection) {
       setCurrentSection(best.id);
+      console.log(`Section changed to: ${best.id}`);
     }
+    reportPerformance("Index:sectionSpy", performance.now() - t0);
   }, [
     hero.entry,
     philo.entry,
@@ -205,9 +216,9 @@ const IndexContent = () => {
 
 const Index = () => {
   return (
-    <ParticleFieldProvider>
+    <AppProvider>
       <IndexContent />
-    </ParticleFieldProvider>
+    </AppProvider>
   );
 };
 

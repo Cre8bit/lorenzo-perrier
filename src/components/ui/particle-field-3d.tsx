@@ -8,7 +8,7 @@ import {
 } from "./particle-quality";
 import { type QualitySettings } from "@/lib/performance";
 import { useQualitySettingsState } from "@/hooks/use-quality-settings";
-import { useParticleField } from "@/contexts/useParticleField";
+import { useAppContext } from "@/contexts/useAppContext";
 
 // Helper: Get clamped pixel ratio for sprite sizing (independent of Canvas DPR)
 const getPixelRatioUniform = () => Math.min(window.devicePixelRatio || 1, 1.5);
@@ -1137,7 +1137,7 @@ function ParticleField3DCanvas({
   activePresetIndex = -1,
 }: ParticleField3DCanvasProps) {
   const quality = useQualitySettingsState();
-  const { currentSection, setIsInitialized } = useParticleField();
+  const { currentSection, setIsInitialized } = useAppContext();
 
   // Get external overrides for maxParticles runtime control
   const external = getExternalQualitySettings();

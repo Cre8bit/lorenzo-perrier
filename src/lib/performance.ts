@@ -10,6 +10,35 @@ export interface QualitySettings {
   dpr: number; // devicePixelRatio to use for canvas
 }
 
+export interface PerformanceMetrics {
+  fps: number;
+  frameTime: number; // ms
+  longTasks: number; // count of >50ms tasks in last second
+  droppedFrames: number; // count in last second
+  components: Map<string, ComponentMetrics>;
+  memory?: MemoryMetrics;
+  cpuLoad?: number; // estimated 0-1
+}
+
+export interface ComponentMetrics {
+  name: string;
+  avgTime: number; // ms
+  maxTime: number; // ms
+  minTime: number; // ms
+  callCount: number;
+  p95Time: number; // 95th percentile
+  lastUpdate: number;
+  samples: number[]; // last 100 samples for percentile calc
+  severity: "low" | "medium" | "high" | "critical";
+}
+
+export interface MemoryMetrics {
+  usedJSHeapSize: number; // bytes
+  totalJSHeapSize: number; // bytes
+  jsHeapSizeLimit: number; // bytes
+  usedPercent: number;
+}
+
 // Check if user prefers reduced motion
 export const prefersReducedMotion = (): boolean => {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -85,9 +114,13 @@ export const getQualitySettings = (): QualitySettings => {
 // Monitor FPS and log warnings if performance is poor
 export class PerformanceMonitor {
   private frames: number[] = [];
+  private frameTimes: number[] = [];
   private lastTime = performance.now();
   private rafId: number | null = null;
   private onLowFPS?: (fps: number) => void;
+  private longTaskCount = 0;
+  private droppedFrameCount = 0;
+  private lastResetTime = Date.now();
 
   constructor(onLowFPS?: (fps: number) => void) {
     this.onLowFPS = onLowFPS;
@@ -98,9 +131,32 @@ export class PerformanceMonitor {
       const delta = now - this.lastTime;
       this.lastTime = now;
 
-      this.frames.push(1000 / delta);
+      const fps = 1000 / delta;
+      this.frames.push(fps);
+      this.frameTimes.push(delta);
+
+      // Track long frames (>50ms = 20fps)
+      if (delta > 50) {
+        this.longTaskCount++;
+      }
+
+      // Track dropped frames (>33ms = <30fps)
+      if (delta > 33.33) {
+        this.droppedFrameCount++;
+      }
+
+      // Keep last 60 frames
       if (this.frames.length > 60) {
         this.frames.shift();
+        this.frameTimes.shift();
+      }
+
+      // Reset counters every second
+      const now_ms = Date.now();
+      if (now_ms - this.lastResetTime >= 1000) {
+        this.lastResetTime = now_ms;
+        this.longTaskCount = 0;
+        this.droppedFrameCount = 0;
       }
 
       // Check average FPS every second
@@ -127,6 +183,46 @@ export class PerformanceMonitor {
   getAverageFPS(): number {
     if (this.frames.length === 0) return 60;
     return this.frames.reduce((a, b) => a + b) / this.frames.length;
+  }
+
+  getAverageFrameTime(): number {
+    if (this.frameTimes.length === 0) return 16.67;
+    return this.frameTimes.reduce((a, b) => a + b) / this.frameTimes.length;
+  }
+
+  getLongTaskCount(): number {
+    return this.longTaskCount;
+  }
+
+  getDroppedFrameCount(): number {
+    return this.droppedFrameCount;
+  }
+
+  getMemoryMetrics(): MemoryMetrics | undefined {
+    // @ts-expect-error - Chrome-only API
+    const memory = performance.memory;
+    if (!memory) return undefined;
+
+    return {
+      usedJSHeapSize: memory.usedJSHeapSize,
+      totalJSHeapSize: memory.totalJSHeapSize,
+      jsHeapSizeLimit: memory.jsHeapSizeLimit,
+      usedPercent: (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100,
+    };
+  }
+
+  // Estimate CPU load from frame timing variance
+  getCPULoad(): number {
+    if (this.frameTimes.length < 10) return 0;
+
+    const avg = this.getAverageFrameTime();
+    const variance =
+      this.frameTimes.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) /
+      this.frameTimes.length;
+    const stdDev = Math.sqrt(variance);
+
+    // High variance = high load (normalize to 0-1)
+    return Math.min(1, stdDev / 20);
   }
 }
 

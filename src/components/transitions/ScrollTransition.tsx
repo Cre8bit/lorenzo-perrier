@@ -20,12 +20,15 @@ export const ScrollTransition: React.FC<ScrollTransitionProps> = ({
       ([entry]) => {
         setIsVisible(entry.isIntersecting);
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(container);
 
     const handleScroll = () => {
+      // Skip expensive calculations when not visible
+      if (!isVisible) return;
+
       const rect = container.getBoundingClientRect();
       const windowHeight = window.innerHeight;
       const elementTop = rect.top;
@@ -38,7 +41,7 @@ export const ScrollTransition: React.FC<ScrollTransitionProps> = ({
 
       const progress = Math.min(
         Math.max((start - current) / (start - end), 0),
-        1
+        1,
       );
       setScrollProgress(progress);
     };

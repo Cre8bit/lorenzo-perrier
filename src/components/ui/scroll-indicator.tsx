@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { useAppContext } from "@/contexts/useAppContext";
 
 export const ScrollIndicator = () => {
+  const { currentSection } = useAppContext();
   const [isVisible, setIsVisible] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const [readyToShow, setReadyToShow] = useState(false);
@@ -39,6 +41,12 @@ export const ScrollIndicator = () => {
 
   // 3) Scroll listener: hide when user scrolls down, re-show when they return to top
   useEffect(() => {
+    // Only track scroll when in hero section
+    if (currentSection !== "hero") {
+      setIsVisible(false);
+      return;
+    }
+
     const handleScroll = () => {
       const scrolled = window.scrollY > 100;
       setHasScrolled(scrolled);
@@ -67,7 +75,7 @@ export const ScrollIndicator = () => {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [readyToShow]);
+  }, [readyToShow, currentSection]);
 
   const handleClick = () => {
     // Scroll down by one full viewport height

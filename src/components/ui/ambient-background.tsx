@@ -1,14 +1,19 @@
 import { useEffect, useRef } from "react";
+import { reportPerformance } from "./performance-overlay";
+import { useAppContext } from "@/contexts/useAppContext";
 
 export const AmbientBackground = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef({ x: 0.5, y: 0.5 });
+  const { currentSection } = useAppContext();
 
   useEffect(() => {
     // Throttle mousemove with rAF to avoid high-frequency style writes
     let scheduled = false;
     const positions = { x: 0.5, y: 0.5 };
     const handleMouseMove = (e: MouseEvent) => {
+      if (currentSection !== "hero") return;
+
       positions.x = e.clientX / window.innerWidth;
       positions.y = e.clientY / window.innerHeight;
 
@@ -16,9 +21,13 @@ export const AmbientBackground = () => {
       scheduled = true;
 
       requestAnimationFrame(() => {
+        const t0 = performance.now();
         scheduled = false;
         mouseRef.current = { x: positions.x, y: positions.y };
-        if (!containerRef.current) return;
+        if (!containerRef.current) {
+          reportPerformance("AmbientBackground:mouse", performance.now() - t0);
+          return;
+        }
         const orbs = containerRef.current.querySelectorAll(".ambient-orb");
         orbs.forEach((orb, index) => {
           const element = orb as HTMLElement;
@@ -28,12 +37,13 @@ export const AmbientBackground = () => {
           // use transform only when necessary
           element.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
         });
+        reportPerformance("AmbientBackground:mouse", performance.now() - t0);
       });
     };
 
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+  }, [currentSection]); // Re-create listener when section changes
 
   return (
     <div

@@ -5,9 +5,11 @@ import {
   forceLink,
   forceManyBody,
   forceSimulation,
+  forceX,
+  forceY,
   Simulation,
 } from "d3-force";
-import { reportPerformance } from "./performance-overlay";
+import { reportFramePerformance } from "./performance-overlay";
 
 interface SkillNode {
   id: string;
@@ -23,13 +25,14 @@ interface SkillNode {
   labelX?: number;
   labelY?: number;
   hoverProgress?: number; // 0-1 for smooth transitions
+  labelW?: number; // precomputed label width for overlap solver
 }
 
 interface Link {
   source: string | SkillNode;
   target: string | SkillNode;
   weight: number;
-  sameCluster?: boolean; // Track if link is within same cluster
+  sameCluster?: boolean;
 }
 
 interface SkillsGraphProps {
@@ -56,31 +59,6 @@ function baseRadius(n: SkillNode) {
   const baseSize = 8;
   const sizePerCard = 2.5;
   return baseSize + n.cardIndices.length * sizePerCard;
-}
-
-// Floating particles in background
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  opacity: number;
-}
-
-function createParticles(count: number, w: number, h: number): Particle[] {
-  const particles: Particle[] = [];
-  for (let i = 0; i < count; i++) {
-    particles.push({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      size: Math.random() * 1.5 + 0.5,
-      opacity: Math.random() * 0.4 + 0.1,
-    });
-  }
-  return particles;
 }
 
 // Helper to blend colors for multi-experience nodes
@@ -113,10 +91,9 @@ function blendColors(indices: number[]): {
   };
 }
 
-// Resolve label overlaps
+// Resolve label overlaps (heavy) — run only when layout changes (sim tick / resize)
 function resolveLabels(nodes: SkillNode[], w: number, h: number) {
   const padding = 8;
-  const labelHeight = 28;
 
   nodes.forEach((n) => {
     const baseR = baseRadius(n);
@@ -124,21 +101,21 @@ function resolveLabels(nodes: SkillNode[], w: number, h: number) {
     n.labelY = n.y - baseR - 18;
   });
 
-  // Simple iterative collision resolution
-  for (let iter = 0; iter < 6; iter++) {
+  // Simple iterative collision resolution (reduced from 6 to 3 for performance)
+  for (let iter = 0; iter < 3; iter++) {
     let hasOverlap = false;
 
     for (let i = 0; i < nodes.length; i++) {
       const a = nodes[i];
-      if (!a.labelX || !a.labelY) continue;
+      if (a.labelX == null || a.labelY == null) continue;
 
-      const aWidth = a.name.length * 6.5 + 20; // Approximate label width
+      const aWidth = a.labelW ?? a.name.length * 6.5 + 20;
 
       for (let j = i + 1; j < nodes.length; j++) {
         const b = nodes[j];
-        if (!b.labelX || !b.labelY) continue;
+        if (b.labelX == null || b.labelY == null) continue;
 
-        const bWidth = b.name.length * 6.5 + 20;
+        const bWidth = b.labelW ?? b.name.length * 6.5 + 20;
 
         const dx = b.labelX - a.labelX;
         const dy = b.labelY - a.labelY;
@@ -163,23 +140,11 @@ function resolveLabels(nodes: SkillNode[], w: number, h: number) {
 
   // Clamp to bounds
   nodes.forEach((n) => {
-    if (!n.labelX || !n.labelY) return;
+    if (n.labelX == null || n.labelY == null) return;
     const margin = 40;
     n.labelX = Math.max(margin, Math.min(w - margin, n.labelX));
     n.labelY = Math.max(margin, Math.min(h - margin, n.labelY));
   });
-}
-
-function updateParticles(particles: Particle[], w: number, h: number) {
-  for (const p of particles) {
-    p.x += p.vx;
-    p.y += p.vy;
-
-    if (p.x < 0) p.x = w;
-    if (p.x > w) p.x = 0;
-    if (p.y < 0) p.y = h;
-    if (p.y > h) p.y = 0;
-  }
 }
 
 export const SkillsGraph = ({
@@ -196,12 +161,21 @@ export const SkillsGraph = ({
   const simRef = useRef<Simulation<SkillNode, Link> | null>(null);
   const nodesRef = useRef<SkillNode[]>([]);
   const linksRef = useRef<Link[]>([]);
-  const particlesRef = useRef<Particle[]>([]);
+  const adjacencyRef = useRef<Map<string, Set<string>>>(new Map());
 
   const dimsRef = useRef({ w: 0, h: 0, dpr: 1 });
-  const rafRef = useRef<number | null>(null);
-  const wantsAnimationRef = useRef(false);
-  const lastFrameTimesRef = useRef<number[]>([]);
+
+  // single-shot draw scheduling (no perpetual RAF)
+  const rafDrawRef = useRef<number | null>(null);
+  const drawRequestedRef = useRef(false);
+
+  // dirty flags to avoid heavy work when nothing moved/changed
+  const labelsDirtyRef = useRef(true); // label positions
+  const hoverDirtyRef = useRef(true); // label visibility/zIndex
+  const layoutDirtyRef = useRef(true); // nodes/links need redraw
+
+  // freeze once settled
+  const frozenRef = useRef(false);
 
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<SkillNode | null>(null);
@@ -209,6 +183,42 @@ export const SkillsGraph = ({
   const hoveredRef = useRef<SkillNode | null>(null);
   const lastHoverIdRef = useRef<string | null>(null);
   const mouseRef = useRef({ x: 0, y: 0, inside: false });
+
+  // hover animation only for previous/current hovered
+  const hoverAnimRef = useRef<{ prev: string | null; curr: string | null }>({
+    prev: null,
+    curr: null,
+  });
+
+  const requestDraw = () => {
+    if (drawRequestedRef.current) return;
+    drawRequestedRef.current = true;
+    rafDrawRef.current = requestAnimationFrame(() => {
+      drawRequestedRef.current = false;
+      rafDrawRef.current = null;
+      drawFrame();
+    });
+  };
+
+  const freezeSimulation = () => {
+    const sim = simRef.current;
+    if (!sim || frozenRef.current) return;
+    sim.stop();
+    frozenRef.current = true;
+
+    // lock velocities
+    for (const n of nodesRef.current) {
+      n.vx = 0;
+      n.vy = 0;
+    }
+
+    // final label solve
+    const { w, h } = dimsRef.current;
+    resolveLabels(nodesRef.current, w, h);
+    labelsDirtyRef.current = true;
+    layoutDirtyRef.current = true;
+    requestDraw();
+  };
 
   // ------------- build nodes/links -------------
   const skillsData = useMemo(() => {
@@ -228,6 +238,10 @@ export const SkillsGraph = ({
   }, [experiences]);
 
   const graphData = useMemo(() => {
+    // primary-by-name map (avoids O(n) finds in nested loops)
+    const primaryByName = new Map<string, number>();
+    skillsData.forEach((s) => primaryByName.set(s.name, s.cardIndices[0] ?? 0));
+
     const nodes: SkillNode[] = skillsData.map((s) => ({
       id: s.name,
       name: s.name,
@@ -237,6 +251,7 @@ export const SkillsGraph = ({
       vx: 0,
       vy: 0,
       primaryCard: s.cardIndices[0] ?? 0,
+      labelW: s.name.length * 6.5 + 20,
     }));
 
     const skillsByCard = new Map<number, string[]>();
@@ -245,7 +260,7 @@ export const SkillsGraph = ({
     );
 
     const linkMap = new Map<string, { weight: number; sameCluster: boolean }>();
-    for (const [cardIndex, tags] of skillsByCard.entries()) {
+    for (const [, tags] of skillsByCard.entries()) {
       const unique = Array.from(new Set(tags));
       for (let i = 0; i < unique.length; i++) {
         for (let j = i + 1; j < unique.length; j++) {
@@ -253,17 +268,12 @@ export const SkillsGraph = ({
           const b = unique[j];
           const key = a < b ? `${a}|${b}` : `${b}|${a}`;
 
-          // Get primary card indices for both nodes to track same-cluster links
-          const nodeA = skillsData.find((s) => s.name === a);
-          const nodeB = skillsData.find((s) => s.name === b);
-          const primaryA = nodeA?.cardIndices[0];
-          const primaryB = nodeB?.cardIndices[0];
-          const sameCluster = primaryA === primaryB;
+          const sameCluster =
+            (primaryByName.get(a) ?? 0) === (primaryByName.get(b) ?? 0);
 
           const prev = linkMap.get(key);
-          if (!prev) {
-            linkMap.set(key, { weight: 1, sameCluster });
-          } else {
+          if (!prev) linkMap.set(key, { weight: 1, sameCluster });
+          else {
             linkMap.set(key, {
               weight: prev.weight + 1,
               sameCluster: prev.sameCluster || sameCluster,
@@ -305,6 +315,20 @@ export const SkillsGraph = ({
     return { nodes, links };
   }, [skillsData, experiences]);
 
+  // adjacency (for hover highlight) built once per graphData
+  useEffect(() => {
+    const adj = new Map<string, Set<string>>();
+    for (const l of graphData.links) {
+      const a = l.source as string;
+      const b = l.target as string;
+      if (!adj.has(a)) adj.set(a, new Set());
+      if (!adj.has(b)) adj.set(b, new Set());
+      adj.get(a)!.add(b);
+      adj.get(b)!.add(a);
+    }
+    adjacencyRef.current = adj;
+  }, [graphData]);
+
   // ------------- intersection observer -------------
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -315,60 +339,6 @@ export const SkillsGraph = ({
     return () => obs.disconnect();
   }, []);
 
-  // ------------- animation loop  -------------
-  const startAnimation = () => {
-    wantsAnimationRef.current = true;
-    if (rafRef.current != null) return;
-    rafRef.current = requestAnimationFrame(frame);
-  };
-
-  const stopAnimationIfIdle = () => {
-    const sim = simRef.current;
-    const hovering = !!hoveredRef.current;
-    const inside = mouseRef.current.inside;
-
-    const simHot = sim ? sim.alpha() > 0.03 : false;
-    if (!hovering && !inside && !simHot) {
-      wantsAnimationRef.current = false;
-      if (rafRef.current != null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-    }
-  };
-
-  const frame = () => {
-    rafRef.current = null;
-
-    if (document.hidden) {
-      if (wantsAnimationRef.current) {
-        rafRef.current = requestAnimationFrame(frame);
-      }
-      return;
-    }
-
-    const t0 = performance.now();
-    drawFrame();
-    const dt = performance.now() - t0;
-
-    const arr = lastFrameTimesRef.current;
-    arr.push(dt);
-    if (arr.length > 60) arr.shift();
-
-    if (arr.length === 60) {
-      const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
-      reportPerformance("SkillsGraph", avg);
-    } else {
-      reportPerformance("SkillsGraph", dt);
-    }
-
-    if (wantsAnimationRef.current) {
-      rafRef.current = requestAnimationFrame(frame);
-    } else {
-      stopAnimationIfIdle();
-    }
-  };
-
   // ------------- draw -------------
   const drawFrame = () => {
     const canvas = canvasRef.current;
@@ -377,45 +347,46 @@ export const SkillsGraph = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // avoid work if hidden
+    if (document.hidden) return;
+
+    const t0 = performance.now();
+
     const { w, h } = dimsRef.current;
     ctx.clearRect(0, 0, w, h);
 
     const hovered = hoveredRef.current;
     const nodes = nodesRef.current;
     const links = linksRef.current;
-    const particles = particlesRef.current;
 
-    // Update hover progress for smooth transitions
-    nodes.forEach((n) => {
-      const target = hovered?.id === n.id ? 1 : 0;
-      const current = n.hoverProgress ?? 0;
-      n.hoverProgress = lerp(current, target, 0.15);
-    });
+    // Hover animation: update only prev/curr nodes
+    const { prev, curr } = hoverAnimRef.current;
+    let hoverAnimating = false;
 
-    // Update and draw particles (reduced for performance)
-    updateParticles(particles, w, h);
-
-    ctx.save();
-    for (const p of particles) {
-      ctx.fillStyle = `rgba(200, 220, 255, ${p.opacity * 0.4})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-
-    // Build connected set
-    let connected: Set<string> | null = null;
-    if (hovered) {
-      connected = new Set<string>();
-      connected.add(hovered.id);
-      for (const l of links) {
-        const a = (l.source as SkillNode).id;
-        const b = (l.target as SkillNode).id;
-        if (a === hovered.id) connected.add(b);
-        else if (b === hovered.id) connected.add(a);
+    if (prev) {
+      const n = nodes.find((x) => x.id === prev);
+      if (n) {
+        const v = n.hoverProgress ?? 0;
+        const next = lerp(v, 0, 0.18);
+        n.hoverProgress = next;
+        if (next > 0.02) hoverAnimating = true;
       }
     }
+    if (curr) {
+      const n = nodes.find((x) => x.id === curr);
+      if (n) {
+        const v = n.hoverProgress ?? 0;
+        const next = lerp(v, 1, 0.18);
+        n.hoverProgress = next;
+        if (next < 0.98) hoverAnimating = true;
+      }
+    }
+
+    // Connected set from adjacency (no scanning all links every draw)
+    const adj = adjacencyRef.current;
+    const connectedSet = hovered
+      ? (adj.get(hovered.id) ?? new Set<string>())
+      : null;
 
     // Draw links with glassmorphic style
     ctx.save();
@@ -430,24 +401,26 @@ export const SkillsGraph = ({
       if (dist > 250) continue;
 
       const isConnected =
-        connected && connected.has(a.id) && connected.has(b.id);
+        hovered &&
+        (a.id === hovered.id ||
+          b.id === hovered.id ||
+          (connectedSet?.has(a.id) && connectedSet?.has(b.id)));
 
-      // Make same-cluster links much more subtle
       const isSameCluster = l.sameCluster ?? false;
+
       const baseAlpha = isSameCluster
-        ? lerp(0.03, 0.08, 1 - dist / 250) // Much lighter for same-cluster
-        : lerp(0.08, 0.18, 1 - dist / 250); // Normal for cross-cluster
+        ? lerp(0.03, 0.08, 1 - dist / 250)
+        : lerp(0.08, 0.18, 1 - dist / 250);
 
       const alpha = hovered ? (isConnected ? 0.35 : 0.04) : baseAlpha;
 
-      // Subtle gradient along link
+      // Keep gradient to preserve visual; only computed on demand draw
       const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
       grad.addColorStop(0, `rgba(200, 220, 255, ${alpha})`);
       grad.addColorStop(0.5, `rgba(180, 210, 255, ${alpha * 0.6})`);
       grad.addColorStop(1, `rgba(200, 220, 255, ${alpha})`);
 
       ctx.strokeStyle = grad;
-      // Same-cluster links are thinner
       ctx.lineWidth = isConnected ? 2 : isSameCluster ? 0.5 : 1;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
@@ -456,27 +429,33 @@ export const SkillsGraph = ({
     }
     ctx.restore();
 
-    // Resolve label positions
-    resolveLabels(nodes, w, h);
+    // Resolve label positions only when needed (skip if simulation is frozen and stable)
+    if (labelsDirtyRef.current && !frozenRef.current) {
+      resolveLabels(nodes, w, h);
+      labelsDirtyRef.current = false;
+    } else if (frozenRef.current && labelsDirtyRef.current) {
+      // One final resolve when frozen, then never again
+      resolveLabels(nodes, w, h);
+      labelsDirtyRef.current = false;
+    }
 
     // Draw nodes with glassmorphic style
     for (const n of nodes) {
-      const isHovered = hovered?.id === n.id;
-      const isConnected = !hovered || (connected?.has(n.id) ?? false);
+      const isConnected =
+        !hovered || n.id === hovered.id || (connectedSet?.has(n.id) ?? false);
       const imp = n.importance ?? 0;
-      const hoverProg = n.hoverProgress ?? 0;
 
+      const hoverProg = n.hoverProgress ?? 0;
       const baseR = baseRadius(n);
-      const r = baseR * (1 + hoverProg * 0.3); // Smooth size transition
+      const r = baseR * (1 + hoverProg * 0.3);
 
       const baseOpacity = lerp(0.4, 0.9, imp);
       const opacity = hovered ? (isConnected ? 0.95 : 0.2) : baseOpacity;
 
-      // Use blended color for multi-experience nodes
       const color = blendColors(n.cardIndices);
 
-      // Outer glow
-      if (hoverProg > 0.1 || imp > 0.6) {
+      // Outer glow (skip for small nodes to save gradient creation)
+      if ((hoverProg > 0.1 || imp > 0.6) && r > 10) {
         const glowR = r * lerp(2.2, 2.8, hoverProg);
         const glowAlpha = lerp(0.15, 0.3, hoverProg);
 
@@ -496,13 +475,12 @@ export const SkillsGraph = ({
         ctx.fill();
       }
 
-      // Glass node body with multi-color support
+      // Glass node body
       ctx.save();
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
 
       if (n.cardIndices.length > 1) {
-        // Create gradient blend for multi-experience nodes
         const colors = n.cardIndices
           .slice(0, 3)
           .map((i) => EXPERIENCE_COLORS[i % EXPERIENCE_COLORS.length]);
@@ -524,7 +502,6 @@ export const SkillsGraph = ({
 
         ctx.fillStyle = nodeGrad;
       } else {
-        // Single color gradient
         const nodeGrad = ctx.createRadialGradient(
           n.x - r * 0.3,
           n.y - r * 0.3,
@@ -552,7 +529,7 @@ export const SkillsGraph = ({
       ctx.lineWidth = lerp(1.5, 2.5, hoverProg);
       ctx.stroke();
 
-      // Shine effect (top-left highlight)
+      // Shine effect
       const shineGrad = ctx.createRadialGradient(
         n.x - r * 0.4,
         n.y - r * 0.4,
@@ -571,7 +548,7 @@ export const SkillsGraph = ({
 
       ctx.restore();
 
-      // Multi-experience indicator (subtle dots) - only for 2+ experiences
+      // Multi-experience indicator dots
       if (n.cardIndices.length > 1) {
         const dotCount = Math.min(n.cardIndices.length, 5);
         const dotR = r * 0.15;
@@ -597,56 +574,58 @@ export const SkillsGraph = ({
       }
     }
 
-    // Update labels with smooth positioning
+    // Labels: update position only when labelsDirty, visibility only when hoverDirty
     if (labelsLayerRef.current) {
-      for (const n of nodes) {
-        const el = labelRefs.current.get(n.id);
-        if (!el) continue;
+      if (layoutDirtyRef.current || hoverDirtyRef.current) {
+        for (const n of nodes) {
+          const el = labelRefs.current.get(n.id);
+          if (!el) continue;
 
-        const labelX = n.labelX ?? n.x;
-        const labelY = n.labelY ?? n.y - baseRadius(n) - 18;
+          // Position updates only when label layout changed
+          if (layoutDirtyRef.current) {
+            const labelX = n.labelX ?? n.x;
+            const labelY = n.labelY ?? n.y - baseRadius(n) - 18;
+            el.style.transform = `translate(${labelX}px, ${labelY}px) translate(-50%, 0)`;
+          }
 
-        // Add connection line from node to label if displaced
-        const labelDist = Math.hypot(
-          labelX - n.x,
-          labelY - (n.y - baseRadius(n) - 18),
-        );
-        if (labelDist > 5) {
-          ctx.save();
-          ctx.strokeStyle = `rgba(200, 220, 255, 0.15)`;
-          ctx.lineWidth = 1;
-          ctx.setLineDash([2, 3]);
-          ctx.beginPath();
-          ctx.moveTo(n.x, n.y - baseRadius(n));
-          ctx.lineTo(labelX, labelY + 14);
-          ctx.stroke();
-          ctx.restore();
+          // Visibility/z-index updates only when hover state changed
+          if (hoverDirtyRef.current) {
+            const imp = n.importance ?? 0;
+            const showIdle = imp > 0.5;
+            const show = hovered
+              ? n.id === hovered.id || (connectedSet?.has(n.id) ?? false)
+              : showIdle;
+
+            el.style.opacity = show ? "1" : "0";
+            el.style.transform += ` scale(${show ? 1 : 0.9})`;
+            el.style.zIndex = hovered?.id === n.id ? "10" : "1";
+          }
         }
-
-        el.style.transform = `translate(${labelX}px, ${labelY}px) translate(-50%, 0)`;
-
-        const imp = n.importance ?? 0;
-        const showIdle = imp > 0.5;
-        const show = hovered
-          ? hovered.id === n.id || (connected?.has(n.id) ?? false)
-          : showIdle;
-
-        el.style.opacity = show ? "1" : "0";
-        el.style.transform += ` scale(${show ? 1 : 0.9})`;
-
-        // Highlight selected label
-        if (hovered?.id === n.id) {
-          el.style.zIndex = "10";
-        } else {
-          el.style.zIndex = "1";
-        }
+        layoutDirtyRef.current = false;
+        hoverDirtyRef.current = false;
       }
+    }
+
+    reportFramePerformance("SkillsGraph", t0);
+
+    // If hover animation still in progress, schedule another draw
+    if (hoverAnimating) {
+      requestDraw();
     }
   };
 
   // ------------- simulation setup -------------
   useEffect(() => {
     if (!isVisible || !containerRef.current || !canvasRef.current) return;
+
+    // reset freeze when graph changes / becomes visible
+    frozenRef.current = false;
+    hoveredRef.current = null;
+    lastHoverIdRef.current = null;
+    hoverAnimRef.current = { prev: null, curr: null };
+    hoverDirtyRef.current = true;
+    layoutDirtyRef.current = true;
+    labelsDirtyRef.current = true;
 
     const container = containerRef.current;
     const canvas = canvasRef.current;
@@ -665,15 +644,9 @@ export const SkillsGraph = ({
       canvas.style.height = `${rect.height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Create particles (reduced count for performance)
-      const particleCount = Math.floor((rect.width * rect.height) / 12000);
-      particlesRef.current = createParticles(
-        particleCount,
-        rect.width,
-        rect.height,
-      );
-
-      startAnimation();
+      labelsDirtyRef.current = true;
+      layoutDirtyRef.current = true;
+      requestDraw();
     };
 
     resize();
@@ -683,7 +656,7 @@ export const SkillsGraph = ({
     const cy = h / 2;
 
     // Group nodes by primary card for initial clustering
-    const nodesByPrimary = new Map<number, typeof graphData.nodes>();
+    const nodesByPrimary = new Map<number, SkillNode[]>();
     graphData.nodes.forEach((n) => {
       const primary = n.cardIndices[0] ?? 0;
       const existing = nodesByPrimary.get(primary) || [];
@@ -695,25 +668,28 @@ export const SkillsGraph = ({
     const clusterCount = nodesByPrimary.size;
     let clusterIdx = 0;
 
-    // Position each cluster in a larger circular arrangement
+    // cluster centers (for cheap forceX/forceY)
+    const clusterCenters = new Map<number, { x: number; y: number }>();
+
     for (const [primary, clusterNodes] of nodesByPrimary.entries()) {
-      // Cluster center position - wider spread
       const clusterAngle = (clusterIdx / clusterCount) * Math.PI * 2;
-      const clusterRadius = Math.min(w, h) * 0.35; // Wider cluster placement
+      const clusterRadius = Math.min(w, h) * 0.35;
       const clusterCx = cx + Math.cos(clusterAngle) * clusterRadius;
       const clusterCy = cy + Math.sin(clusterAngle) * clusterRadius;
 
-      // Scatter nodes within cluster
+      clusterCenters.set(primary, { x: clusterCx, y: clusterCy });
+
       clusterNodes.forEach((n, i) => {
         const nodeAngle =
           (i / Math.max(1, clusterNodes.length)) * Math.PI * 2 +
           Math.random() * 0.4;
-        const nodeRadius = 50 + Math.random() * 60; // Random scatter within cluster
+        const nodeRadius = 50 + Math.random() * 60;
 
         nodes.push({
           ...n,
           x: clusterCx + Math.cos(nodeAngle) * nodeRadius,
           y: clusterCy + Math.sin(nodeAngle) * nodeRadius,
+          hoverProgress: 0,
         });
       });
 
@@ -721,7 +697,10 @@ export const SkillsGraph = ({
     }
 
     nodesRef.current = nodes;
-    linksRef.current = graphData.links;
+
+    // forceLink expects actual node objects as source/target after init
+    const links = graphData.links.map((l) => ({ ...l }));
+    linksRef.current = links;
 
     const applyBoundaries = () => {
       const { w, h } = dimsRef.current;
@@ -729,9 +708,8 @@ export const SkillsGraph = ({
       const maxX = w - margin;
       const maxY = h - margin;
 
-      const ns = nodesRef.current;
-      for (let i = 0; i < ns.length; i++) {
-        const n = ns[i];
+      for (let i = 0; i < nodesRef.current.length; i++) {
+        const n = nodesRef.current[i];
         const r = baseRadius(n);
 
         if (n.x < margin + r) {
@@ -754,57 +732,39 @@ export const SkillsGraph = ({
 
     const linkForce = forceLink<SkillNode, Link>(linksRef.current)
       .id((d) => d.id)
-      .distance(() => 100) // Reduced for tighter links now that clusters are pre-formed
-      .strength(() => 0.25); // Reduced strength for looser connections
+      .distance(() => 100)
+      .strength(() => 0.25);
 
     const sim = forceSimulation<SkillNode>(nodesRef.current)
-      .alpha(0.6) // Lower initial alpha since we start pre-clustered
-      .alphaDecay(0.04) // Faster decay since less work needed
+      .alpha(0.6)
+      .alphaDecay(0.04)
       .alphaMin(0.001)
-      .velocityDecay(0.5) // Higher decay for quicker settling
-      .force("center", forceCenter(cx, cy).strength(0.015)) // Very weak center force
+      .velocityDecay(0.5)
+      .force("center", forceCenter(cx, cy).strength(0.015))
       .force(
         "charge",
-        forceManyBody<SkillNode>().strength(-180).distanceMax(300), // Reduced repulsion since pre-clustered
+        forceManyBody<SkillNode>().strength(-180).distanceMax(300),
       )
       .force(
         "collide",
         forceCollide<SkillNode>()
-          .radius((d) => baseRadius(d) + 20) // Slightly more collision space
+          .radius((d) => baseRadius(d) + 20)
           .iterations(2),
       )
       .force("link", linkForce)
-      .force("cluster", () => {
-        // Gentle cluster force to maintain grouping
-        const alpha = sim.alpha();
-        const strength = 0.03 * alpha; // Reduced since clusters are pre-formed
-
-        for (let i = 0; i < nodes.length; i++) {
-          const a = nodes[i];
-          const aColor = a.primaryCard ?? 0;
-
-          for (let j = i + 1; j < nodes.length; j++) {
-            const b = nodes[j];
-            const bColor = b.primaryCard ?? 0;
-
-            if (aColor === bColor) {
-              const dx = b.x - a.x;
-              const dy = b.y - a.y;
-              const dist = Math.hypot(dx, dy) || 1;
-
-              // Very gentle attraction to maintain clusters
-              if (dist > 30 && dist < 180) {
-                // Tighter range for cluster cohesion
-                const force = strength * (1 - dist / 180);
-                a.vx += (dx / dist) * force;
-                a.vy += (dy / dist) * force;
-                b.vx -= (dx / dist) * force;
-                b.vy -= (dy / dist) * force;
-              }
-            }
-          }
-        }
-      });
+      // cheap clustering (replaces O(n^2) custom force)
+      .force(
+        "x",
+        forceX<SkillNode>(
+          (d) => clusterCenters.get(d.primaryCard ?? 0)?.x ?? cx,
+        ).strength(0.06),
+      )
+      .force(
+        "y",
+        forceY<SkillNode>(
+          (d) => clusterCenters.get(d.primaryCard ?? 0)?.y ?? cy,
+        ).strength(0.06),
+      );
 
     linkForce.links(linksRef.current);
     simRef.current = sim;
@@ -812,70 +772,54 @@ export const SkillsGraph = ({
     sim.on("tick", () => {
       applyBoundaries();
 
-      const hovered = hoveredRef.current;
-      if (hovered && mouseRef.current.inside) {
-        const { x: mx, y: my } = mouseRef.current;
-        const dx = mx - hovered.x;
-        const dy = my - hovered.y;
-        const dist = Math.hypot(dx, dy) || 1;
+      // mark dirty while sim is running
+      labelsDirtyRef.current = true;
+      layoutDirtyRef.current = true;
+      requestDraw();
 
-        // Very subtle magnetic pull - barely noticeable
-        const pull = 0.0003; // Much more subtle
-        hovered.vx += (dx / dist) * pull;
-        hovered.vy += (dy / dist) * pull;
-
-        // Very gentle transition - no sudden movements
-        sim.alphaTarget(0.01).velocityDecay(0.6);
-      } else {
-        // Smooth transition out of active state
-        sim.alphaTarget(0).velocityDecay(0.5);
-      }
-
-      startAnimation();
-
-      if (
-        !hoveredRef.current &&
-        !mouseRef.current.inside &&
-        sim.alpha() < 0.03
-      ) {
-        sim.stop();
-        stopAnimationIfIdle();
+      // freeze once settled (static graph goal)
+      if (sim.alpha() < 0.03) {
+        freezeSimulation();
       }
     });
 
-    startAnimation();
+    // initial draw
+    requestDraw();
 
     const onResize = () => {
+      // resizing: rebuild canvas, rerun sim briefly then refreeze
+      frozenRef.current = false;
       resize();
+
       const { w, h } = dimsRef.current;
       const nx = w / 2;
       const ny = h / 2;
 
-      sim.force("center", forceCenter(nx, ny));
-      sim.alpha(0.3).restart();
+      sim.force("center", forceCenter(nx, ny).strength(0.015));
 
-      particlesRef.current = createParticles(Math.floor((w * h) / 12000), w, h);
+      // bump alpha briefly to settle new bounds
+      sim.alpha(0.25).restart();
 
-      startAnimation();
+      labelsDirtyRef.current = true;
+      layoutDirtyRef.current = true;
+      requestDraw();
     };
 
     window.addEventListener("resize", onResize);
 
     return () => {
       window.removeEventListener("resize", onResize);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafDrawRef.current != null) cancelAnimationFrame(rafDrawRef.current);
       sim.stop();
       simRef.current = null;
     };
   }, [isVisible, graphData]);
 
-  // ------------- hover picking with spatial optimization -------------
+  // ------------- hover picking (kept simple; called only on RAF) -------------
   const hoverRaf = useRef<number | null>(null);
 
   const pickNode = (x: number, y: number) => {
     const nodes = nodesRef.current;
-
-    // Quick spatial check - only test nearby nodes
     let closest: SkillNode | null = null;
     let closestDist = Infinity;
 
@@ -895,6 +839,26 @@ export const SkillsGraph = ({
     return closest;
   };
 
+  const setHover = (found: SkillNode | null) => {
+    const nextId = found?.id ?? null;
+    const prevId = lastHoverIdRef.current;
+
+    if (nextId === prevId) return;
+
+    lastHoverIdRef.current = nextId;
+    hoveredRef.current = found;
+
+    // animate only prev/curr
+    hoverAnimRef.current = { prev: prevId, curr: nextId };
+
+    setHoveredSkill((prev) => (prev?.id === found?.id ? prev : found));
+
+    // only label visibility changes on hover
+    hoverDirtyRef.current = true;
+    layoutDirtyRef.current = true; // redraw nodes/links for highlight
+    requestDraw();
+  };
+
   const handleMouseMove = (e: React.MouseEvent) => {
     const container = containerRef.current;
     if (!container) return;
@@ -904,40 +868,18 @@ export const SkillsGraph = ({
     const y = e.clientY - rect.top;
 
     mouseRef.current = { x, y, inside: true };
-    startAnimation();
 
     if (hoverRaf.current) return;
     hoverRaf.current = requestAnimationFrame(() => {
       hoverRaf.current = null;
-
       const found = pickNode(x, y);
-      hoveredRef.current = found;
-
-      const newId = found?.id ?? null;
-      if (newId !== lastHoverIdRef.current) {
-        lastHoverIdRef.current = newId;
-        setHoveredSkill((prev) => (prev?.id === found?.id ? prev : found));
-
-        const sim = simRef.current;
-        // Very subtle alpha bump - prevents jiggling
-        if (sim && sim.alpha() < 0.05) sim.alpha(0.05);
-      }
-
-      startAnimation();
+      setHover(found);
     });
   };
 
   const handleMouseLeave = () => {
     mouseRef.current.inside = false;
-    hoveredRef.current = null;
-    lastHoverIdRef.current = null;
-    setHoveredSkill(null);
-
-    // Don't restart simulation on mouse leave - prevents jiggling
-    // Just let it settle naturally with alphaTarget(0)
-    startAnimation();
-
-    stopAnimationIfIdle();
+    setHover(null);
   };
 
   const handleClick = () => {
@@ -1035,7 +977,10 @@ export const SkillsGraph = ({
                 <div
                   className="px-3 py-1.5 rounded-lg backdrop-blur-md"
                   style={{
-                    background: `hsla(${color.hue}, ${color.sat}%, ${Math.min(20, color.light - 40)}%, 0.75)`,
+                    background: `hsla(${color.hue}, ${color.sat}%, ${Math.min(
+                      20,
+                      color.light - 40,
+                    )}%, 0.75)`,
                     border: `1.5px solid hsla(${color.hue}, ${color.sat}%, ${color.light}%, 0.4)`,
                     boxShadow: `
                       0 4px 16px hsla(0, 0%, 0%, 0.5),
@@ -1047,7 +992,10 @@ export const SkillsGraph = ({
                   <span
                     className="font-body text-xs font-semibold whitespace-nowrap tracking-wide"
                     style={{
-                      color: `hsl(${color.hue}, ${color.sat}%, ${Math.min(98, color.light + 28)}%)`,
+                      color: `hsl(${color.hue}, ${color.sat}%, ${Math.min(
+                        98,
+                        color.light + 28,
+                      )}%)`,
                       textShadow: `
                         0 1px 4px hsla(0, 0%, 0%, 0.9),
                         0 0 12px hsla(${color.hue}, ${color.sat}%, ${color.light}%, 0.3)
@@ -1094,7 +1042,10 @@ export const SkillsGraph = ({
                     <span
                       className="text-[11px]"
                       style={{
-                        color: `hsl(${color.hue}, ${color.sat}%, ${Math.min(90, color.light + 12)}%)`,
+                        color: `hsl(${color.hue}, ${color.sat}%, ${Math.min(
+                          90,
+                          color.light + 12,
+                        )}%)`,
                       }}
                     >
                       {company}

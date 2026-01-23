@@ -12,7 +12,7 @@ export function useCarouselTransition(
     durationMs?: number;
     onBeforeChange?: () => void;
     initialIndex?: number;
-  }
+  },
 ) {
   const durationMs = options?.durationMs ?? 560;
   const initialIndex = options?.initialIndex ?? 0;
@@ -26,6 +26,12 @@ export function useCarouselTransition(
   const fromRef = useRef(0);
   const toRef = useRef(0);
   const startRef = useRef<number | null>(null);
+  const onBeforeChangeRef = useRef(options?.onBeforeChange);
+
+  // Keep callback ref in sync
+  useEffect(() => {
+    onBeforeChangeRef.current = options?.onBeforeChange;
+  }, [options?.onBeforeChange]);
 
   const stop = useCallback(() => {
     if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
@@ -38,7 +44,7 @@ export function useCarouselTransition(
       const fromIndex = activeIndex;
       if (isAnimating || toIndex === fromIndex) return;
 
-      options?.onBeforeChange?.();
+      onBeforeChangeRef.current?.();
 
       fromRef.current = fromIndex;
       toRef.current = clampIndex(toIndex, len);
@@ -69,16 +75,16 @@ export function useCarouselTransition(
 
       rafRef.current = requestAnimationFrame(tick);
     },
-    [activeIndex, durationMs, isAnimating, len, options, stop]
+    [activeIndex, durationMs, isAnimating, len, stop],
   );
 
   const next = useCallback(
     () => animateTo(activeIndex + 1, 1),
-    [activeIndex, animateTo]
+    [activeIndex, animateTo],
   );
   const prev = useCallback(
     () => animateTo(activeIndex - 1, -1),
-    [activeIndex, animateTo]
+    [activeIndex, animateTo],
   );
 
   const goTo = useCallback(
@@ -90,7 +96,7 @@ export function useCarouselTransition(
       const dir: Dir = forwardDist <= backwardDist ? 1 : -1;
       animateTo(idx, dir);
     },
-    [activeIndex, animateTo, len]
+    [activeIndex, animateTo, len],
   );
 
   useEffect(() => () => stop(), [stop]);

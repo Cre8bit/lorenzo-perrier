@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ConstellationCanvas } from "./constellation-canvas";
-import { useParticleField } from "@/contexts/useParticleField";
+import { useAppContext } from "@/contexts/useAppContext";
+import { reportPerformance } from "./performance-overlay";
 
 interface SubtitleSegment {
   text: string;
@@ -86,7 +87,7 @@ const SUBTITLES: Subtitle[] = [
 ];
 
 export const AnimatedSubtitle = () => {
-  const { currentSection } = useParticleField();
+  const { currentSection } = useAppContext();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [usedIndices, setUsedIndices] = useState<number[]>([0]);
@@ -101,6 +102,17 @@ export const AnimatedSubtitle = () => {
   const canvasActive = isHero && isTransitioning; // keep your "only during transition" behavior
 
   useEffect(() => {
+    // Only run effect in hero section
+    if (!isHero) {
+      // Clear any existing timeout when leaving hero
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
+      }
+      return;
+    }
+
+    const t0 = performance.now();
     const scheduleNext = () => {
       const interval = 6000 + Math.random() * 2000;
 
@@ -118,7 +130,7 @@ export const AnimatedSubtitle = () => {
 
           const available = Array.from(
             { length: SUBTITLES.length },
-            (_, i) => i
+            (_, i) => i,
           ).filter((i) => i !== currentIndex);
 
           if (usedIndices.length >= SUBTITLES.length) {
@@ -145,8 +157,9 @@ export const AnimatedSubtitle = () => {
     };
 
     scheduleNext();
+    reportPerformance("AnimatedSubtitle:effect", performance.now() - t0);
     return () => timeoutRef.current && clearTimeout(timeoutRef.current);
-  }, [currentIndex, usedIndices]);
+  }, [currentIndex, usedIndices, isHero]); // Added isHero to deps
 
   const currentSubtitle = SUBTITLES[currentIndex];
 

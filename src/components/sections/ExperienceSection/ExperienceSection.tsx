@@ -17,8 +17,11 @@ import {
 } from "lucide-react";
 import { SkillsGraph } from "@/components/ui/skills-graph";
 import Hero from "./ExperienceHero";
+import { reportPerformance } from "@/components/ui/performance-overlay";
+import { useAppContext } from "@/contexts/useAppContext";
 
 const ExperienceSection = () => {
+  const { currentSection } = useAppContext();
   const [showSticky, setShowSticky] = useState(false);
   const lastScrollY = useRef(0);
   const isScrollingDown = useRef(false);
@@ -42,14 +45,19 @@ const ExperienceSection = () => {
 
   useEffect(() => {
     const onScroll = () => {
+      // Only track scroll direction when in experience section
+      if (currentSection !== "experience") return;
+
+      const t0 = performance.now();
       const y = window.scrollY;
       isScrollingDown.current = y > lastScrollY.current;
       lastScrollY.current = y;
+      reportPerformance("ExperienceSection:scroll", performance.now() - t0);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [currentSection]); // Re-create listener when section changes
 
   useEffect(() => {
     const el = heroSentinelRef.current;

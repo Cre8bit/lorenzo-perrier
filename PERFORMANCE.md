@@ -1,5 +1,7 @@
 # Performance Optimization Guide
 
+> **New!** See [PERFORMANCE_TRACKING.md](PERFORMANCE_TRACKING.md) for the comprehensive performance monitoring system with component-level tracking, CPU load estimation, and advanced metrics.
+
 ## How to Use the Performance Monitor
 
 The portfolio now includes a built-in performance monitoring overlay to help identify performance bottlenecks.
@@ -16,7 +18,6 @@ Press **`Ctrl/Cmd + Shift + P`** to toggle the performance overlay on/off.
 The overlay shows:
 
 - **FPS (Frames Per Second)**: Target is 60 FPS
-
   - Green (>50 FPS): Good performance
   - Orange (30-50 FPS): Moderate performance issues
   - Red (<30 FPS): Poor performance, needs optimization
@@ -33,18 +34,15 @@ The overlay shows:
 #### Common Culprits
 
 1. **ParticleField** - Background particle animation
-
    - Uses canvas 2D rendering
    - O(n²) connection checks (now optimized with spatial grid)
    - High particle count on large screens
 
 2. **ConstellationCanvas** - Animated constellation effects
-
    - Runs during subtitle transitions
    - Canvas drawing with gradients and shadows
 
 3. **SkillsGraph** - Interactive skills visualization
-
    - Physics simulation for nodes
    - Canvas rendering with gradients
 
@@ -116,7 +114,6 @@ The app automatically detects device capabilities:
 - **Low Tier**: <4GB RAM or <4 cores
   - Max 120 particles, 1.0x DPR, skip every 2nd connection frame
 - **Medium Tier**: 4-8GB RAM or mobile
-
   - Max 150 particles, 1.5x DPR, skip every frame
 
 - **High Tier**: ≥8GB RAM and ≥6 cores
@@ -153,18 +150,15 @@ Development mode includes hot-reload overhead and source maps that slow things d
 ### What Makes Things Slow
 
 1. **Canvas 2D Context**
-
    - `arc()` with gradients creates many draw calls
    - High resolution (retina displays) = 4x pixels to draw
    - Shadow effects are GPU-intensive
 
 2. **Frequent DOM Measurements**
-
    - `getBoundingClientRect()` causes layout reflow
    - Scroll handlers firing 100+ times/second
 
 3. **O(n²) Algorithms**
-
    - Checking every particle against every other particle
    - Fixed with spatial grid partitioning
 

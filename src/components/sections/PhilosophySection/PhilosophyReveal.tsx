@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { philosophyItems } from "./PhilosophyData";
 import { reportPerformance } from "@/components/ui/performance-overlay";
 import { clamp01, smoothstep } from "@/utils/animation";
-import { useParticleField } from "@/contexts/useParticleField";
+import { useAppContext } from "@/contexts/useAppContext";
 import { TrailStepper } from "./TrailStepper";
 
 export const PhilosophyReveal = () => {
-  const { setActivePresetIndex } = useParticleField();
+  const { setActivePresetIndex } = useAppContext();
 
   // Section-level fades
   const [revealOpacity, setRevealOpacity] = useState(0);

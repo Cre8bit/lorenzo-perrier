@@ -1,4 +1,5 @@
 import { useEffect, useRef, useMemo } from "react";
+import { reportFramePerformance } from "./performance-overlay";
 
 interface ConstellationMinimalProps {
   className?: string;
@@ -37,7 +38,7 @@ export const ConstellationMinimal = ({
       0,
       size / 2,
       size / 2,
-      size / 2
+      size / 2,
     );
     grad.addColorStop(0, "rgba(120, 200, 200, 0.6)");
     grad.addColorStop(0.4, "rgba(120, 200, 200, 0.2)");
@@ -101,6 +102,7 @@ export const ConstellationMinimal = ({
     window.addEventListener("mousemove", handleMouseMove);
 
     const animate = () => {
+      const t0 = performance.now();
       ctx.clearRect(0, 0, width, height);
 
       const dots = dotsRef.current;
@@ -154,6 +156,7 @@ export const ConstellationMinimal = ({
         ctx.drawImage(glowSprite, dot.x - 8, dot.y - 8, 16, 16);
       }
 
+      reportFramePerformance("ConstellationMinimal", t0);
       rafRef.current = requestAnimationFrame(animate);
     };
 
