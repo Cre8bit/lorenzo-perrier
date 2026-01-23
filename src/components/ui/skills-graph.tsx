@@ -168,6 +168,7 @@ export const SkillsGraph = ({
   // single-shot draw scheduling (no perpetual RAF)
   const rafDrawRef = useRef<number | null>(null);
   const drawRequestedRef = useRef(false);
+  const drawFrameRef = useRef<() => void>(() => {});
 
   // dirty flags to avoid heavy work when nothing moved/changed
   const labelsDirtyRef = useRef(true); // label positions
@@ -190,17 +191,17 @@ export const SkillsGraph = ({
     curr: null,
   });
 
-  const requestDraw = () => {
+  const requestDraw = React.useCallback(() => {
     if (drawRequestedRef.current) return;
     drawRequestedRef.current = true;
     rafDrawRef.current = requestAnimationFrame(() => {
       drawRequestedRef.current = false;
       rafDrawRef.current = null;
-      drawFrame();
+      drawFrameRef.current();
     });
-  };
+  }, []);
 
-  const freezeSimulation = () => {
+  const freezeSimulation = React.useCallback(() => {
     const sim = simRef.current;
     if (!sim || frozenRef.current) return;
     sim.stop();
@@ -218,7 +219,7 @@ export const SkillsGraph = ({
     labelsDirtyRef.current = true;
     layoutDirtyRef.current = true;
     requestDraw();
-  };
+  }, [requestDraw]);
 
   // ------------- build nodes/links -------------
   const skillsData = useMemo(() => {
@@ -340,7 +341,8 @@ export const SkillsGraph = ({
   }, []);
 
   // ------------- draw -------------
-  const drawFrame = () => {
+  // Keep the ref pointing to the latest drawFrame implementation
+  drawFrameRef.current = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -784,7 +786,7 @@ export const SkillsGraph = ({
     });
 
     // initial draw
-    requestDraw();
+    drawFrameRef.current();
 
     const onResize = () => {
       // resizing: rebuild canvas, rerun sim briefly then refreeze
@@ -813,7 +815,7 @@ export const SkillsGraph = ({
       sim.stop();
       simRef.current = null;
     };
-  }, [isVisible, graphData]);
+  }, [isVisible, graphData, freezeSimulation, requestDraw]);
 
   // ------------- hover picking (kept simple; called only on RAF) -------------
   const hoverRaf = useRef<number | null>(null);
@@ -920,7 +922,7 @@ export const SkillsGraph = ({
     if (top < pad) top = pad;
 
     return { left, top };
-  }, [hoveredSkill]);
+  }, []);
 
   return (
     <div className="relative w-full space-y-3">

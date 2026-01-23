@@ -95,7 +95,6 @@ const IndexContent = () => {
     // Switch to best section
     if (best.id !== currentSection) {
       setCurrentSection(best.id);
-      console.log(`Section changed to: ${best.id}`);
     }
     reportPerformance("Index:sectionSpy", performance.now() - t0);
   }, [
@@ -155,26 +154,6 @@ const IndexContent = () => {
 
       {/* Foreground stack */}
       <div className="relative z-10">
-        {/* Debug overlay - shows current section and preset */}
-        {/* <div className="fixed top-4 left-4 z-50 bg-black/80 text-white px-4 py-2 rounded-lg font-mono text-xs space-y-1">
-          <div>
-            Section: <span className="text-primary">{currentSection}</span>
-          </div>
-          <div>
-            Preset Index:{" "}
-            <span className="text-primary">{effectivePresetIndex}</span>
-          </div>
-          <div>
-            Philosophy:{" "}
-            <span className="text-primary">{activePresetIndex}</span>
-          </div>
-          <div className="text-primary/50 text-[10px] mt-2">Ratios:</div>
-          <div className="text-primary/50 text-[10px]">
-            H:{hero.ratio.toFixed(2)} P:{philo.ratio.toFixed(2)} C:
-            {carousel.ratio.toFixed(2)}
-          </div>
-        </div> */}
-
         {/* Social links - top right */}
         <SocialLinks hide={currentSection === "experience"} />
 

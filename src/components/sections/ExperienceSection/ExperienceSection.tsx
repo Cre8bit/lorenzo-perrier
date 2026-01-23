@@ -193,9 +193,8 @@ const ExperienceSection = () => {
 
           <SkillsGraph
             experiences={experiences}
-            onSkillClick={(skill) => {
+            onSkillClick={() => {
               // e.g. scroll to experience list or filter later
-              console.log("clicked:", skill);
             }}
           />
         </section>

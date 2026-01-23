@@ -53,6 +53,9 @@ export const ScrollTransition: React.FC<ScrollTransitionProps> = ({
       observer.disconnect();
       window.removeEventListener("scroll", handleScroll);
     };
+    // isVisible is intentionally not included - it's used inside handleScroll
+    // which is redefined on every render. This effect only runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
