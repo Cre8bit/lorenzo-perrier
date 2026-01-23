@@ -137,6 +137,12 @@ export const PerformanceOverlay = ({
     };
   }, [enabled]);
 
+  // Only render overlay in development builds (after hooks)
+  if (!import.meta.env.DEV) {
+    setPerformanceOverlayEnabled(false);
+    return null;
+  }
+
   if (!enabled || !isVisible) return null;
 
   // Filter and sort metrics
@@ -423,13 +429,17 @@ export const PerformanceOverlay = ({
 // Helper to show/hide overlay with keyboard shortcut
 export const usePerformanceOverlay = () => {
   const [enabled, setEnabled] = useState(() => {
+    // Only enable in DEV and respect saved preference
+    if (!import.meta.env.DEV) return false;
     const saved = localStorage.getItem("performance-overlay-enabled");
     return saved === "true";
   });
 
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + Shift + P to toggle
+      // Ctrl/Cmd + Shift + P to toggle (dev-only)
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "P") {
         e.preventDefault();
         setEnabled((prev) => {
