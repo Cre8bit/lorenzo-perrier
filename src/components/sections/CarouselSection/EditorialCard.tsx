@@ -3,6 +3,7 @@ import { RotateCcw, ArrowRight, MousePointerClick } from "lucide-react";
 import type { CarouselContext } from "./CarouselData";
 import { withHslAlpha } from "./tint";
 import { lerp } from "@/utils/animation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export type CarouselTint = {
   bg: string;
@@ -59,13 +60,15 @@ export const EditorialCard: React.FC<EditorialCardProps> = ({
   onFlip,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const isMobile = useIsMobile();
 
   const strength = clamp01(activeStrength ?? (isActive ? 1 : 0));
   const styles = useCardStyles(tint, strength);
   const bodyOpacity = lerp(0.3, 1, strength);
 
   // Hover should only matter when the card is actually interactive/active.
-  const hoverOn = isActive && isHovered;
+  // On mobile, active cards are always in hover state for better visibility.
+  const hoverOn = isActive && (isMobile || isHovered);
 
   // Metadata opacity tuning (point 5)
   const metaOpacity = hoverOn ? 0.55 : 0.38;
@@ -75,8 +78,8 @@ export const EditorialCard: React.FC<EditorialCardProps> = ({
     ? hoverOn
       ? 0.45
       : isActive
-      ? 0.22
-      : 0.14
+        ? 0.22
+        : 0.14
     : 0;
 
   return (
@@ -142,7 +145,7 @@ export const EditorialCard: React.FC<EditorialCardProps> = ({
               style={{
                 background: `linear-gradient(180deg, ${withHslAlpha(
                   tint.bg,
-                  0.08
+                  0.08,
                 )} 0%, ${withHslAlpha(tint.bg, 0.18)} 100%)`,
                 mixBlendMode: "multiply",
               }}
@@ -297,10 +300,10 @@ function CardBack({
           style={{
             background: `linear-gradient(225deg, ${withHslAlpha(
               tint.bg,
-              0.25
+              0.25,
             )} 0%, ${withHslAlpha(tint.bg, 0.133)} 55%, ${withHslAlpha(
               tint.bg,
-              0.078
+              0.078,
             )} 100%)`,
             mixBlendMode: "multiply",
             opacity: 0.9,

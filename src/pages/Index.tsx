@@ -3,15 +3,16 @@ import { AmbientBackground } from "@/components/ui/ambient-background";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { LiquidNavigation } from "@/components/sections/LiquidNavigation";
 import { ScrollIndicator } from "@/components/ui/scroll-indicator";
-import { ContactLink, SocialLinks } from "@/components/ui/social-links";
+import { ContactActions, SocialLinks } from "@/components/ui/social-links";
 import { PhilosophyReveal } from "@/components/sections/PhilosophySection/PhilosophyReveal";
 import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGlide";
 import { ScrollTransition } from "@/components/transitions/ScrollTransition";
 import { useInViewport } from "@/hooks/use-in-viewport";
-import { useParticleField } from "@/contexts/useParticleField";
-import { ParticleFieldProvider } from "@/contexts/ParticleFieldProvider";
+import { useAppContext } from "@/contexts/useAppContext";
+import { AppProvider } from "@/contexts/AppProvider";
 import ExperienceSection from "@/components/sections/ExperienceSection/ExperienceSection";
 import { ConstellationRevealLoader } from "@/components/transitions/ConstellationRevealLoader";
+import { reportPerformance } from "@/components/ui/performance-overlay";
 
 // Lazy load Three.js particle field for better initial bundle size
 const ParticleField3D = lazy(() => import("@/components/ui/particle-field-3d"));
@@ -22,7 +23,7 @@ const IndexContent = () => {
     currentSection,
     setCurrentSection,
     isInitialized,
-  } = useParticleField();
+  } = useAppContext();
 
   // Stable spy options - memoized to prevent observer recreation
   const spyOptions = useMemo<IntersectionObserverInit>(
@@ -40,6 +41,7 @@ const IndexContent = () => {
   const experience = useInViewport<HTMLElement>(spyOptions);
 
   useEffect(() => {
+    const t0 = performance.now();
     const viewportCenter = window.innerHeight / 2;
 
     const allCandidates = [
@@ -62,7 +64,10 @@ const IndexContent = () => {
         return { ...c, dist, center };
       });
 
-    if (candidates.length === 0) return;
+    if (candidates.length === 0) {
+      reportPerformance("Index:sectionSpy", performance.now() - t0);
+      return;
+    }
 
     // Find section closest to viewport center
     const best = candidates.reduce((a, b) => (b.dist < a.dist ? b : a));
@@ -72,13 +77,17 @@ const IndexContent = () => {
     const distanceThreshold = 100; // pixels
     const ratioThreshold = 0.001; // minimal visibility required
 
-    if (best.ratio < ratioThreshold) return; // Skip if barely visible
+    if (best.ratio < ratioThreshold) {
+      reportPerformance("Index:sectionSpy", performance.now() - t0);
+      return; // Skip if barely visible
+    }
 
     // If current section is still visible, require best to be significantly closer
     if (currentCandidate && currentCandidate.entry?.isIntersecting) {
       const improvement = currentCandidate.dist - best.dist;
       if (improvement < distanceThreshold && best.id !== currentSection) {
         // Not enough improvement, keep current section
+        reportPerformance("Index:sectionSpy", performance.now() - t0);
         return;
       }
     }
@@ -87,6 +96,7 @@ const IndexContent = () => {
     if (best.id !== currentSection) {
       setCurrentSection(best.id);
     }
+    reportPerformance("Index:sectionSpy", performance.now() - t0);
   }, [
     hero.entry,
     philo.entry,
@@ -144,31 +154,11 @@ const IndexContent = () => {
 
       {/* Foreground stack */}
       <div className="relative z-10">
-        {/* Debug overlay - shows current section and preset */}
-        {/* <div className="fixed top-4 left-4 z-50 bg-black/80 text-white px-4 py-2 rounded-lg font-mono text-xs space-y-1">
-          <div>
-            Section: <span className="text-primary">{currentSection}</span>
-          </div>
-          <div>
-            Preset Index:{" "}
-            <span className="text-primary">{effectivePresetIndex}</span>
-          </div>
-          <div>
-            Philosophy:{" "}
-            <span className="text-primary">{activePresetIndex}</span>
-          </div>
-          <div className="text-primary/50 text-[10px] mt-2">Ratios:</div>
-          <div className="text-primary/50 text-[10px]">
-            H:{hero.ratio.toFixed(2)} P:{philo.ratio.toFixed(2)} C:
-            {carousel.ratio.toFixed(2)}
-          </div>
-        </div> */}
-
         {/* Social links - top right */}
         <SocialLinks hide={currentSection === "experience"} />
 
         {/* Contact link - bottom left */}
-        <ContactLink />
+        <ContactActions hide={currentSection === "experience"}/>
 
         {/* Hero section with floating text */}
         <section id="hero" ref={hero.ref}>
@@ -205,9 +195,9 @@ const IndexContent = () => {
 
 const Index = () => {
   return (
-    <ParticleFieldProvider>
+    <AppProvider>
       <IndexContent />
-    </ParticleFieldProvider>
+    </AppProvider>
   );
 };
 

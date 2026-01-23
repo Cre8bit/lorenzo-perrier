@@ -1,13 +1,52 @@
 /**
  * Performance utilities for monitoring and optimizing the portfolio site
+ *
+ * QUALITY SETTINGS SYSTEM:
+ * - Automatically detects device tier (low/mid/high-end)
+ * - Configures particle field parameters for optimal FPS
+ * - See QUALITY_SETTINGS.md for detailed explanation of all parameters
+ *
+ * DEV CONTROLS (console):
+ *   window.particleQuality.preset('ultra'|'high'|'medium'|'low'|'minimal')
+ *   window.particleQuality.set({ densityFactor: 0.8, connectionDistance: 120 })
+ *   window.particleQuality.set(null)  // Reset to auto-detect
  */
 
 export interface QualitySettings {
-  maxParticles: number;
-  connectionDistance: number; // in px (screen space)
-  densityFactor: number;
-  skipConnectionFrames: number;
-  dpr: number; // devicePixelRatio to use for canvas
+  maxParticles: number; // GPU buffer size (70-400)
+  connectionDistance: number; // Max connection line distance in pixels (90-180)
+  densityFactor: number; // Active particle multiplier 0.0-1.0 (activeCount = max * factor)
+  skipConnectionFrames: number; // Connection update throttle (1-4 frames)
+  dpr: number; // Canvas devicePixelRatio (1.0-2.0)
+}
+
+export interface PerformanceMetrics {
+  fps: number;
+  frameTime: number; // ms
+  longTasks: number; // count of >50ms tasks in last second
+  droppedFrames: number; // count in last second
+  components: Map<string, ComponentMetrics>;
+  memory?: MemoryMetrics;
+  cpuLoad?: number; // estimated 0-1
+}
+
+export interface ComponentMetrics {
+  name: string;
+  avgTime: number; // ms
+  maxTime: number; // ms
+  minTime: number; // ms
+  callCount: number;
+  p95Time: number; // 95th percentile
+  lastUpdate: number;
+  samples: number[]; // last 100 samples for percentile calc
+  severity: "low" | "medium" | "high" | "critical";
+}
+
+export interface MemoryMetrics {
+  usedJSHeapSize: number; // bytes
+  totalJSHeapSize: number; // bytes
+  jsHeapSizeLimit: number; // bytes
+  usedPercent: number;
 }
 
 // Check if user prefers reduced motion
@@ -15,21 +54,46 @@ export const prefersReducedMotion = (): boolean => {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 };
 
-// Get device quality tier based on hardware capabilities
+/**
+ * Device Quality Tier Detection
+ * Classifies devices into low/mid/high-end based on hardware capabilities
+ *
+ * LOW-END:
+ *   - < 4GB RAM OR < 4 CPU cores
+ *   - Budget laptops, older phones/tablets
+ *   - Prioritizes frame rate over visual fidelity
+ *
+ * MID-RANGE:
+ *   - 4-7GB RAM, 4-7 cores
+ *   - Modern mid-tier devices, tablets
+ *   - Balanced performance/quality
+ *
+ * HIGH-END:
+ *   - ≥ 8GB RAM AND ≥ 8 cores
+ *   - High-performance laptops, desktops, flagship phones
+ *   - Maximum visual quality
+ *
+ * MOBILE/TABLET (sub-tier):
+ *   - < 768px width (regardless of specs)
+ *   - Reduced particle density due to touch interaction overhead
+ */
 export const getDeviceQualityTier = (): "low" | "medium" | "high" => {
-  // @ts-expect-error - experimental API
+  // @ts-expect-error - experimental API (Chrome/Edge only)
   const memory = navigator.deviceMemory;
   const cores = navigator.hardwareConcurrency || 4;
   const width = window.innerWidth;
 
-  // Low-end: < 4GB RAM or < 4 cores or mobile
+  // Low-end detection: insufficient RAM or CPU
   if (memory && memory < 4) return "low";
   if (cores < 4) return "low";
+
+  // Mobile/tablet detection (caps at medium tier for touch performance)
   if (width < 768) return "medium";
 
-  // High-end: >= 8GB RAM and >= 6 cores
-  if (memory && memory >= 8 && cores >= 6) return "high";
+  // High-end: powerful devices with ample resources
+  if (memory && memory >= 8 && cores >= 8) return "high";
 
+  // Default: mid-range
   return "medium";
 };
 
@@ -50,34 +114,94 @@ export const getOptimalDPR = (): number => {
   }
 };
 
-// Unified quality settings computation
+/**
+ * Unified Quality Settings Computation
+ * Returns optimal particle field settings based on detected device tier
+ *
+ * KEY PARAMETERS EXPLAINED:
+ *
+ * maxParticles:
+ *   - Maximum particle count allocated in GPU buffer
+ *   - Higher = denser field, but more memory/CPU overhead
+ *   - CANNOT be changed at runtime without re-initializing buffers
+ *
+ * densityFactor (0.0 - 1.0+):
+ *   - Multiplier for active particle count: activeParticles = maxParticles * densityFactor
+ *   - Example: maxParticles=300, densityFactor=0.8 → 240 particles actually rendered
+ *   - Allows runtime quality adjustment without buffer reallocation
+ *   - < 1.0 reduces particle count for performance headroom
+ *   - = 1.0 uses full particle budget
+ *   - Values >1.0 are clamped to 1.0
+ *
+ * connectionDistance (pixels):
+ *   - Maximum distance (in screen space) for drawing connection lines
+ *   - Higher = more connections, denser web effect, but O(n²) cost increases
+ *   - Typical range: 90-180px
+ *   - Heavily impacts performance (connection computation is most expensive operation)
+ *
+ * skipConnectionFrames:
+ *   - Connection line update throttle (every N frames)
+ *   - 1 = update every frame (smoothest, most expensive)
+ *   - 2 = update every other frame (good balance)
+ *   - 3+ = update every 3rd+ frame (choppy connections, best performance)
+ *   - Particle movement still smooth regardless of this setting
+ */
 export const getQualitySettings = (): QualitySettings => {
+  const tier = getDeviceQualityTier();
   const width = window.innerWidth;
-  const pixelRatio = window.devicePixelRatio || 1;
-
-  // @ts-expect-error experimental
-  const memory = navigator.deviceMemory;
   const cores = navigator.hardwareConcurrency || 4;
 
-  const isLowPower = memory && memory < 4;
-  const isSmallScreen = width < 768;
-  const isHighDPI = pixelRatio > 2;
-
+  // Accessibility override: minimal particles for reduced motion preference
   if (prefersReducedMotion()) {
     return {
-      densityFactor: 0.3,
       maxParticles: 70,
+      densityFactor: 0.5,
       connectionDistance: 90,
       skipConnectionFrames: 4,
       dpr: 1,
     };
   }
 
+  // Mobile/Tablet tier (< 768px width)
+  const isMobile = width < 768;
+
+  // ========================================================================
+  // LOW-END TIER: < 4GB RAM or < 4 cores
+  // Target: Maintain 30+ FPS, prioritize responsiveness
+  // ========================================================================
+  if (tier === "low") {
+    return {
+      maxParticles: 150, // Minimal particle budget
+      densityFactor: 0.75, // 112 active particles
+      connectionDistance: 110, // Short connections to reduce O(n²) cost
+      skipConnectionFrames: 3, // Update connections every 3rd frame
+      dpr: 1, // Force 1x resolution
+    };
+  }
+
+  // ========================================================================
+  // MID-RANGE TIER (default): 4-7GB RAM, 4-7 cores, or mobile devices
+  // Target: 45+ FPS, balanced quality/performance
+  // ========================================================================
+  if (tier === "medium" || isMobile) {
+    return {
+      maxParticles: isMobile ? 250 : 280,
+      densityFactor: isMobile ? 0.85 : 0.9, // 212-252 active particles
+      connectionDistance: isMobile ? 120 : 140,
+      skipConnectionFrames: 2, // Update every other frame
+      dpr: getOptimalDPR(),
+    };
+  }
+
+  // ========================================================================
+  // HIGH-END TIER: ≥ 8GB RAM AND ≥ 8 cores
+  // Target: 60 FPS, maximum visual quality
+  // ========================================================================
   return {
-    densityFactor: isSmallScreen ? 0.9 : isLowPower ? 1.0 : 1.3,
-    maxParticles: isLowPower ? 240 : isSmallScreen ? 320 : 560,
-    connectionDistance: isLowPower ? 120 : 140,
-    skipConnectionFrames: isLowPower || cores < 4 || isHighDPI ? 2 : 1,
+    maxParticles: 400, // Large particle budget
+    densityFactor: 1.0, // Full 400 particles
+    connectionDistance: 160, // Longer connections for denser web
+    skipConnectionFrames: cores >= 12 ? 1 : 2, // Every frame on high-core CPUs
     dpr: getOptimalDPR(),
   };
 };
@@ -85,9 +209,13 @@ export const getQualitySettings = (): QualitySettings => {
 // Monitor FPS and log warnings if performance is poor
 export class PerformanceMonitor {
   private frames: number[] = [];
+  private frameTimes: number[] = [];
   private lastTime = performance.now();
   private rafId: number | null = null;
   private onLowFPS?: (fps: number) => void;
+  private longTaskCount = 0;
+  private droppedFrameCount = 0;
+  private lastResetTime = Date.now();
 
   constructor(onLowFPS?: (fps: number) => void) {
     this.onLowFPS = onLowFPS;
@@ -98,9 +226,32 @@ export class PerformanceMonitor {
       const delta = now - this.lastTime;
       this.lastTime = now;
 
-      this.frames.push(1000 / delta);
+      const fps = 1000 / delta;
+      this.frames.push(fps);
+      this.frameTimes.push(delta);
+
+      // Track long frames (>50ms = 20fps)
+      if (delta > 50) {
+        this.longTaskCount++;
+      }
+
+      // Track dropped frames (>33ms = <30fps)
+      if (delta > 33.33) {
+        this.droppedFrameCount++;
+      }
+
+      // Keep last 60 frames
       if (this.frames.length > 60) {
         this.frames.shift();
+        this.frameTimes.shift();
+      }
+
+      // Reset counters every second
+      const now_ms = Date.now();
+      if (now_ms - this.lastResetTime >= 1000) {
+        this.lastResetTime = now_ms;
+        this.longTaskCount = 0;
+        this.droppedFrameCount = 0;
       }
 
       // Check average FPS every second
@@ -128,50 +279,44 @@ export class PerformanceMonitor {
     if (this.frames.length === 0) return 60;
     return this.frames.reduce((a, b) => a + b) / this.frames.length;
   }
-}
 
-// Throttle function with requestAnimationFrame
-export const throttleRAF = <T extends (...args: never[]) => void>(
-  callback: T
-): ((...args: Parameters<T>) => void) => {
-  let scheduled = false;
-  let lastArgs: Parameters<T>;
-
-  return (...args: Parameters<T>) => {
-    lastArgs = args;
-    if (scheduled) return;
-
-    scheduled = true;
-    requestAnimationFrame(() => {
-      scheduled = false;
-      callback(...lastArgs);
-    });
-  };
-};
-
-// Debounce function
-export const debounce = <T extends (...args: never[]) => void>(
-  callback: T,
-  delay: number
-): ((...args: Parameters<T>) => void) => {
-  let timeoutId: number;
-
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeoutId);
-    timeoutId = window.setTimeout(() => callback(...args), delay);
-  };
-};
-
-// Log performance marks (useful for debugging)
-export const measurePerformance = (name: string, fn: () => void) => {
-  const start = performance.now();
-  fn();
-  const duration = performance.now() - start;
-
-  if (duration > 16.67) {
-    // More than one frame (60fps)
-    console.warn(
-      `Performance: ${name} took ${duration.toFixed(2)}ms (> 16.67ms)`
-    );
+  getAverageFrameTime(): number {
+    if (this.frameTimes.length === 0) return 16.67;
+    return this.frameTimes.reduce((a, b) => a + b) / this.frameTimes.length;
   }
-};
+
+  getLongTaskCount(): number {
+    return this.longTaskCount;
+  }
+
+  getDroppedFrameCount(): number {
+    return this.droppedFrameCount;
+  }
+
+  getMemoryMetrics(): MemoryMetrics | undefined {
+    // @ts-expect-error - Chrome-only API
+    const memory = performance.memory;
+    if (!memory) return undefined;
+
+    return {
+      usedJSHeapSize: memory.usedJSHeapSize,
+      totalJSHeapSize: memory.totalJSHeapSize,
+      jsHeapSizeLimit: memory.jsHeapSizeLimit,
+      usedPercent: (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100,
+    };
+  }
+
+  // Estimate CPU load from frame timing variance
+  getCPULoad(): number {
+    if (this.frameTimes.length < 10) return 0;
+
+    const avg = this.getAverageFrameTime();
+    const variance =
+      this.frameTimes.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) /
+      this.frameTimes.length;
+    const stdDev = Math.sqrt(variance);
+
+    // High variance = high load (normalize to 0-1)
+    return Math.min(1, stdDev / 20);
+  }
+}

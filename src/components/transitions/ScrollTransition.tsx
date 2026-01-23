@@ -20,12 +20,15 @@ export const ScrollTransition: React.FC<ScrollTransitionProps> = ({
       ([entry]) => {
         setIsVisible(entry.isIntersecting);
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(container);
 
     const handleScroll = () => {
+      // Skip expensive calculations when not visible
+      if (!isVisible) return;
+
       const rect = container.getBoundingClientRect();
       const windowHeight = window.innerHeight;
       const elementTop = rect.top;
@@ -38,7 +41,7 @@ export const ScrollTransition: React.FC<ScrollTransitionProps> = ({
 
       const progress = Math.min(
         Math.max((start - current) / (start - end), 0),
-        1
+        1,
       );
       setScrollProgress(progress);
     };
@@ -50,6 +53,9 @@ export const ScrollTransition: React.FC<ScrollTransitionProps> = ({
       observer.disconnect();
       window.removeEventListener("scroll", handleScroll);
     };
+    // isVisible is intentionally not included - it's used inside handleScroll
+    // which is redefined on every render. This effect only runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

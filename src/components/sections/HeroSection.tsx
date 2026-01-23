@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatedSubtitle } from "@/components/ui/animated-subtitle";
+import { reportPerformance } from "@/components/ui/performance-overlay";
 
 export const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -11,7 +12,7 @@ export const HeroSection = () => {
 
     // Check for reduced motion preference
     const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
+      "(prefers-reduced-motion: reduce)",
     ).matches;
     if (prefersReducedMotion) return;
 
@@ -21,6 +22,13 @@ export const HeroSection = () => {
     let lastY = 0;
 
     const handleMouseMove = (e: MouseEvent) => {
+      // Only process if hero section is visible
+      if (!containerRef.current) return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+      if (!isVisible) return; // Skip if not visible
+
       lastX = e.clientX;
       lastY = e.clientY;
 
@@ -28,14 +36,19 @@ export const HeroSection = () => {
       scheduled = true;
 
       requestAnimationFrame(() => {
+        const t0 = performance.now();
         scheduled = false;
-        if (!textRef.current) return;
+        if (!textRef.current) {
+          reportPerformance("HeroSection:mouse", performance.now() - t0);
+          return;
+        }
 
         const { innerWidth, innerHeight } = window;
         const xOffset = (lastX / innerWidth - 0.5) * 20;
         const yOffset = (lastY / innerHeight - 0.5) * 15;
 
         textRef.current.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+        reportPerformance("HeroSection:mouse", performance.now() - t0);
       });
     };
 

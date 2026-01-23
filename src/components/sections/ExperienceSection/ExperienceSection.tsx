@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  profile,
-  experiences,
-  education,
-  skills,
-  philosophy,
-} from "@/data/profile";
+import { profile, experiences, education, skills } from "@/data/profile";
 import {
   Github,
   Linkedin,
@@ -17,13 +11,20 @@ import {
 } from "lucide-react";
 import { SkillsGraph } from "@/components/ui/skills-graph";
 import Hero from "./ExperienceHero";
+import { reportPerformance } from "@/components/ui/performance-overlay";
+import { useAppContext } from "@/contexts/useAppContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ExperienceSection = () => {
+  const { currentSection } = useAppContext();
+  const isMobile = useIsMobile();
   const [showSticky, setShowSticky] = useState(false);
   const lastScrollY = useRef(0);
   const isScrollingDown = useRef(false);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const contentRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
+  const [showAllExperiences, setShowAllExperiences] = useState(false);
 
   // This marker decides when the sticky header should appear.
   const heroSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -42,14 +43,19 @@ const ExperienceSection = () => {
 
   useEffect(() => {
     const onScroll = () => {
+      // Only track scroll direction when in experience section
+      if (currentSection !== "experience") return;
+
+      const t0 = performance.now();
       const y = window.scrollY;
       isScrollingDown.current = y > lastScrollY.current;
       lastScrollY.current = y;
+      reportPerformance("ExperienceSection:scroll", performance.now() - t0);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [currentSection]); // Re-create listener when section changes
 
   useEffect(() => {
     const el = heroSentinelRef.current;
@@ -175,25 +181,30 @@ const ExperienceSection = () => {
         <Hero showSticky={showSticky} heroSentinelRef={heroSentinelRef} />
 
         {/* Skills Graph */}
-        <section className="mb-20">
-          <div className="mb-6">
-            <h2 className="text-sm font-medium text-foreground tracking-wider uppercase flex items-center gap-3">
-              <span className="w-8 h-px bg-primary" />
-              Skill Graph
-            </h2>
-          </div>
+        {!isMobile && (
+          <section className="mb-20">
+            <div className="mb-6">
+              <h2 className="text-sm font-medium text-foreground tracking-wider uppercase flex items-center gap-3">
+                <span className="w-8 h-px bg-primary" />
+                Skill Graph
+              </h2>
 
-          <SkillsGraph
-            experiences={experiences}
-            onSkillClick={(skill) => {
-              // e.g. scroll to experience list or filter later
-              console.log("clicked:", skill);
-            }}
-          />
-        </section>
+              <p className="mt-1 text-xs text-muted-foreground ml-11">
+                Hover nodes to reveal skills and where I’ve applied them
+              </p>
+            </div>
+
+            <SkillsGraph
+              experiences={experiences}
+              onSkillClick={() => {
+                // e.g. scroll to experience list or filter later
+              }}
+            />
+          </section>
+        )}
 
         {/* Two-column layout */}
-        <div className="grid lg:grid-cols-[2fr,1fr] gap-16">
+        <div className="grid md:grid-cols-[2fr,1fr] gap-16">
           {/* Main content */}
           <div className="space-y-8">
             {/* Experience */}
@@ -204,14 +215,24 @@ const ExperienceSection = () => {
               </h2>
 
               <div className="space-y-8">
-                {experiences.map((exp, i) => {
+                {(isMobile && !showAllExperiences
+                  ? experiences.slice(0, 3)
+                  : experiences
+                ).map((exp, i) => {
                   const isExpanded = expandedCards.has(i);
                   const isEven = i % 2 === 0;
+                  const isHovered = !isMobile && hoveredCardIndex === i;
 
                   return (
                     <div
                       key={i}
                       className={`relative ${isEven ? "md:mr-12" : "md:ml-12"}`}
+                      onMouseEnter={() => {
+                        if (!isMobile) setHoveredCardIndex(i);
+                      }}
+                      onMouseLeave={() => {
+                        if (!isMobile) setHoveredCardIndex(null);
+                      }}
                     >
                       {/* Connection line */}
                       <div
@@ -220,12 +241,22 @@ const ExperienceSection = () => {
 
                       <article className="group relative rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-4 transition-all duration-500 hover:border-primary/10 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]">
                         {/* Subtle glow on hover */}
-                        <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-primary/5 to-transparent" />
+                        <div
+                          className="absolute inset-0 rounded-2xl transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-primary/5 to-transparent"
+                          style={{ opacity: isHovered ? 1 : 0 }}
+                        />
 
                         <div className="relative">
                           <div className="flex items-start justify-between mb-2">
                             <div>
-                              <h3 className="text-lg font-medium group-hover:text-primary transition-colors duration-300">
+                              <h3
+                                className="text-lg font-medium transition-colors duration-300"
+                                style={{
+                                  color: isHovered
+                                    ? "hsl(var(--primary))"
+                                    : undefined,
+                                }}
+                              >
                                 {exp.role}
                               </h3>
                               <p className="text-muted-foreground">
@@ -234,7 +265,12 @@ const ExperienceSection = () => {
                                     href={exp.website}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-muted-foreground hover:text-primary transition-all duration-300 relative inline-block group/link"
+                                    className="transition-all duration-300 relative inline-block group/link"
+                                    style={{
+                                      color: isHovered
+                                        ? "hsl(var(--foreground) / 0.9)"
+                                        : "hsl(var(--muted-foreground))",
+                                    }}
                                   >
                                     <span className="relative">
                                       {exp.company}
@@ -253,11 +289,32 @@ const ExperienceSection = () => {
                                 )}
                               </p>
                             </div>
-                            <div className="text-right text-sm text-muted-foreground group-hover:text-primary/70 transition-colors duration-300">
+                            <div
+                              className="text-right text-sm text-muted-foreground transition-colors duration-300"
+                              style={{
+                                color: isHovered
+                                  ? "hsl(var(--primary) / 0.7)"
+                                  : undefined,
+                              }}
+                            >
                               <div className="font-medium">{exp.period}</div>
-                              <div className="flex items-center justify-end gap-1">
-                                <MapPin className="w-3 h-3" />
-                                <span>{exp.location}</span>
+                              <div
+                                className="
+                                        grid
+                                        grid-flow-col
+                                        auto-cols-max
+                                        justify-end
+                                        items-center
+                                        gap-x-1
+                                        gap-y-0
+                                        text-right
+                                        leading-tight
+                                      "
+                              >
+                                <MapPin className="w-3 h-3 mt-[1px]" />
+                                <span className="whitespace-normal break-words">
+                                  {exp.location}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -266,7 +323,13 @@ const ExperienceSection = () => {
                               href={exp.summaryLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 text-sm text-muted-foreground leading-relaxed transition-colors duration-300 group/summary hover:text-primary"
+                              className="flex items-center gap-2 text-sm leading-relaxed transition-colors duration-300 group/summary"
+                              style={{
+                                color:
+                                  isMobile || isHovered
+                                    ? "hsl(var(--foreground) / 0.9)"
+                                    : "hsl(var(--muted-foreground))",
+                              }}
                             >
                               <span className="group-hover/summary:text-primary transition-colors duration-300">
                                 {exp.summary}
@@ -274,7 +337,15 @@ const ExperienceSection = () => {
                               <ExternalLink className="w-3 h-3 flex-shrink-0 transition-all duration-300 group-hover/summary:text-primary group-hover/summary:translate-x-0.5" />
                             </a>
                           ) : (
-                            <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-foreground/90 transition-colors duration-300">
+                            <p
+                              className="text-sm text-muted-foreground leading-relaxed transition-colors duration-300"
+                              style={{
+                                color:
+                                  isHovered || isMobile
+                                    ? "hsl(var(--foreground) / 0.9)"
+                                    : undefined,
+                              }}
+                            >
                               {exp.summary}
                             </p>
                           )}
@@ -319,7 +390,15 @@ const ExperienceSection = () => {
                                 </h4>
                                 <div className="pt-1 pb-2">
                                   {typeof exp.expandedContent === "string" ? (
-                                    <p className="text-muted-foreground/80 leading-relaxed text-sm group-hover:text-foreground/90 transition-colors duration-300 mb-3">
+                                    <p
+                                      className="text-muted-foreground/80 leading-relaxed text-sm transition-colors duration-300 mb-3"
+                                      style={{
+                                        color:
+                                          isHovered || isMobile
+                                            ? "hsl(var(--foreground) / 0.9)"
+                                            : undefined,
+                                      }}
+                                    >
                                       {exp.expandedContent}
                                     </p>
                                   ) : (
@@ -329,7 +408,13 @@ const ExperienceSection = () => {
                                         <div className="absolute left-0 top-6 h-[calc(100%-1.5rem)] w-px bg-gradient-to-b from-transparent via-primary/70 to-transparent" />
 
                                         <div
-                                          className="text-muted-foreground/80 leading-relaxed text-sm group-hover:text-foreground/90 transition-colors duration-300"
+                                          className="text-muted-foreground/80 leading-relaxed text-sm transition-colors duration-300"
+                                          style={{
+                                            color:
+                                              isHovered || isMobile
+                                                ? "hsl(var(--foreground) / 0.9)"
+                                                : undefined,
+                                          }}
                                           dangerouslySetInnerHTML={{
                                             __html:
                                               exp.expandedContent.description,
@@ -354,7 +439,15 @@ const ExperienceSection = () => {
                                                     <span className="text-primary shrink-0">
                                                       •
                                                     </span>
-                                                    <span className="leading-relaxed group-hover:text-foreground/90 transition-colors duration-300">
+                                                    <span
+                                                      className="leading-relaxed transition-colors duration-300"
+                                                      style={{
+                                                        color:
+                                                          isHovered || isMobile
+                                                            ? "hsl(var(--foreground) / 0.9)"
+                                                            : undefined,
+                                                      }}
+                                                    >
                                                       {contribution}
                                                     </span>
                                                   </li>
@@ -391,6 +484,17 @@ const ExperienceSection = () => {
                   );
                 })}
               </div>
+
+              {/* Show more button for mobile */}
+              {isMobile && !showAllExperiences && experiences.length > 3 && (
+                <button
+                  onClick={() => setShowAllExperiences(true)}
+                  className="mt-8 w-full px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 border border-primary/30 hover:border-primary/50 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <span>Show more experiences</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </section>
           </div>
 

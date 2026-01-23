@@ -143,11 +143,11 @@ function CardLayer(props: {
     ? offset === 0
       ? 1 - t
       : offset === dir
-      ? t
-      : 0
+        ? t
+        : 0
     : isActive
-    ? 1
-    : 0;
+      ? 1
+      : 0;
 
   // Put center on top, then nearer-to-center above deeper stack cards
   const zIndex = 1000 - Math.abs(offset) * 10 + (isActive ? 100 : 0);
@@ -271,7 +271,7 @@ export const CarouselGlide: React.FC = () => {
 
     // Render far → near so nearer ones naturally overlay (zIndex also helps)
     return out.sort(
-      (a, b) => Math.abs(b - activeIndex) - Math.abs(a - activeIndex)
+      (a, b) => Math.abs(b - activeIndex) - Math.abs(a - activeIndex),
     );
   }, [activeIndex, len]);
 
@@ -377,11 +377,11 @@ export const CarouselGlide: React.FC = () => {
             ? idx === fromIndex
               ? 1 - t
               : idx === toIndex
-              ? t
-              : 0
+                ? t
+                : 0
             : idx === activeIndex
-            ? 1
-            : 0;
+              ? 1
+              : 0;
 
           const width = lerp(20, 56, activity);
 
@@ -435,7 +435,7 @@ export const CarouselGlide: React.FC = () => {
                     transition: opacityTransition,
                     background: `linear-gradient(90deg, ${withHslAlpha(
                       tint.border,
-                      0.95
+                      0.95,
                     )} 0%, ${withHslAlpha(tint.bg, 0.65)} 100%)`,
                     boxShadow: `0 0 16px ${withHslAlpha(tint.glow, 0.55)}`,
                     willChange: isAnimating ? "opacity" : undefined,

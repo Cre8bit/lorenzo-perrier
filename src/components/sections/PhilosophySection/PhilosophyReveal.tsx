@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { philosophyItems } from "./PhilosophyData";
 import { reportPerformance } from "@/components/ui/performance-overlay";
 import { clamp01, smoothstep } from "@/utils/animation";
-import { useParticleField } from "@/contexts/useParticleField";
+import { useAppContext } from "@/contexts/useAppContext";
 import { TrailStepper } from "./TrailStepper";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const PhilosophyReveal = () => {
-  const { setActivePresetIndex } = useParticleField();
+  const { setActivePresetIndex } = useAppContext();
+  const isMobile = useIsMobile();
 
   // Section-level fades
   const [revealOpacity, setRevealOpacity] = useState(0);
@@ -21,10 +23,6 @@ export const PhilosophyReveal = () => {
   // Seen gating
   const [maxSeenIndex, setMaxSeenIndex] = useState(0);
   const [allTraversed, setAllTraversed] = useState(false);
-
-  // Stepper UI
-  const [stepperOpen, setStepperOpen] = useState(false);
-  const [hoveredStep, setHoveredStep] = useState<number | null>(null);
 
   // DOM refs
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -114,7 +112,7 @@ export const PhilosophyReveal = () => {
       ([entry]) => {
         isNearRef.current = entry.isIntersecting;
       },
-      { root: null, threshold: 0, rootMargin: "200px 0px 200px 0px" }
+      { root: null, threshold: 0, rootMargin: "200px 0px 200px 0px" },
     );
 
     io.observe(el);
@@ -215,6 +213,8 @@ export const PhilosophyReveal = () => {
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
+    // computeSnappedFromScrollY uses stable refs and is safe to use without deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [n]);
 
   // --- Rendering helpers -----------------------------------------------------
@@ -229,7 +229,7 @@ export const PhilosophyReveal = () => {
   const highlightKeywords = (
     text: string,
     keywords: string[],
-    isHovered: boolean
+    isHovered: boolean,
   ) => {
     if (!keywords.length) return text;
 
@@ -254,7 +254,7 @@ export const PhilosophyReveal = () => {
         </span>
       ) : (
         part
-      )
+      ),
     );
   };
 
@@ -408,7 +408,7 @@ export const PhilosophyReveal = () => {
         >
           {philosophyItems.map((item, index) => {
             const opacity = getItemOpacity(index);
-            const isHovered = hoveredIndex === index;
+            const isHovered = isMobile || hoveredIndex === index;
             const isActive = index === effectiveActiveIndex;
 
             return (
@@ -454,7 +454,7 @@ export const PhilosophyReveal = () => {
                     {highlightKeywords(
                       item.description,
                       item.keywords,
-                      isHovered
+                      isHovered,
                     )}
                   </blockquote>
 
