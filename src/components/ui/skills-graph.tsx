@@ -930,14 +930,6 @@ export const SkillsGraph = ({
 
   return (
     <div className="relative w-full space-y-3">
-      <p className="font-body text-xs text-muted-foreground/70 px-4">
-        Interactive skill network –{" "}
-        <span className="text-primary/80 font-medium">
-          hover nodes to reveal skills and connections
-        </span>
-        , click to view details
-      </p>
-
       <div
         ref={containerRef}
         className={`relative w-full h-96 rounded-2xl overflow-hidden transition-all duration-700 ${

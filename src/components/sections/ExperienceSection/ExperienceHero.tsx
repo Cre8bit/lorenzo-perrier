@@ -135,11 +135,16 @@ const ExperienceHero = ({ showSticky, heroSentinelRef }: HeroSectionProps) => (
             <div className="flex items-center gap-3 mt-2">
               <div className="flex flex-col gap-2 w-full">
                 <p className="text-muted-foreground">{profile.title}</p>
-                <div className="flex items-center gap-1 text-sm text-primary">
-                  <MapPin className="w-3 h-3" />
-                  <span>{profile.location}</span>
-                  <span className="mx-2">·</span>
-                  <span className="text-muted-foreground">{profile.seeking}</span>
+
+                <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm text-primary">
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  <span className="whitespace-nowrap">{profile.location}</span>
+
+                  <span className="mx-2 text-muted-foreground">·</span>
+
+                  <span className="text-muted-foreground">
+                    {profile.seeking}
+                  </span>
                 </div>
               </div>
             </div>

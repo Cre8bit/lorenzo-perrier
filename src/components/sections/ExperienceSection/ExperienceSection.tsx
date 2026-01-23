@@ -24,6 +24,7 @@ const ExperienceSection = () => {
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const contentRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
+  const [showAllExperiences, setShowAllExperiences] = useState(false);
 
   // This marker decides when the sticky header should appear.
   const heroSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -187,6 +188,10 @@ const ExperienceSection = () => {
                 <span className="w-8 h-px bg-primary" />
                 Skill Graph
               </h2>
+
+              <p className="mt-1 text-xs text-muted-foreground ml-11">
+                Hover nodes to reveal skills and where I’ve applied them
+              </p>
             </div>
 
             <SkillsGraph
@@ -199,7 +204,7 @@ const ExperienceSection = () => {
         )}
 
         {/* Two-column layout */}
-        <div className="grid lg:grid-cols-[2fr,1fr] gap-16">
+        <div className="grid md:grid-cols-[2fr,1fr] gap-16">
           {/* Main content */}
           <div className="space-y-8">
             {/* Experience */}
@@ -210,7 +215,10 @@ const ExperienceSection = () => {
               </h2>
 
               <div className="space-y-8">
-                {experiences.map((exp, i) => {
+                {(isMobile && !showAllExperiences
+                  ? experiences.slice(0, 3)
+                  : experiences
+                ).map((exp, i) => {
                   const isExpanded = expandedCards.has(i);
                   const isEven = i % 2 === 0;
                   const isHovered = !isMobile && hoveredCardIndex === i;
@@ -476,6 +484,17 @@ const ExperienceSection = () => {
                   );
                 })}
               </div>
+
+              {/* Show more button for mobile */}
+              {isMobile && !showAllExperiences && experiences.length > 3 && (
+                <button
+                  onClick={() => setShowAllExperiences(true)}
+                  className="mt-8 w-full px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 border border-primary/30 hover:border-primary/50 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <span>Show more experiences</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </section>
           </div>
 
