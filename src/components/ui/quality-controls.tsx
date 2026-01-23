@@ -71,6 +71,8 @@ export const QualityControls = ({
     onSettingsChange?.(null); // null = reset to auto-detect
   };
 
+  if (!import.meta.env.DEV) return null;
+
   if (!enabled || !isVisible) return null;
 
   return (
@@ -303,8 +305,10 @@ export const useQualityControls = () => {
   });
 
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + Shift + O to toggle (only works in dev mode)
+      // Ctrl/Cmd + Shift + O to toggle (dev-only)
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "O") {
         e.preventDefault();
         setEnabled((prev) => {
