@@ -1,5 +1,6 @@
 import { Github, Linkedin, Mail, X, Sparkles, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SocialButtonProps {
   href: string;
@@ -103,10 +104,29 @@ export const SocialLinks = ({ hide = false }: { hide?: boolean }) => {
   );
 };
 
-export const ContactLink = ({ hide = false }: { hide?: boolean }) => {
+export const ContactActions = ({ hide = false }: { hide?: boolean }) => {
+  const isMobile = useIsMobile();
+
+  return <ContactLink hide={hide} variant={isMobile ? "mobile" : "desktop"} />;
+};
+
+type ContactLinkProps = {
+  hide?: boolean;
+  variant?: "mobile" | "desktop";
+};
+
+const ContactLink = ({
+  hide = false,
+  variant = "desktop",
+}: ContactLinkProps) => {
+  const base =
+    "fixed z-50 flex items-center gap-3 transition-all duration-500 ease-out";
+
+  const position = variant === "mobile" ? "top-8 left-8" : "bottom-8 left-8";
+
   return (
     <div
-      className="fixed top-8 left-8 sm:top-auto sm:bottom-8 z-50 flex items-center gap-3 transition-all duration-500 ease-out"
+      className={`${base} ${position}`}
       style={{
         opacity: hide ? 0 : 1,
         pointerEvents: hide ? "none" : "auto",
@@ -117,7 +137,6 @@ export const ContactLink = ({ hide = false }: { hide?: boolean }) => {
     </div>
   );
 };
-
 const ContactButton = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);

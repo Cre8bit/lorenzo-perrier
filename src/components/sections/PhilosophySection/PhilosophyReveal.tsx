@@ -4,9 +4,11 @@ import { reportPerformance } from "@/components/ui/performance-overlay";
 import { clamp01, smoothstep } from "@/utils/animation";
 import { useAppContext } from "@/contexts/useAppContext";
 import { TrailStepper } from "./TrailStepper";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const PhilosophyReveal = () => {
   const { setActivePresetIndex } = useAppContext();
+  const isMobile = useIsMobile();
 
   // Section-level fades
   const [revealOpacity, setRevealOpacity] = useState(0);
@@ -21,10 +23,6 @@ export const PhilosophyReveal = () => {
   // Seen gating
   const [maxSeenIndex, setMaxSeenIndex] = useState(0);
   const [allTraversed, setAllTraversed] = useState(false);
-
-  // Stepper UI
-  const [stepperOpen, setStepperOpen] = useState(false);
-  const [hoveredStep, setHoveredStep] = useState<number | null>(null);
 
   // DOM refs
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -410,7 +408,7 @@ export const PhilosophyReveal = () => {
         >
           {philosophyItems.map((item, index) => {
             const opacity = getItemOpacity(index);
-            const isHovered = hoveredIndex === index;
+            const isHovered = isMobile || hoveredIndex === index;
             const isActive = index === effectiveActiveIndex;
 
             return (

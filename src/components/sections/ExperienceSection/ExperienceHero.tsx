@@ -133,13 +133,14 @@ const ExperienceHero = ({ showSticky, heroSentinelRef }: HeroSectionProps) => (
               {profile.name.first}
             </h1>
             <div className="flex items-center gap-3 mt-2">
-              <p className="text-muted-foreground">{profile.title}</p>
-              <span className="w-1 h-1 rounded-full bg-primary/50" />
-              <div className="flex items-center gap-1 text-sm text-primary">
-                <MapPin className="w-3 h-3" />
-                <span>{profile.location}</span>
-                <span className="mx-2">·</span>
-                <span className="text-muted-foreground">{profile.seeking}</span>
+              <div className="flex flex-col gap-2 w-full">
+                <p className="text-muted-foreground">{profile.title}</p>
+                <div className="flex items-center gap-1 text-sm text-primary">
+                  <MapPin className="w-3 h-3" />
+                  <span>{profile.location}</span>
+                  <span className="mx-2">·</span>
+                  <span className="text-muted-foreground">{profile.seeking}</span>
+                </div>
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { AmbientBackground } from "@/components/ui/ambient-background";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { LiquidNavigation } from "@/components/sections/LiquidNavigation";
 import { ScrollIndicator } from "@/components/ui/scroll-indicator";
-import { ContactLink, SocialLinks } from "@/components/ui/social-links";
+import { ContactActions, SocialLinks } from "@/components/ui/social-links";
 import { PhilosophyReveal } from "@/components/sections/PhilosophySection/PhilosophyReveal";
 import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGlide";
 import { ScrollTransition } from "@/components/transitions/ScrollTransition";
@@ -158,7 +158,7 @@ const IndexContent = () => {
         <SocialLinks hide={currentSection === "experience"} />
 
         {/* Contact link - bottom left */}
-        <ContactLink hide={currentSection === "experience"}/>
+        <ContactActions hide={currentSection === "experience"}/>
 
         {/* Hero section with floating text */}
         <section id="hero" ref={hero.ref}>

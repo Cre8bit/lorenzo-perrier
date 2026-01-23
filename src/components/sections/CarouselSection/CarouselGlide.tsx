@@ -11,7 +11,6 @@ import { useCarouselTransition } from "@/hooks/use-carousel-transition";
 import { useInViewport } from "@/hooks/use-in-viewport";
 import { lerp } from "@/utils/animation";
 import { withHslAlpha } from "./tint";
-import { reportPerformance } from "@/components/ui/performance-overlay";
 
 const cardTints: CarouselTint[] = [
   {
