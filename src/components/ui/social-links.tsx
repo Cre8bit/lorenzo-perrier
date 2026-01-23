@@ -103,9 +103,16 @@ export const SocialLinks = ({ hide = false }: { hide?: boolean }) => {
   );
 };
 
-export const ContactLink = () => {
+export const ContactLink = ({ hide = false }: { hide?: boolean }) => {
   return (
-    <div className="fixed top-8 left-8 sm:top-auto sm:bottom-8 z-50 flex items-center gap-3">
+    <div
+      className="fixed top-8 left-8 sm:top-auto sm:bottom-8 z-50 flex items-center gap-3 transition-all duration-500 ease-out"
+      style={{
+        opacity: hide ? 0 : 1,
+        pointerEvents: hide ? "none" : "auto",
+        transform: hide ? "translateY(-8px)" : "translateY(0)",
+      }}
+    >
       <ContactButton />
     </div>
   );

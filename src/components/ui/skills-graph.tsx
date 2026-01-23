@@ -191,6 +191,8 @@ export const SkillsGraph = ({
     curr: null,
   });
 
+  const labelsReadyRef = useRef(false); // don't animate initial label positioning
+
   const requestDraw = React.useCallback(() => {
     if (drawRequestedRef.current) return;
     drawRequestedRef.current = true;
@@ -218,6 +220,7 @@ export const SkillsGraph = ({
     resolveLabels(nodesRef.current, w, h);
     labelsDirtyRef.current = true;
     layoutDirtyRef.current = true;
+    labelsReadyRef.current = true; // now safe to animate
     requestDraw();
   }, [requestDraw]);
 
@@ -625,6 +628,7 @@ export const SkillsGraph = ({
     hoveredRef.current = null;
     lastHoverIdRef.current = null;
     hoverAnimRef.current = { prev: null, curr: null };
+    labelsReadyRef.current = false; // reset when re-initializing
     hoverDirtyRef.current = true;
     layoutDirtyRef.current = true;
     labelsDirtyRef.current = true;
@@ -967,7 +971,7 @@ export const SkillsGraph = ({
                   if (!el) return;
                   labelRefs.current.set(node.id, el);
                 }}
-                className="absolute transition-all duration-300 ease-out"
+                className={`absolute ${labelsReadyRef.current ? "transition-all duration-300 ease-out" : ""}`}
                 style={{
                   left: 0,
                   top: 0,

@@ -158,7 +158,7 @@ const IndexContent = () => {
         <SocialLinks hide={currentSection === "experience"} />
 
         {/* Contact link - bottom left */}
-        <ContactLink />
+        <ContactLink hide={currentSection === "experience"}/>
 
         {/* Hero section with floating text */}
         <section id="hero" ref={hero.ref}>

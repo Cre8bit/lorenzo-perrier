@@ -19,9 +19,11 @@ import { SkillsGraph } from "@/components/ui/skills-graph";
 import Hero from "./ExperienceHero";
 import { reportPerformance } from "@/components/ui/performance-overlay";
 import { useAppContext } from "@/contexts/useAppContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ExperienceSection = () => {
   const { currentSection } = useAppContext();
+  const isMobile = useIsMobile();
   const [showSticky, setShowSticky] = useState(false);
   const lastScrollY = useRef(0);
   const isScrollingDown = useRef(false);
@@ -183,21 +185,23 @@ const ExperienceSection = () => {
         <Hero showSticky={showSticky} heroSentinelRef={heroSentinelRef} />
 
         {/* Skills Graph */}
-        <section className="mb-20">
-          <div className="mb-6">
-            <h2 className="text-sm font-medium text-foreground tracking-wider uppercase flex items-center gap-3">
-              <span className="w-8 h-px bg-primary" />
-              Skill Graph
-            </h2>
-          </div>
+        {!isMobile && (
+          <section className="mb-20">
+            <div className="mb-6">
+              <h2 className="text-sm font-medium text-foreground tracking-wider uppercase flex items-center gap-3">
+                <span className="w-8 h-px bg-primary" />
+                Skill Graph
+              </h2>
+            </div>
 
-          <SkillsGraph
-            experiences={experiences}
-            onSkillClick={() => {
-              // e.g. scroll to experience list or filter later
-            }}
-          />
-        </section>
+            <SkillsGraph
+              experiences={experiences}
+              onSkillClick={() => {
+                // e.g. scroll to experience list or filter later
+              }}
+            />
+          </section>
+        )}
 
         {/* Two-column layout */}
         <div className="grid lg:grid-cols-[2fr,1fr] gap-16">
