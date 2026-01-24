@@ -23,6 +23,7 @@ const ExperienceSection = () => {
   const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
   const [showAllExperiences, setShowAllExperiences] = useState(false);
   const [_, setIsHeroSectionVisible] = useState(false);
+  const footerRef = useRef<HTMLDivElement | null>(null);
 
   // This marker decides when the sticky header should appear.
   const heroSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -63,6 +64,37 @@ const ExperienceSection = () => {
 
     return () => observer.disconnect();
   }, [setIsResumeViewVisible, currentSection]);
+
+  // Lift footer slightly on overscroll so it moves up but doesn't reveal
+  // the page background (use RAF to throttle updates).
+  useEffect(() => {
+    let rafId: number | null = null;
+
+    const onScroll = () => {
+      if (!footerRef.current) return;
+
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const doc = document.documentElement;
+        const over = Math.max(
+          0,
+          window.scrollY + window.innerHeight - doc.scrollHeight,
+        );
+        // translate up a bit proportional to overscroll, clamp to 48px
+        const translate = -Math.min(over * 0.6, 48);
+        footerRef.current!.style.transform = `translateY(${translate}px)`;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    // run once to ensure correct state on mount
+    onScroll();
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
 
   return (
     <div>
@@ -593,7 +625,7 @@ const ExperienceSection = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/30 py-12 px-6 mt-20 bg-background/80 backdrop-blur-xl">
+      <footer className="border-t border-border/30 py-6 px-6 mt-20 bg-background/80 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">
@@ -603,12 +635,10 @@ const ExperienceSection = () => {
               Last updated · {import.meta.env.VITE_BUILD_DATE}
             </p>
           </div>
-          <a
-            href={`mailto:${profile.email}`}
-            className="text-sm text-primary hover:underline"
-          >
-            {profile.email}
-          </a>
+          <div className="text-[11px] text-muted-foreground/70">
+            <span className="opacity-60">Built with</span> React · Three.js ·
+            Vite
+          </div>
         </div>
       </footer>
     </div>

@@ -72,7 +72,7 @@ const PRESETS: Record<PresetName, FieldPreset> = {
     name: "shipping",
     drift: 0.0001,
     damping: 0.985,
-    connectionDistance: 0.65,
+    connectionDistance: 0.45,
     maxEdgesPerPoint: 1,
     signatureDuration: 1400, // slower signature
     vortexStrength: 0.00045,
@@ -1146,6 +1146,7 @@ function ParticleField3DCanvas({
   const isParticleFieldActive = currentSection !== "experience";
 
   return (
+    <div className="fixed inset-0 w-screen h-[100lvh] pointer-events-none z-0">
     <Canvas
       className="absolute inset-0 pointer-events-none"
       style={{ zIndex: 0 }}
@@ -1169,6 +1170,7 @@ function ParticleField3DCanvas({
         baseQuality={{ ...quality, maxParticles: effectiveMaxParticles }}
       />
     </Canvas>
+    </div>
   );
 }
 

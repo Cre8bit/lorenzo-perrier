@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useAppContext } from "@/contexts/useAppContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const ScrollIndicator = () => {
+  const isMobile = useIsMobile();
   const { currentSection } = useAppContext();
   const [isVisible, setIsVisible] = useState(false);
-  const [hasScrolled, setHasScrolled] = useState(false);
+  const [_, setHasScrolled] = useState(false);
   const [readyToShow, setReadyToShow] = useState(false);
 
   // 1) Mark component as "ready" after 10s on the landing page
@@ -93,7 +95,7 @@ export const ScrollIndicator = () => {
     }
   };
 
-  if (!isVisible) {
+  if (!isVisible || isMobile) {
     return null;
   }
 
