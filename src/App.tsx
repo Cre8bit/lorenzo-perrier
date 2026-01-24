@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +18,9 @@ import { setParticleField3DQuality } from "./components/ui/particle-quality";
 
 const queryClient = new QueryClient();
 
+// Lazy load CubeSpace for better initial bundle
+const CubeSpace = lazy(() => import("./pages/CubeSpace"));
+
 const App = () => {
   const perfEnabled = usePerformanceOverlay();
   const qualityEnabled = useQualityControls();
@@ -34,6 +38,20 @@ const App = () => {
         <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route
+              path="/cubespace"
+              element={
+                <Suspense
+                  fallback={
+                    <div className="h-screen w-full flex items-center justify-center bg-background">
+                      <div className="text-muted-foreground animate-pulse">Loading...</div>
+                    </div>
+                  }
+                >
+                  <CubeSpace />
+                </Suspense>
+              }
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
