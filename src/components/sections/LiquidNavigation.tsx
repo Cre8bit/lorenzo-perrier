@@ -1,21 +1,38 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
-const chapters = [
-  { id: "cube-space", label: "CubeSpace" },
-  { id: "home", label: "Home" },
+type Chapter = {
+  id: string;
+  label: string;
+  route?: string; // Optional route for navigation
+};
+
+const chapters: Chapter[] = [
+  { id: "cube-space", label: "CubeSpace", route: "/cubespace" },
+  { id: "home", label: "Home", route: "/" },
   { id: "astrolab", label: "Astrolab" },
 ];
 
 export const LiquidNavigation = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Determine initial active index based on current route
+  const getInitialIndex = () => {
+    const currentPath = location.pathname;
+    const index = chapters.findIndex((c) => c.route === currentPath);
+    return index >= 0 ? index : 1; // Default to "Home"
+  };
+
   const [isHovered, setIsHovered] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(1);
+  const [activeIndex, setActiveIndex] = useState(getInitialIndex);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
 
   const barRef = useRef<HTMLDivElement>(null);
   const dropletRef = useRef<HTMLDivElement>(null);
 
-  // NEW: refs + measured anchor positions (px)
+  // refs + measured anchor positions (px)
   const chapterRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [anchors, setAnchors] = useState<number[]>([]);
 
@@ -76,6 +93,12 @@ export const LiquidNavigation = () => {
     const handleMouseUp = () => {
       setIsDragging(false);
       setDragOffset(0);
+      
+      // Navigate to the selected chapter's route if it exists
+      const selectedChapter = chapters[activeIndex];
+      if (selectedChapter?.route && selectedChapter.route !== location.pathname) {
+        navigate(selectedChapter.route);
+      }
     };
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
@@ -85,7 +108,7 @@ export const LiquidNavigation = () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, anchors]);
+  }, [isDragging, anchors, activeIndex, location.pathname, navigate]);
 
   // NEW: droplet uses measured px anchor instead of percentage
   const dropletLeft = (anchors[activeIndex] ?? 0) + dragOffset;
@@ -153,7 +176,13 @@ export const LiquidNavigation = () => {
             <button
               key={chapter.id}
               ref={(el) => (chapterRefs.current[index] = el)}
-              onClick={() => setActiveIndex(index)}
+              onClick={() => {
+                setActiveIndex(index);
+                // Navigate on click if route exists
+                if (chapter.route && chapter.route !== location.pathname) {
+                  navigate(chapter.route);
+                }
+              }}
               className="relative font-body text-sm tracking-wide transition-all duration-500"
               style={{
                 color:
