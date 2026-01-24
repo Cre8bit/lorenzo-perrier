@@ -10,8 +10,16 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  define: {
+    "import.meta.env.VITE_BUILD_DATE": JSON.stringify(
+      new Date().toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      }),
+    ),
+  },
   plugins: [react(), mode === "development" && componentTagger()].filter(
-    Boolean
+    Boolean,
   ),
   resolve: {
     alias: {

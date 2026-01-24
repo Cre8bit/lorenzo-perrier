@@ -115,7 +115,10 @@ const IndexContent = () => {
     currentSection === "philosophy" ? activePresetIndex : -1; // -1 = default preset
 
   return (
-    <main className="relative min-h-screen">
+    <main
+      className="relative min-h-screen w-full"
+      style={{ overflowX: "clip" }}
+    >
       {/* Loading overlay - shown until Three.js initializes */}
       {!isInitialized && (
         <div className="fixed inset-0 z-50 bg-gradient-to-b from-background via-background to-background flex items-center justify-center pointer-events-auto">
@@ -158,7 +161,7 @@ const IndexContent = () => {
         <SocialLinks hide={currentSection === "experience"} />
 
         {/* Contact link - bottom left */}
-        <ContactActions hide={currentSection === "experience"}/>
+        <ContactActions hide={currentSection === "experience"} />
 
         {/* Hero section with floating text */}
         <section id="hero" ref={hero.ref}>
