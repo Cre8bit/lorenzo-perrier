@@ -145,7 +145,7 @@ const ExperienceSection = () => {
 
               {/* Download button */}
               <a
-                href="Lorenzo Perrier de La Bathie Resume.pdf"
+                href={`${import.meta.env.BASE_URL}Lorenzo Perrier de La Bathie Resume.pdf`}
                 download="Lorenzo Perrier de La Bâthie Resume.pdf"
                 className="flex items-center gap-2 px-4 py-2 text-sm bg-foreground text-background rounded-lg hover:opacity-90 transition-all duration-300"
                 style={{
