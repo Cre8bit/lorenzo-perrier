@@ -5,6 +5,7 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [activePresetIndex, setActivePresetIndex] = useState(0);
   const [currentSection, setCurrentSection] = useState<AppSection>("hero");
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isResumeViewVisible, setIsResumeViewVisible] = useState(false);
 
   return (
     <AppContext.Provider
@@ -15,6 +16,8 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
         setCurrentSection,
         isInitialized,
         setIsInitialized,
+        isResumeViewVisible,
+        setIsResumeViewVisible,
       }}
     >
       {children}

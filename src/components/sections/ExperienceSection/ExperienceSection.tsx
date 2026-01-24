@@ -11,20 +11,18 @@ import {
 } from "lucide-react";
 import { SkillsGraph } from "@/components/ui/skills-graph";
 import Hero from "./ExperienceHero";
-import { reportPerformance } from "@/components/ui/performance-overlay";
 import { useAppContext } from "@/contexts/useAppContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const ExperienceSection = () => {
-  const { currentSection } = useAppContext();
+  const { currentSection, isResumeViewVisible, setIsResumeViewVisible } =
+    useAppContext();
   const isMobile = useIsMobile();
-  const [showSticky, setShowSticky] = useState(false);
-  const lastScrollY = useRef(0);
-  const isScrollingDown = useRef(false);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const contentRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
   const [showAllExperiences, setShowAllExperiences] = useState(false);
+  const [_, setIsHeroSectionVisible] = useState(false);
 
   // This marker decides when the sticky header should appear.
   const heroSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -42,49 +40,29 @@ const ExperienceSection = () => {
   };
 
   useEffect(() => {
-    const onScroll = () => {
-      // Only track scroll direction when in experience section
-      if (currentSection !== "experience") return;
-
-      const t0 = performance.now();
-      const y = window.scrollY;
-      isScrollingDown.current = y > lastScrollY.current;
-      lastScrollY.current = y;
-      reportPerformance("ExperienceSection:scroll", performance.now() - t0);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [currentSection]); // Re-create listener when section changes
-
-  useEffect(() => {
     const el = heroSentinelRef.current;
     if (!el) return;
 
-    // Adjust this to match your sticky header height.
-    const STICKY_HEIGHT = 72; // px (py-4 + text typically ~64-80)
+    const STICKY_HEIGHT = 72;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // Only show sticky when scrolling down and sentinel is not visible
-        // Always hide when sentinel is visible OR scrolling up
-        if (!entry.isIntersecting && isScrollingDown.current) {
-          setShowSticky(true);
-        } else if (entry.isIntersecting || !isScrollingDown.current) {
-          setShowSticky(false);
-        }
+        const pastHero = !entry.isIntersecting;
+        setIsHeroSectionVisible(pastHero);
+        // Update context: show resume view when past hero AND in experience section
+        setIsResumeViewVisible(pastHero && currentSection === "experience");
       },
       {
         root: null,
         threshold: 0,
-        // Trigger when the sentinel crosses the top *minus* sticky header height.
         rootMargin: `-${STICKY_HEIGHT}px 0px 0px 0px`,
       },
     );
 
     observer.observe(el);
+
     return () => observer.disconnect();
-  }, []);
+  }, [setIsResumeViewVisible, currentSection]);
 
   return (
     <div>
@@ -93,7 +71,7 @@ const ExperienceSection = () => {
         className={[
           "sticky top-0 z-40 border-b border-border/30 bg-background/80 backdrop-blur-xl",
           "transition-all duration-500 ease-out",
-          showSticky
+          isResumeViewVisible
             ? "opacity-100 translate-y-0"
             : "opacity-0 -translate-y-2 pointer-events-none",
         ].join(" ")}
@@ -105,8 +83,10 @@ const ExperienceSection = () => {
               <div
                 className="transition-all duration-500 ease-out"
                 style={{
-                  opacity: showSticky ? 1 : 0,
-                  transform: showSticky ? "translateX(0)" : "translateX(-8px)",
+                  opacity: isResumeViewVisible ? 1 : 0,
+                  transform: isResumeViewVisible
+                    ? "translateX(0)"
+                    : "translateX(-8px)",
                 }}
               >
                 <h1 className="font-display text-xl font-medium">
@@ -120,8 +100,10 @@ const ExperienceSection = () => {
             <div
               className="flex items-center gap-3"
               style={{
-                opacity: showSticky ? 1 : 0,
-                transform: showSticky ? "translateX(0)" : "translateX(8px)",
+                opacity: isResumeViewVisible ? 1 : 0,
+                transform: isResumeViewVisible
+                  ? "translateX(0)"
+                  : "translateX(8px)",
                 transition: "all 500ms ease-out",
               }}
             >
@@ -132,7 +114,7 @@ const ExperienceSection = () => {
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors duration-300"
                 style={{
-                  transitionDelay: showSticky ? "100ms" : "0ms",
+                  transitionDelay: isResumeViewVisible ? "100ms" : "0ms",
                 }}
               >
                 <Github className="w-4 h-4" />
@@ -143,7 +125,7 @@ const ExperienceSection = () => {
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors duration-300"
                 style={{
-                  transitionDelay: showSticky ? "150ms" : "0ms",
+                  transitionDelay: isResumeViewVisible ? "150ms" : "0ms",
                 }}
               >
                 <Linkedin className="w-4 h-4" />
@@ -152,7 +134,7 @@ const ExperienceSection = () => {
                 href={`mailto:${profile.email}`}
                 className="text-muted-foreground hover:text-primary transition-colors duration-300"
                 style={{
-                  transitionDelay: showSticky ? "200ms" : "0ms",
+                  transitionDelay: isResumeViewVisible ? "200ms" : "0ms",
                 }}
               >
                 <Mail className="w-4 h-4" />
@@ -162,15 +144,17 @@ const ExperienceSection = () => {
               <div className="w-px h-6 bg-border/30 mx-1" />
 
               {/* Download button */}
-              <button
+              <a
+                href="/Lorenzo Perrier de La Bathie Resume.pdf"
+                download="Lorenzo Perrier de La Bâthie Resume.pdf"
                 className="flex items-center gap-2 px-4 py-2 text-sm bg-foreground text-background rounded-lg hover:opacity-90 transition-all duration-300"
                 style={{
-                  transitionDelay: showSticky ? "250ms" : "0ms",
+                  transitionDelay: isResumeViewVisible ? "250ms" : "0ms",
                 }}
               >
                 <Download className="w-3 h-3" />
                 Resume
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -178,7 +162,10 @@ const ExperienceSection = () => {
 
       <main className="max-w-5xl mx-auto px-6 relative z-10">
         {/* Hero */}
-        <Hero showSticky={showSticky} heroSentinelRef={heroSentinelRef} />
+        <Hero
+          showSticky={isResumeViewVisible}
+          heroSentinelRef={heroSentinelRef}
+        />
 
         {/* Skills Graph */}
         {!isMobile && (
@@ -607,10 +594,15 @@ const ExperienceSection = () => {
 
       {/* Footer */}
       <footer className="border-t border-border/30 py-12 px-6 mt-20 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            © 2025 {profile.name.first}. Open to opportunities.
-          </p>
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">
+              © 2025 {profile.name.first}. Open to opportunities.
+            </p>
+            <p className="text-xs text-muted-foreground/60">
+              Last updated · {import.meta.env.VITE_BUILD_DATE}
+            </p>
+          </div>
           <a
             href={`mailto:${profile.email}`}
             className="text-sm text-primary hover:underline"

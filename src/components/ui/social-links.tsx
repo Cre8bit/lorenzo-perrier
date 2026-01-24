@@ -1,5 +1,6 @@
 import { Github, Linkedin, Mail, X, Sparkles, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SocialButtonProps {
@@ -318,263 +319,270 @@ const ContactButton = () => {
       </button>
 
       {/* Unified Two-Step Modal */}
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center p-4 pb-32 sm:pb-32 overflow-hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label={
-            step === 1 ? "What brings you here?" : "Send your message"
-          }
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) closeModal();
-          }}
-        >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+      {isModalOpen
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[70] flex items-center justify-center p-4 overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label={
+                step === 1 ? "What brings you here?" : "Send your message"
+              }
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) closeModal();
+              }}
+            >
+              {/* Backdrop */}
+              <div
+                className="absolute inset-0 bg-black/40"
+                aria-hidden="true"
+              />
 
-          {/* Glass card with internal scroll */}
-          <div
-            className="relative w-full max-w-lg rounded-xl sm:rounded-2xl border transition-all duration-300 my-auto max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-8rem)] flex flex-col"
-            style={{
-              backdropFilter: "blur(16px)",
-              background: "hsl(var(--background) / 0.65)",
-              borderColor: "hsl(var(--foreground) / 0.08)",
-            }}
-          >
-            <div className="overflow-y-auto p-4 sm:p-6">
-              {/* Step 1: Intent Selection */}
-              {step === 1 && (
-                <>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-base sm:text-lg font-semibold">
-                        What brings you here?
-                      </div>
-                      <div className="mt-1 text-sm text-muted-foreground">
-                        Send me a message. I read every one.
-                      </div>
-                    </div>
+              {/* Glass card with internal scroll */}
+              <div
+                className="relative w-full max-w-lg rounded-xl sm:rounded-2xl border transition-all duration-300 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col"
+                style={{
+                  backdropFilter: "blur(16px)",
+                  background: "hsl(var(--background) / 0.65)",
+                  borderColor: "hsl(var(--foreground) / 0.08)",
+                }}
+              >
+                <div className="overflow-y-auto p-4 sm:p-6">
+                  {/* Step 1: Intent Selection */}
+                  {step === 1 && (
+                    <>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="text-base sm:text-lg font-semibold">
+                            What brings you here?
+                          </div>
+                          <div className="mt-1 text-sm text-muted-foreground">
+                            Send me a message. I read every one.
+                          </div>
+                        </div>
 
-                    <button
-                      onClick={closeModal}
-                      className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                      aria-label="Close modal"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="mt-4 grid gap-2">
-                    {FUN_INTENTS.map((opt) => {
-                      return (
                         <button
-                          key={opt.value}
-                          onClick={() => proceedToStep2(opt.value)}
-                          onMouseEnter={() => setHoveredIntent(opt.value)}
-                          onMouseLeave={() => setHoveredIntent(null)}
-                          className="w-full text-left rounded-xl border px-4 py-3 transition-all group overflow-hidden relative"
+                          onClick={closeModal}
+                          className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                          aria-label="Close modal"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="mt-4 grid gap-2">
+                        {FUN_INTENTS.map((opt) => {
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => proceedToStep2(opt.value)}
+                              onMouseEnter={() => setHoveredIntent(opt.value)}
+                              onMouseLeave={() => setHoveredIntent(null)}
+                              className="w-full text-left rounded-xl border px-4 py-3 transition-all group overflow-hidden relative"
+                              style={{
+                                backdropFilter: "blur(12px)",
+                                background:
+                                  hoveredIntent === opt.value
+                                    ? "hsl(var(--primary) / 0.12)"
+                                    : "hsl(var(--glass-bg, 0 0% 100%) / 0.05)",
+                                borderColor:
+                                  hoveredIntent === opt.value
+                                    ? "hsl(var(--primary) / 0.35)"
+                                    : "hsl(var(--foreground) / 0.08)",
+                                boxShadow:
+                                  hoveredIntent === opt.value
+                                    ? "0 0 20px hsl(var(--primary) / 0.15), inset 0 1px 1px hsl(var(--primary) / 0.1)"
+                                    : "none",
+                              }}
+                            >
+                              {/* Hover glow effect */}
+                              <div
+                                className="absolute inset-0 transition-opacity duration-300"
+                                style={{
+                                  background:
+                                    hoveredIntent === opt.value
+                                      ? "radial-gradient(circle at 50% 0%, hsl(var(--primary) / 0.2), transparent 70%)"
+                                      : "transparent",
+                                }}
+                                aria-hidden="true"
+                              />
+
+                              <div className="relative z-10 flex items-center justify-between">
+                                <div>
+                                  <div className="font-medium">{opt.label}</div>
+                                  <div className="text-sm text-muted-foreground mt-0.5">
+                                    {opt.blurb}
+                                  </div>
+                                </div>
+
+                                {/* Arrow indicator on hover */}
+                                <ArrowRight
+                                  className={`w-4 h-4 text-primary ml-3 flex-shrink-0 transition-all duration-300 ${
+                                    hoveredIntent === opt.value
+                                      ? "opacity-100 translate-x-0"
+                                      : "opacity-0 -translate-x-2"
+                                  }`}
+                                />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-5 flex items-center justify-end">
+                        <button
+                          onClick={closeModal}
+                          className="h-9 px-4 rounded-lg text-sm border bg-transparent transition-colors hover:bg-white/5"
                           style={{
-                            backdropFilter: "blur(12px)",
-                            background:
-                              hoveredIntent === opt.value
-                                ? "hsl(var(--primary) / 0.12)"
-                                : "hsl(var(--glass-bg, 0 0% 100%) / 0.05)",
-                            borderColor:
-                              hoveredIntent === opt.value
-                                ? "hsl(var(--primary) / 0.35)"
-                                : "hsl(var(--foreground) / 0.08)",
-                            boxShadow:
-                              hoveredIntent === opt.value
-                                ? "0 0 20px hsl(var(--primary) / 0.15), inset 0 1px 1px hsl(var(--primary) / 0.1)"
-                                : "none",
+                            borderColor: "hsl(var(--foreground) / 0.12)",
                           }}
                         >
-                          {/* Hover glow effect */}
-                          <div
-                            className="absolute inset-0 transition-opacity duration-300"
+                          Not now
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Step 2: Message Form */}
+                  {step === 2 && (
+                    <>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="text-base sm:text-lg font-semibold">
+                            Send your message
+                          </div>
+                          <div className="mt-1 text-sm text-muted-foreground">
+                            {
+                              FUN_INTENTS.find(
+                                (i) => i.value === selectedIntent,
+                              )?.label
+                            }
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={closeModal}
+                          className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                          aria-label="Close modal"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+                        {/* Honeypot (hidden anti-spam field) */}
+                        <input
+                          type="text"
+                          name="company"
+                          value={honeypot}
+                          onChange={(e) => setHoneypot(e.target.value)}
+                          tabIndex={-1}
+                          autoComplete="off"
+                          className="hidden"
+                          aria-hidden="true"
+                        />
+
+                        {/* Hidden fields */}
+                        <input
+                          type="hidden"
+                          name="formGoogleSheetName"
+                          value="responses"
+                        />
+                        <input
+                          type="hidden"
+                          name="intent"
+                          value={
+                            FUN_INTENTS.find((i) => i.value === selectedIntent)
+                              ?.label ?? ""
+                          }
+                        />
+
+                        {/* Email Input */}
+                        <div>
+                          <label
+                            htmlFor="email"
+                            className="block text-sm font-medium mb-2"
+                          >
+                            Your email
+                          </label>
+                          <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="you@example.com"
+                            className="w-full px-4 py-2.5 rounded-lg border bg-glass-bg/20 text-sm transition-all focus:outline-none focus:border-primary/40 focus:bg-primary/5"
                             style={{
-                              background:
-                                hoveredIntent === opt.value
-                                  ? "radial-gradient(circle at 50% 0%, hsl(var(--primary) / 0.2), transparent 70%)"
-                                  : "transparent",
+                              backdropFilter: "blur(12px)",
+                              borderColor: "hsl(var(--foreground) / 0.12)",
                             }}
-                            aria-hidden="true"
                           />
+                        </div>
 
-                          <div className="relative z-10 flex items-center justify-between">
-                            <div>
-                              <div className="font-medium">{opt.label}</div>
-                              <div className="text-sm text-muted-foreground mt-0.5">
-                                {opt.blurb}
-                              </div>
-                            </div>
+                        {/* Message Input */}
+                        <div>
+                          <label
+                            htmlFor="message"
+                            className="block text-sm font-medium mb-2"
+                          >
+                            Your message
+                          </label>
+                          <textarea
+                            id="message"
+                            name="message"
+                            required
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            placeholder="Tell me more..."
+                            rows={5}
+                            className="w-full px-4 py-2.5 rounded-lg border bg-glass-bg/20 text-sm transition-all focus:outline-none focus:border-primary/40 focus:bg-primary/5 resize-none"
+                            style={{
+                              backdropFilter: "blur(12px)",
+                              borderColor: "hsl(var(--foreground) / 0.12)",
+                            }}
+                          />
+                        </div>
 
-                            {/* Arrow indicator on hover */}
-                            <ArrowRight
-                              className={`w-4 h-4 text-primary ml-3 flex-shrink-0 transition-all duration-300 ${
-                                hoveredIntent === opt.value
-                                  ? "opacity-100 translate-x-0"
-                                  : "opacity-0 -translate-x-2"
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={backToStep1}
+                            disabled={isLoading}
+                            className="h-9 px-4 rounded-lg text-sm border bg-transparent transition-colors hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{
+                              borderColor: "hsl(var(--foreground) / 0.12)",
+                            }}
+                          >
+                            Back
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="h-9 px-4 rounded-lg text-sm border transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            style={{
+                              borderColor: "hsl(var(--primary) / 0.35)",
+                              background: "hsl(var(--primary) / 0.12)",
+                            }}
+                          >
+                            <Sparkles
+                              className={`w-4 h-4 text-primary transition-transform ${
+                                isLoading ? "animate-spin" : ""
                               }`}
                             />
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-5 flex items-center justify-end">
-                    <button
-                      onClick={closeModal}
-                      className="h-9 px-4 rounded-lg text-sm border bg-transparent transition-colors hover:bg-white/5"
-                      style={{
-                        borderColor: "hsl(var(--foreground) / 0.12)",
-                      }}
-                    >
-                      Not now
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {/* Step 2: Message Form */}
-              {step === 2 && (
-                <>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-base sm:text-lg font-semibold">
-                        Send your message
-                      </div>
-                      <div className="mt-1 text-sm text-muted-foreground">
-                        {
-                          FUN_INTENTS.find((i) => i.value === selectedIntent)
-                            ?.label
-                        }
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={closeModal}
-                      className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                      aria-label="Close modal"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-                    {/* Honeypot (hidden anti-spam field) */}
-                    <input
-                      type="text"
-                      name="company"
-                      value={honeypot}
-                      onChange={(e) => setHoneypot(e.target.value)}
-                      tabIndex={-1}
-                      autoComplete="off"
-                      className="hidden"
-                      aria-hidden="true"
-                    />
-
-                    {/* Hidden fields */}
-                    <input
-                      type="hidden"
-                      name="formGoogleSheetName"
-                      value="responses"
-                    />
-                    <input
-                      type="hidden"
-                      name="intent"
-                      value={
-                        FUN_INTENTS.find((i) => i.value === selectedIntent)
-                          ?.label ?? ""
-                      }
-                    />
-
-                    {/* Email Input */}
-                    <div>
-                      <label
-                        htmlFor="email"
-                        className="block text-sm font-medium mb-2"
-                      >
-                        Your email
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        className="w-full px-4 py-2.5 rounded-lg border bg-glass-bg/20 text-sm transition-all focus:outline-none focus:border-primary/40 focus:bg-primary/5"
-                        style={{
-                          backdropFilter: "blur(12px)",
-                          borderColor: "hsl(var(--foreground) / 0.12)",
-                        }}
-                      />
-                    </div>
-
-                    {/* Message Input */}
-                    <div>
-                      <label
-                        htmlFor="message"
-                        className="block text-sm font-medium mb-2"
-                      >
-                        Your message
-                      </label>
-                      <textarea
-                        id="message"
-                        name="message"
-                        required
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Tell me more..."
-                        rows={5}
-                        className="w-full px-4 py-2.5 rounded-lg border bg-glass-bg/20 text-sm transition-all focus:outline-none focus:border-primary/40 focus:bg-primary/5 resize-none"
-                        style={{
-                          backdropFilter: "blur(12px)",
-                          borderColor: "hsl(var(--foreground) / 0.12)",
-                        }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={backToStep1}
-                        disabled={isLoading}
-                        className="h-9 px-4 rounded-lg text-sm border bg-transparent transition-colors hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{
-                          borderColor: "hsl(var(--foreground) / 0.12)",
-                        }}
-                      >
-                        Back
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="h-9 px-4 rounded-lg text-sm border transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                        style={{
-                          borderColor: "hsl(var(--primary) / 0.35)",
-                          background: "hsl(var(--primary) / 0.12)",
-                        }}
-                      >
-                        <Sparkles
-                          className={`w-4 h-4 text-primary transition-transform ${
-                            isLoading ? "animate-spin" : ""
-                          }`}
-                        />
-                        {isLoading ? "Sending..." : "Send message"}
-                      </button>
-                    </div>
-                  </form>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                            {isLoading ? "Sending..." : "Send message"}
+                          </button>
+                        </div>
+                      </form>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 };

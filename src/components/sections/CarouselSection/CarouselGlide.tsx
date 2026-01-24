@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { carouselContexts, sectionTitle } from "./CarouselData";
 import {
@@ -132,8 +132,6 @@ function CardLayer(props: {
   const tint = cardTints[index % cardTints.length];
   const context = carouselContexts[index] as ExtendedCarouselContext;
 
-  const stackDepth = Math.abs(offset) < 0.001 ? null : Math.abs(offset) - 1;
-
   const m = isAnimating
     ? poseDuringTransition(offset, t, dir)
     : poseForOffset(offset);
@@ -197,6 +195,11 @@ export const CarouselGlide: React.FC = () => {
   const [flippedCards, setFlippedCards] = useState<Set<number>>(new Set());
   const [isHovering, setIsHovering] = useState(false);
   const [autoplayDir, setAutoplayDir] = useState<1 | -1>(1);
+
+  // Touch tracking for swipe gestures
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   const clearAllFlips = useCallback(() => setFlippedCards(new Set()), []);
 
@@ -275,7 +278,44 @@ export const CarouselGlide: React.FC = () => {
     );
   }, [activeIndex, len]);
 
-  const activeTint = cardTints[activeIndex % cardTints.length];
+  // Touch handlers for swipe gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchEndX.current = null;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartX.current || !touchStartY.current) return;
+
+    touchEndX.current = e.changedTouches[0].clientX;
+    const deltaX = touchStartX.current - touchEndX.current;
+    const deltaY = Math.abs(touchStartY.current - e.changedTouches[0].clientY);
+
+    // Minimum swipe distance threshold (px)
+    const MIN_SWIPE_DISTANCE = 50;
+    // Maximum vertical movement to still count as horizontal swipe
+    const MAX_VERTICAL_DISTANCE = 50;
+
+    // Check if this was a horizontal swipe (not a vertical scroll)
+    if (
+      Math.abs(deltaX) > MIN_SWIPE_DISTANCE &&
+      deltaY < MAX_VERTICAL_DISTANCE
+    ) {
+      if (deltaX > 0) {
+        // Swiped left → go to next
+        safeNext();
+      } else {
+        // Swiped right → go to previous
+        safePrev();
+      }
+    }
+
+    // Reset touch tracking
+    touchStartX.current = null;
+    touchStartY.current = null;
+    touchEndX.current = null;
+  };
 
   return (
     <section
@@ -290,6 +330,8 @@ export const CarouselGlide: React.FC = () => {
         setIsHovering(false);
         reset();
       }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <div
         className="absolute left-0 right-0 z-10"
