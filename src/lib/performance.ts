@@ -156,7 +156,7 @@ export const getQualitySettings = (): QualitySettings => {
     return {
       maxParticles: 70,
       densityFactor: 0.5,
-      connectionDistance: 90,
+      connectionDistance: 60,
       skipConnectionFrames: 4,
       dpr: 1,
     };
@@ -171,9 +171,9 @@ export const getQualitySettings = (): QualitySettings => {
   // ========================================================================
   if (tier === "low") {
     return {
-      maxParticles: 150, // Minimal particle budget
+      maxParticles: isMobile ? 60 : 140, // Minimal particle budget
       densityFactor: 0.75, // 112 active particles
-      connectionDistance: 110, // Short connections to reduce O(n²) cost
+      connectionDistance: 60, // Short connections to reduce O(n²) cost
       skipConnectionFrames: 3, // Update connections every 3rd frame
       dpr: 1, // Force 1x resolution
     };
@@ -185,9 +185,9 @@ export const getQualitySettings = (): QualitySettings => {
   // ========================================================================
   if (tier === "medium" || isMobile) {
     return {
-      maxParticles: isMobile ? 250 : 280,
+      maxParticles: isMobile ? 120 : 200,
       densityFactor: isMobile ? 0.85 : 0.9, // 212-252 active particles
-      connectionDistance: isMobile ? 120 : 140,
+      connectionDistance: isMobile ? 40 : 60,
       skipConnectionFrames: 2, // Update every other frame
       dpr: getOptimalDPR(),
     };
@@ -198,9 +198,9 @@ export const getQualitySettings = (): QualitySettings => {
   // Target: 60 FPS, maximum visual quality
   // ========================================================================
   return {
-    maxParticles: 400, // Large particle budget
-    densityFactor: 1.0, // Full 400 particles
-    connectionDistance: 160, // Longer connections for denser web
+    maxParticles: 300, // Large particle budget
+    densityFactor: 1.0, // Full 300 particles
+    connectionDistance: 80, // Longer connections for denser web
     skipConnectionFrames: cores >= 12 ? 1 : 2, // Every frame on high-core CPUs
     dpr: getOptimalDPR(),
   };

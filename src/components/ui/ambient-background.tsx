@@ -1,102 +1,65 @@
 import { useEffect, useRef } from "react";
-import { reportPerformance } from "./performance-overlay";
 import { useAppContext } from "@/contexts/useAppContext";
 
 export const AmbientBackground = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mouseRef = useRef({ x: 0.5, y: 0.5 });
   const { currentSection } = useAppContext();
 
   useEffect(() => {
-    // Throttle mousemove with rAF to avoid high-frequency style writes
-    let scheduled = false;
-    const positions = { x: 0.5, y: 0.5 };
-    const handleMouseMove = (e: MouseEvent) => {
-      if (currentSection !== "hero") return;
+    if (currentSection !== "hero") return;
 
-      positions.x = e.clientX / window.innerWidth;
-      positions.y = e.clientY / window.innerHeight;
+    const el = containerRef.current;
+    if (!el) return;
 
-      if (scheduled) return;
-      scheduled = true;
+    // start centered
+    el.style.setProperty("--mx", "0");
+    el.style.setProperty("--my", "0");
 
-      requestAnimationFrame(() => {
-        const t0 = performance.now();
-        scheduled = false;
-        mouseRef.current = { x: positions.x, y: positions.y };
-        if (!containerRef.current) {
-          reportPerformance("AmbientBackground:mouse", performance.now() - t0);
-          return;
-        }
-        const orbs = containerRef.current.querySelectorAll(".ambient-orb");
-        orbs.forEach((orb, index) => {
-          const element = orb as HTMLElement;
-          const speed = 0.02 + index * 0.01;
-          const offsetX = (mouseRef.current.x - 0.5) * 100 * speed;
-          const offsetY = (mouseRef.current.y - 0.5) * 100 * speed;
-          // use transform only when necessary
-          element.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-        });
-        reportPerformance("AmbientBackground:mouse", performance.now() - t0);
+    let raf = 0;
+    let tx = 0,
+      ty = 0;
+    let cx = 0,
+      cy = 0;
+
+    const onMove = (e: MouseEvent) => {
+      // target in [-1, 1]
+      tx = (e.clientX / window.innerWidth - 0.5) * 2;
+      ty = (e.clientY / window.innerHeight - 0.5) * 2;
+
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        // smooth follow (keeps it subtle)
+        cx += (tx - cx) * 0.08;
+        cy += (ty - cy) * 0.08;
+        el.style.setProperty("--mx", cx.toFixed(4));
+        el.style.setProperty("--my", cy.toFixed(4));
       });
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [currentSection]); // Re-create listener when section changes
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [currentSection]);
 
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 overflow-hidden pointer-events-none"
+      className="ambient-root fixed inset-0 overflow-hidden pointer-events-none"
       style={{ zIndex: 0 }}
     >
-      {/* Base gradient */}
-      <div
-        className="absolute inset-0 animate-gradient"
-        style={{
-          background: `
-            radial-gradient(ellipse 80% 50% at 50% 0%, hsla(200, 20%, 8%, 0.8) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 40% at 100% 100%, hsla(220, 25%, 6%, 0.6) 0%, transparent 40%),
-            radial-gradient(ellipse 50% 30% at 0% 80%, hsla(185, 15%, 5%, 0.5) 0%, transparent 35%),
-            linear-gradient(180deg, hsl(220, 20%, 4%) 0%, hsl(225, 22%, 3%) 100%)
-          `,
-          backgroundSize: "200% 200%",
-        }}
-      />
+      {/* Dark base */}
+      <div className="ambient-base absolute inset-0" />
 
-      {/* Ambient orbs */}
-      <div
-        className="ambient-orb absolute w-[600px] h-[600px] rounded-full transition-transform duration-1000 ease-out"
-        style={{
-          top: "10%",
-          left: "60%",
-          background:
-            "radial-gradient(circle, hsla(185, 50%, 30%, 0.08) 0%, transparent 70%)",
-          filter: "blur(60px)",
-        }}
-      />
-      <div
-        className="ambient-orb absolute w-[800px] h-[800px] rounded-full transition-transform duration-1000 ease-out animate-pulse-glow"
-        style={{
-          top: "50%",
-          left: "-10%",
-          background:
-            "radial-gradient(circle, hsla(200, 40%, 25%, 0.06) 0%, transparent 60%)",
-          filter: "blur(80px)",
-        }}
-      />
-      <div
-        className="ambient-orb absolute w-[500px] h-[500px] rounded-full transition-transform duration-1000 ease-out"
-        style={{
-          bottom: "10%",
-          right: "20%",
-          background:
-            "radial-gradient(circle, hsla(190, 45%, 28%, 0.07) 0%, transparent 65%)",
-          filter: "blur(50px)",
-          animationDelay: "2s",
-        }}
-      />
+      {/* Very subtle “mist” blobs (same hue family as particles, low alpha) */}
+      <div className="ambient-mist mist-1" />
+      <div className="ambient-mist mist-2" />
+
+      {/* Grain + vignette (depth without stealing focus) */}
+      <div className="ambient-noise absolute inset-0" />
+      <div className="ambient-vignette absolute inset-0" />
     </div>
   );
 };
