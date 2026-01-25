@@ -44,10 +44,15 @@ export function useCarouselTransition(
       const fromIndex = activeIndex;
       if (isAnimating || toIndex === fromIndex) return;
 
+      const clampedTo = clampIndex(toIndex, len);
+      const dist = Math.abs(clampedTo - fromIndex);
+
+      const duration = durationMs * Math.min(3, Math.max(1, dist)); // cap at 3x
+
       onBeforeChangeRef.current?.();
 
       fromRef.current = fromIndex;
-      toRef.current = clampIndex(toIndex, len);
+      toRef.current = clampedTo;
       setDirection(dir);
       setIsAnimating(true);
       setT(0);
@@ -58,7 +63,7 @@ export function useCarouselTransition(
       const tick = (ts: number) => {
         if (startRef.current == null) startRef.current = ts;
         const elapsed = ts - startRef.current;
-        const raw = Math.min(elapsed / durationMs, 1);
+        const raw = Math.min(elapsed / duration, 1);
         const eased = easeInOutCubic(raw);
         setT(eased);
 
@@ -91,12 +96,10 @@ export function useCarouselTransition(
     (idx: number) => {
       const curr = activeIndex;
       if (idx === curr) return;
-      const forwardDist = (idx - curr + len) % len;
-      const backwardDist = (curr - idx + len) % len;
-      const dir: Dir = forwardDist <= backwardDist ? 1 : -1;
+      const dir: Dir = idx > curr ? 1 : -1;
       animateTo(idx, dir);
     },
-    [activeIndex, animateTo, len],
+    [activeIndex, animateTo],
   );
 
   useEffect(() => () => stop(), [stop]);

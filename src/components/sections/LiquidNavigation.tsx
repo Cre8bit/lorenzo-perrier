@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 
 const chapters = [
-  { id: "learn-more", label: "Learn More" },
+  { id: "cube-space", label: "CubeSpace" },
   { id: "home", label: "Home" },
   { id: "astrolab", label: "Astrolab" },
 ];

@@ -8,10 +8,12 @@ import {
   forceX,
   forceY,
   Simulation,
+  SimulationNodeDatum,
+  ForceCollide,
 } from "d3-force";
 import { reportFramePerformance } from "./performance-overlay";
 
-interface SkillNode {
+interface SkillNode extends SimulationNodeDatum {
   id: string;
   name: string;
   cardIndices: number[];
@@ -19,6 +21,8 @@ interface SkillNode {
   y: number;
   vx: number;
   vy: number;
+  fx?: number | null;
+  fy?: number | null;
   degree?: number;
   importance?: number;
   primaryCard?: number;
@@ -26,6 +30,7 @@ interface SkillNode {
   labelY?: number;
   hoverProgress?: number; // 0-1 for smooth transitions
   labelW?: number; // precomputed label width for overlap solver
+  baseColor?: { hue: number; sat: number; light: number };
 }
 
 interface Link {
@@ -40,16 +45,16 @@ interface SkillsGraphProps {
   onSkillClick: (cardIndex: number) => void;
 }
 
-// Glassmorphic color palette - softer, more elegant
+// Glassmorphic color palette - user specific
 const EXPERIENCE_COLORS = [
-  { hue: 200, sat: 65, light: 65 }, // Soft cyan
-  { hue: 280, sat: 55, light: 70 }, // Soft purple
-  { hue: 160, sat: 60, light: 60 }, // Soft teal
-  { hue: 340, sat: 60, light: 70 }, // Soft pink
-  { hue: 45, sat: 65, light: 65 }, // Soft gold
-  { hue: 260, sat: 50, light: 68 }, // Soft violet
-  { hue: 180, sat: 58, light: 62 }, // Soft aqua
-  { hue: 20, sat: 62, light: 68 }, // Soft coral
+  { hue: 48, sat: 95, light: 60 }, // Theodo: Yellow
+  { hue: 215, sat: 90, light: 60 }, // BMW: Blue
+  { hue: 350, sat: 85, light: 60 }, // CTA: Red
+  { hue: 270, sat: 80, light: 68 }, // TAEP: Purple
+  { hue: 150, sat: 75, light: 60 }, // Outsight: Green
+  { hue: 12, sat: 85, light: 65 }, // Fallback: Coral
+  { hue: 190, sat: 80, light: 60 }, // Fallback: Cyan
+  { hue: 290, sat: 65, light: 70 }, // Fallback: Lavender
 ];
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -91,9 +96,30 @@ function blendColors(indices: number[]): {
   };
 }
 
+// Helper for dynamic label scaling
+function labelScale(n: SkillNode, hoveredId: string | null) {
+  // When nothing is strictly hovered, use default size
+  if (!hoveredId) return 0.8;
+
+  // When hovered, only the target is big
+  if (n.id === hoveredId) return 1.1;
+
+  // All others fade to background size
+  return 0.8;
+}
+
 // Resolve label overlaps (heavy) — run only when layout changes (sim tick / resize)
-function resolveLabels(nodes: SkillNode[], w: number, h: number) {
+function resolveLabels(
+  nodes: SkillNode[],
+  w: number,
+  h: number,
+  hoveredId: string | null = null,
+) {
   const padding = 8;
+
+  // Pre-calculate scales
+  const scales = new Map<string, number>();
+  nodes.forEach((n) => scales.set(n.id, labelScale(n, hoveredId)));
 
   nodes.forEach((n) => {
     const baseR = baseRadius(n);
@@ -109,13 +135,15 @@ function resolveLabels(nodes: SkillNode[], w: number, h: number) {
       const a = nodes[i];
       if (a.labelX == null || a.labelY == null) continue;
 
-      const aWidth = a.labelW ?? a.name.length * 6.5 + 20;
+      const sA = scales.get(a.id) || 1.0;
+      const aWidth = (a.labelW ?? a.name.length * 6.5 + 20) * sA;
 
       for (let j = i + 1; j < nodes.length; j++) {
         const b = nodes[j];
         if (b.labelX == null || b.labelY == null) continue;
 
-        const bWidth = b.labelW ?? b.name.length * 6.5 + 20;
+        const sB = scales.get(b.id) || 1.0;
+        const bWidth = (b.labelW ?? b.name.length * 6.5 + 20) * sB;
 
         const dx = b.labelX - a.labelX;
         const dy = b.labelY - a.labelY;
@@ -147,6 +175,41 @@ function resolveLabels(nodes: SkillNode[], w: number, h: number) {
   });
 }
 
+const getLabelBackground = (
+  node: SkillNode,
+  clusterCenters: Map<number, { x: number; y: number }>,
+) => {
+  const { cardIndices, baseColor } = node;
+  if (cardIndices.length <= 1 || !baseColor) {
+    const color = baseColor || blendColors(cardIndices);
+    return `hsla(${color.hue}, ${color.sat}%, ${Math.min(20, color.light - 40)}%, 0.75)`;
+  }
+
+  // Sort indices by cluster center X position to match visual layout
+  const sortedIndices = [...cardIndices].sort((a, b) => {
+    const centerA = clusterCenters.get(a)?.x ?? 0;
+    const centerB = clusterCenters.get(b)?.x ?? 0;
+    return centerA - centerB;
+  });
+
+  // Multi-cluster gradient
+  const steps = sortedIndices.map((i, idx, arr) => {
+    const c = EXPERIENCE_COLORS[i % EXPERIENCE_COLORS.length];
+    const colorStr = `hsla(${c.hue}, ${c.sat}%, ${Math.min(20, c.light - 40)}%, 0.75)`;
+    const start = (idx / arr.length) * 100;
+    const end = ((idx + 1) / arr.length) * 100;
+    return `${colorStr} ${start}% ${end}%`;
+  });
+
+  return `linear-gradient(90deg, ${steps.join(", ")})`;
+};
+
+const getLabelBorder = (node: SkillNode) => {
+  const { baseColor } = node;
+  const color = baseColor || blendColors(node.cardIndices);
+  return `1.5px solid hsla(${color.hue}, ${color.sat}%, ${color.light}%, 0.6)`;
+};
+
 export const SkillsGraph = ({
   experiences,
   onSkillClick,
@@ -155,8 +218,6 @@ export const SkillsGraph = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const labelsLayerRef = useRef<HTMLDivElement>(null);
   const labelRefs = useRef(new Map<string, HTMLDivElement>());
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const tooltipSizeRef = useRef({ w: 260, h: 140 });
 
   const simRef = useRef<Simulation<SkillNode, Link> | null>(null);
   const nodesRef = useRef<SkillNode[]>([]);
@@ -180,10 +241,18 @@ export const SkillsGraph = ({
 
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<SkillNode | null>(null);
+  const [activeClusterSkill, setActiveClusterSkill] =
+    useState<SkillNode | null>(null);
 
   const hoveredRef = useRef<SkillNode | null>(null);
   const lastHoverIdRef = useRef<string | null>(null);
   const mouseRef = useRef({ x: 0, y: 0, inside: false });
+  const retractTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const activeClusterNodeRef = useRef<SkillNode | null>(null);
+  const lockedNodeRef = useRef<SkillNode | null>(null);
+  const clusterCentersRef = useRef<Map<number, { x: number; y: number }>>(
+    new Map(),
+  );
 
   // hover animation only for previous/current hovered
   const hoverAnimRef = useRef<{ prev: string | null; curr: string | null }>({
@@ -217,7 +286,7 @@ export const SkillsGraph = ({
 
     // final label solve
     const { w, h } = dimsRef.current;
-    resolveLabels(nodesRef.current, w, h);
+    resolveLabels(nodesRef.current, w, h, hoveredRef.current?.id || null);
     labelsDirtyRef.current = true;
     layoutDirtyRef.current = true;
     labelsReadyRef.current = true; // now safe to animate
@@ -256,6 +325,7 @@ export const SkillsGraph = ({
       vy: 0,
       primaryCard: s.cardIndices[0] ?? 0,
       labelW: s.name.length * 6.5 + 20,
+      baseColor: blendColors(s.cardIndices),
     }));
 
     const skillsByCard = new Map<number, string[]>();
@@ -361,6 +431,7 @@ export const SkillsGraph = ({
     ctx.clearRect(0, 0, w, h);
 
     const hovered = hoveredRef.current;
+    const active = activeClusterNodeRef.current;
     const nodes = nodesRef.current;
     const links = linksRef.current;
 
@@ -403,27 +474,44 @@ export const SkillsGraph = ({
       const dy = b.y - a.y;
       const dist = Math.hypot(dx, dy);
 
-      if (dist > 250) continue;
+      // Increased culling distance to account for spread
+      if (dist > 400) continue;
+
+      const active = activeClusterNodeRef.current;
+      const hovered = hoveredRef.current;
 
       const isConnected =
-        hovered &&
-        (a.id === hovered.id ||
-          b.id === hovered.id ||
-          (connectedSet?.has(a.id) && connectedSet?.has(b.id)));
+        (hovered &&
+          (a.id === hovered.id ||
+            b.id === hovered.id ||
+            (connectedSet?.has(a.id) && connectedSet?.has(b.id)))) ||
+        (active &&
+          !hovered && // When in gap, keep cluster links visible
+          a.cardIndices.some((i) => active.cardIndices.includes(i)) &&
+          b.cardIndices.some((i) => active.cardIndices.includes(i)));
 
       const isSameCluster = l.sameCluster ?? false;
 
       const baseAlpha = isSameCluster
-        ? lerp(0.03, 0.08, 1 - dist / 250)
-        : lerp(0.08, 0.18, 1 - dist / 250);
+        ? lerp(0.03, 0.08, 1 - dist / 400)
+        : lerp(0.08, 0.18, 1 - dist / 400);
 
-      const alpha = hovered ? (isConnected ? 0.35 : 0.04) : baseAlpha;
+      // If in active cluster mode (gap), maintain visibility
+      const alpha = hovered || active ? (isConnected ? 0.35 : 0.04) : baseAlpha;
 
       // Keep gradient to preserve visual; only computed on demand draw
+      const colorA = a.baseColor!;
+      const colorB = b.baseColor!;
+
       const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-      grad.addColorStop(0, `rgba(200, 220, 255, ${alpha})`);
-      grad.addColorStop(0.5, `rgba(180, 210, 255, ${alpha * 0.6})`);
-      grad.addColorStop(1, `rgba(200, 220, 255, ${alpha})`);
+      grad.addColorStop(
+        0,
+        `hsla(${colorA.hue}, ${colorA.sat}%, ${colorA.light}%, ${alpha})`,
+      );
+      grad.addColorStop(
+        1,
+        `hsla(${colorB.hue}, ${colorB.sat}%, ${colorB.light}%, ${alpha})`,
+      );
 
       ctx.strokeStyle = grad;
       ctx.lineWidth = isConnected ? 2 : isSameCluster ? 0.5 : 1;
@@ -434,20 +522,24 @@ export const SkillsGraph = ({
     }
     ctx.restore();
 
-    // Resolve label positions only when needed (skip if simulation is frozen and stable)
     if (labelsDirtyRef.current && !frozenRef.current) {
-      resolveLabels(nodes, w, h);
+      resolveLabels(nodes, w, h, hovered?.id || active?.id || null);
       labelsDirtyRef.current = false;
     } else if (frozenRef.current && labelsDirtyRef.current) {
       // One final resolve when frozen, then never again
-      resolveLabels(nodes, w, h);
+      resolveLabels(nodes, w, h, hovered?.id || active?.id || null);
       labelsDirtyRef.current = false;
     }
 
     // Draw nodes with glassmorphic style
     for (const n of nodes) {
       const isConnected =
-        !hovered || n.id === hovered.id || (connectedSet?.has(n.id) ?? false);
+        (!hovered && !active) ||
+        (hovered && (n.id === hovered.id || connectedSet?.has(n.id))) ||
+        (active &&
+          !hovered &&
+          n.cardIndices.some((i) => active.cardIndices.includes(i)));
+
       const imp = n.importance ?? 0;
 
       const hoverProg = n.hoverProgress ?? 0;
@@ -457,7 +549,7 @@ export const SkillsGraph = ({
       const baseOpacity = lerp(0.4, 0.9, imp);
       const opacity = hovered ? (isConnected ? 0.95 : 0.2) : baseOpacity;
 
-      const color = blendColors(n.cardIndices);
+      const color = n.baseColor!;
 
       // Outer glow (skip for small nodes to save gradient creation)
       if ((hoverProg > 0.1 || imp > 0.6) && r > 10) {
@@ -596,13 +688,21 @@ export const SkillsGraph = ({
           // Visibility/z-index updates only when hover state changed
           if (hoverDirtyRef.current) {
             const imp = n.importance ?? 0;
-            const showIdle = imp > 0.5;
+            // Show bridge nodes (multiple clusters) or high importance nodes by default
+            const showIdle = n.cardIndices.length > 1 || imp > 0.5;
+            const inActiveCluster =
+              active &&
+              n.cardIndices.some((i) => active.cardIndices.includes(i));
+
             const show = hovered
               ? n.id === hovered.id || (connectedSet?.has(n.id) ?? false)
-              : showIdle;
+              : active
+                ? inActiveCluster
+                : showIdle;
 
             el.style.opacity = show ? "1" : "0";
-            el.style.transform += ` scale(${show ? 1 : 0.9})`;
+            // Outer container handles position; inner div handles scale
+            el.style.transform = `translate(${n.labelX}px, ${n.labelY}px) translate(-50%, 0)`;
             el.style.zIndex = hovered?.id === n.id ? "10" : "1";
           }
         }
@@ -684,13 +784,40 @@ export const SkillsGraph = ({
       const clusterCy = cy + Math.sin(clusterAngle) * clusterRadius;
 
       clusterCenters.set(primary, { x: clusterCx, y: clusterCy });
+      clusterCentersRef.current.set(primary, { x: clusterCx, y: clusterCy });
 
       clusterNodes.forEach((n, i) => {
+        // If node is a frontier (multi-cluster), place at mean of all its clusters
+        if (n.cardIndices.length > 1) {
+          let tx = 0,
+            ty = 0,
+            count = 0;
+          n.cardIndices.forEach((idx) => {
+            const c = clusterCenters.get(idx);
+            if (c) {
+              tx += c.x;
+              ty += c.y;
+              count++;
+            }
+          });
+          if (count > 0) {
+            // Add a little random offset to avoid perfect overlap
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 40 + Math.random() * 30;
+            nodes.push({
+              ...n,
+              x: tx / count + Math.cos(angle) * radius,
+              y: ty / count + Math.sin(angle) * radius,
+              hoverProgress: 0,
+            });
+            return;
+          }
+        }
+        // Otherwise, place in cluster as before
         const nodeAngle =
           (i / Math.max(1, clusterNodes.length)) * Math.PI * 2 +
           Math.random() * 0.4;
         const nodeRadius = 50 + Math.random() * 60;
-
         nodes.push({
           ...n,
           x: clusterCx + Math.cos(nodeAngle) * nodeRadius,
@@ -698,7 +825,6 @@ export const SkillsGraph = ({
           hoverProgress: 0,
         });
       });
-
       clusterIdx++;
     }
 
@@ -738,38 +864,72 @@ export const SkillsGraph = ({
 
     const linkForce = forceLink<SkillNode, Link>(linksRef.current)
       .id((d) => d.id)
-      .distance(() => 100)
-      .strength(() => 0.25);
+      .distance((l) => {
+        const s = l.source as SkillNode;
+        const t = l.target as SkillNode;
+        const isFrontier = s.cardIndices.length > 1 || t.cardIndices.length > 1;
+        // Frontier nodes need medium distance to float in between clusters
+        if (isFrontier) return 95;
+        return l.sameCluster ? 55 : 140;
+      })
+      .strength((l) => {
+        const s = l.source as SkillNode;
+        const t = l.target as SkillNode;
+        const isFrontier = s.cardIndices.length > 1 || t.cardIndices.length > 1;
+        if (isFrontier) return 0.25;
+        return l.sameCluster ? 0.35 : 0.15;
+      });
+
+    const getTargetPosition = (d: SkillNode) => {
+      // For multi-cluster nodes (frontier), target the average center of all their clusters
+      if (d.cardIndices.length > 1) {
+        let tx = 0,
+          ty = 0;
+        let count = 0;
+        d.cardIndices.forEach((idx) => {
+          const c = clusterCenters.get(idx);
+          if (c) {
+            tx += c.x;
+            ty += c.y;
+            count++;
+          }
+        });
+        if (count > 0) return { x: tx / count, y: ty / count };
+      }
+
+      // Default: target primary cluster center
+      return clusterCenters.get(d.primaryCard ?? 0) ?? { x: cx, y: cy };
+    };
 
     const sim = forceSimulation<SkillNode>(nodesRef.current)
       .alpha(0.6)
       .alphaDecay(0.04)
       .alphaMin(0.001)
-      .velocityDecay(0.5)
-      .force("center", forceCenter(cx, cy).strength(0.015))
+      .velocityDecay(0.6)
+      .force("center", forceCenter(cx, cy).strength(0.02))
       .force(
         "charge",
-        forceManyBody<SkillNode>().strength(-180).distanceMax(300),
+        forceManyBody<SkillNode>().strength(-220).distanceMax(350),
       )
       .force(
         "collide",
         forceCollide<SkillNode>()
-          .radius((d) => baseRadius(d) + 20)
+          .radius((d) => baseRadius(d) + 24)
           .iterations(2),
       )
       .force("link", linkForce)
       // cheap clustering (replaces O(n^2) custom force)
       .force(
         "x",
-        forceX<SkillNode>(
-          (d) => clusterCenters.get(d.primaryCard ?? 0)?.x ?? cx,
-        ).strength(0.06),
+        forceX<SkillNode>((d) => getTargetPosition(d).x).strength((d) =>
+          d.cardIndices.length > 1 ? 0.3 : 0.12,
+        ),
       )
       .force(
         "y",
-        forceY<SkillNode>(
-          (d) => clusterCenters.get(d.primaryCard ?? 0)?.y ?? cy,
-        ).strength(0.06),
+        forceY<SkillNode>((d) => getTargetPosition(d).y).strength((d) =>
+          d.cardIndices.length > 1 ? 0.3 : 0.12,
+        ),
       );
 
     linkForce.links(linksRef.current);
@@ -845,19 +1005,137 @@ export const SkillsGraph = ({
     return closest;
   };
 
+  const updateSimulationForces = () => {
+    const sim = simRef.current;
+    if (!sim) return;
+
+    const locked = lockedNodeRef.current;
+    const active = activeClusterNodeRef.current;
+
+    // 1. Lock hovered/active node
+    nodesRef.current.forEach((n) => {
+      if (locked && n.id === locked.id) {
+        n.fx = n.x;
+        n.fy = n.y;
+      } else {
+        n.fx = null;
+        n.fy = null;
+      }
+    });
+
+    // 2. Cluster spreading
+    const collide = sim.force("collide") as ForceCollide<SkillNode>;
+    if (collide) {
+      collide.radius((d: SkillNode) => {
+        const base = baseRadius(d);
+        if (
+          active &&
+          d.cardIndices.some((idx) => active.cardIndices.includes(idx))
+        ) {
+          return base + 35; // Smoother Spread
+        }
+        return base + 20;
+      });
+    }
+
+    // 3. Reheat (gentler to avoid jitter)
+    sim.velocityDecay(0.6); // Ensure high friction for stability
+    sim.alpha(0.08).alphaDecay(0.04).restart();
+  };
+
+  const isPointNearCluster = (
+    mx: number,
+    my: number,
+    clusterNode: SkillNode,
+    nodes: SkillNode[],
+    threshold = 80,
+  ) => {
+    return nodes.some((n) => {
+      // Check if node belongs to same cluster
+      const shares = n.cardIndices.some((i) =>
+        clusterNode.cardIndices.includes(i),
+      );
+      if (!shares) return false;
+      const dist = Math.hypot(n.x - mx, n.y - my);
+      return dist < baseRadius(n) + threshold;
+    });
+  };
+
   const setHover = (found: SkillNode | null) => {
+    // Clear timeout if safety cleanup was scheduled
+    if (retractTimeoutRef.current) {
+      clearTimeout(retractTimeoutRef.current);
+      retractTimeoutRef.current = null;
+    }
+
+    const { x, y, inside } = mouseRef.current;
+
+    // Safety: if mouse is not inside, ignore any found node (stale RAF)
+    if (!inside) {
+      found = null;
+    }
+
+    const prevActive = activeClusterNodeRef.current;
+
+    // Detect cluster persistence
+    let nextActive = found;
+    let nextLocked = found;
+
+    // If no direct node hover, but inside cluster zone + previously active
+    if (!found && inside && prevActive) {
+      const stillInCluster = isPointNearCluster(
+        x,
+        y,
+        prevActive,
+        nodesRef.current,
+      );
+      if (stillInCluster) {
+        nextActive = prevActive; // Keep cluster spread
+        nextLocked = prevActive; // Keep anchor locked
+      } else {
+        nextActive = null;
+        nextLocked = null;
+      }
+    } else if (found && prevActive && found.id !== prevActive.id) {
+      // Switching nodes: Check if same cluster
+      const sameCluster = found.cardIndices.some((idx) =>
+        prevActive.cardIndices.includes(idx),
+      );
+      if (sameCluster) {
+        // Keep the PREVIOUS spread anchor to prevent jitter/shifting forces
+        nextActive = prevActive;
+        // Keep the PREVIOUS physical lock to prevent cluster shift
+        nextLocked = lockedNodeRef.current;
+      }
+    }
+
+    const clusterChanged = prevActive?.id !== nextActive?.id;
+
+    hoveredRef.current = found;
+    activeClusterNodeRef.current = nextActive;
+    lockedNodeRef.current = nextLocked;
+
+    setHoveredSkill(found);
+    setActiveClusterSkill(nextActive);
+
+    if (clusterChanged) {
+      updateSimulationForces();
+      // Ensure we redraw/update labels if cluster state changed (e.g. leaving magnetic zone)
+      // even if the specific hovered node (found) didn't change (e.g. remains null)
+      hoverDirtyRef.current = true;
+      layoutDirtyRef.current = true;
+      requestDraw();
+    }
+
     const nextId = found?.id ?? null;
     const prevId = lastHoverIdRef.current;
 
     if (nextId === prevId) return;
 
     lastHoverIdRef.current = nextId;
-    hoveredRef.current = found;
 
     // animate only prev/curr
     hoverAnimRef.current = { prev: prevId, curr: nextId };
-
-    setHoveredSkill((prev) => (prev?.id === found?.id ? prev : found));
 
     // only label visibility changes on hover
     hoverDirtyRef.current = true;
@@ -884,49 +1162,53 @@ export const SkillsGraph = ({
   };
 
   const handleMouseLeave = () => {
+    // Cancel any pending start hover check
+    if (hoverRaf.current) {
+      cancelAnimationFrame(hoverRaf.current);
+      hoverRaf.current = null;
+    }
+
+    const wasActive =
+      activeClusterNodeRef.current !== null || hoveredRef.current !== null;
+
     mouseRef.current.inside = false;
-    setHover(null);
+    hoveredRef.current = null;
+    activeClusterNodeRef.current = null;
+    lockedNodeRef.current = null;
+    setHoveredSkill(null);
+    setActiveClusterSkill(null);
+
+    // Force visualization update
+    hoverDirtyRef.current = true;
+    layoutDirtyRef.current = true;
+    requestDraw();
+
+    if (wasActive) {
+      updateSimulationForces();
+    }
   };
 
   const handleClick = () => {
-    const h = hoveredRef.current;
-    if (h && h.cardIndices.length > 0) onSkillClick(h.cardIndices[0]);
+    const target = hoveredSkill || activeClusterSkill;
+    if (target) {
+      onSkillClick(target.primaryCard ?? target.cardIndices[0] ?? 0);
+    }
   };
 
-  // ------------- tooltip size measurement -------------
-  useEffect(() => {
-    if (!tooltipRef.current) return;
-    const el = tooltipRef.current;
-    const ro = new ResizeObserver(() => {
-      const r = el.getBoundingClientRect();
-      tooltipSizeRef.current = { w: r.width, h: r.height };
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [hoveredSkill]);
+  const showLegend = hoveredSkill || activeClusterSkill;
 
-  // tooltip position clamped within container
-  const tooltipStyle = useMemo(() => {
-    if (!containerRef.current) return undefined;
+  // Legend Stability: Use cluster center instead of individual node Y to prevent jumping
+  let legendRefY = showLegend?.y ?? 0;
+  if (showLegend) {
+    // For ALL nodes (single or multi-cluster), use the primary cluster center for stable checking
+    const primary = showLegend.primaryCard ?? showLegend.cardIndices[0];
+    const center = clusterCentersRef.current.get(primary);
+    if (center) legendRefY = center.y;
+  }
 
-    const { w: tw, h: th } = tooltipSizeRef.current;
-    const pad = 10;
-
-    const { w, h } = dimsRef.current;
-    const mx = mouseRef.current.x;
-    const my = mouseRef.current.y;
-
-    let left = mx + 12;
-    let top = my + 12;
-
-    if (left + tw + pad > w) left = mx - tw - 12;
-    left = Math.max(pad, Math.min(w - tw - pad, left));
-
-    if (top + th + pad > h) top = my - th - 12;
-    if (top < pad) top = pad;
-
-    return { left, top };
-  }, []);
+  // Legend always on left to avoid corner jumping, toggles top/bottom based on Y
+  const legendYClass = legendRefY < 150 ? "bottom-4" : "top-4";
+  const legendXClass = "left-4";
 
   return (
     <div className="relative w-full space-y-3">
@@ -954,7 +1236,14 @@ export const SkillsGraph = ({
           className="absolute inset-0 pointer-events-none"
         >
           {graphData.nodes.map((node) => {
-            const color = blendColors(node.cardIndices);
+            const scaleFactor = labelScale(node, hoveredSkill?.id || null);
+
+            const color = node.baseColor!;
+            const background = getLabelBackground(
+              node,
+              clusterCentersRef.current,
+            );
+            const border = getLabelBorder(node);
 
             return (
               <div
@@ -967,7 +1256,7 @@ export const SkillsGraph = ({
                 style={{
                   left: 0,
                   top: 0,
-                  transform: "translate(-9999px, -9999px)",
+                  transform: "translate(-9999px, -9999px) scale(1)",
                   opacity: 0,
                   willChange: "transform, opacity",
                 }}
@@ -975,11 +1264,11 @@ export const SkillsGraph = ({
                 <div
                   className="px-3 py-1.5 rounded-lg backdrop-blur-md"
                   style={{
-                    background: `hsla(${color.hue}, ${color.sat}%, ${Math.min(
-                      20,
-                      color.light - 40,
-                    )}%, 0.75)`,
-                    border: `1.5px solid hsla(${color.hue}, ${color.sat}%, ${color.light}%, 0.4)`,
+                    transform: `scale(${scaleFactor})`,
+                    transformOrigin: "center center",
+                    transition: "transform 0.3s ease-out",
+                    background: background,
+                    border: border,
                     boxShadow: `
                       0 4px 16px hsla(0, 0%, 0%, 0.5),
                       0 0 20px hsla(${color.hue}, ${color.sat}%, ${color.light}%, 0.2),
@@ -1008,52 +1297,42 @@ export const SkillsGraph = ({
           })}
         </div>
 
-        {hoveredSkill && (
-          <div
-            ref={tooltipRef}
-            className="absolute z-10 px-3 py-2 rounded-lg pointer-events-none animate-in fade-in duration-200"
-            style={{
-              left: tooltipStyle?.left ?? mouseRef.current.x + 15,
-              top: tooltipStyle?.top ?? mouseRef.current.y - 10,
-              background: "hsla(220, 25%, 10%, 0.6)",
-              backdropFilter: "blur(20px)",
-              border: "1px solid hsla(200, 60%, 65%, 0.2)",
-              boxShadow:
-                "0 4px 16px hsla(0, 0%, 0%, 0.3), inset 0 1px 0 hsla(255, 255%, 255%, 0.08)",
-              maxWidth: 200,
-            }}
-          >
-            <div className="font-body text-xs space-y-1">
-              {hoveredSkill.cardIndices.map((cardIndex) => {
-                const company = experiences[cardIndex]?.company;
-                const color =
-                  EXPERIENCE_COLORS[cardIndex % EXPERIENCE_COLORS.length];
-                return company ? (
-                  <div key={cardIndex} className="flex items-center gap-2">
+        {/* Legend Layer */}
+        <div
+          className={`absolute z-20 pointer-events-none transition-all duration-300 ${legendXClass} ${legendYClass}`}
+        >
+          {showLegend && (
+            <div className="flex flex-col gap-1.5 animate-in fade-in duration-300 slide-in-from-left-4 items-start">
+              <span className="text-[10px] font-medium text-white/40 uppercase tracking-widest px-1 mb-0.5">
+                Connected To
+              </span>
+              <div className="flex flex-col gap-1.5 items-start">
+                {showLegend.cardIndices.map((cardIndex) => {
+                  const company = experiences[cardIndex]?.company;
+                  const color =
+                    EXPERIENCE_COLORS[cardIndex % EXPERIENCE_COLORS.length];
+                  return company ? (
                     <div
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{
-                        backgroundColor: `hsl(${color.hue}, ${color.sat}%, ${color.light}%)`,
-                        boxShadow: `0 0 4px hsla(${color.hue}, ${color.sat}%, ${color.light}%, 0.6)`,
-                      }}
-                    />
-                    <span
-                      className="text-[11px]"
-                      style={{
-                        color: `hsl(${color.hue}, ${color.sat}%, ${Math.min(
-                          90,
-                          color.light + 12,
-                        )}%)`,
-                      }}
+                      key={cardIndex}
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-black/40 backdrop-blur-md border border-white/10 shadow-xl"
                     >
-                      {company}
-                    </span>
-                  </div>
-                ) : null;
-              })}
+                      <div
+                        className="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_currentColor]"
+                        style={{
+                          backgroundColor: `hsl(${color.hue}, ${color.sat}%, ${color.light}%)`,
+                          color: `hsl(${color.hue}, ${color.sat}%, ${color.light}%)`,
+                        }}
+                      />
+                      <span className="text-xs font-medium text-white/90 tracking-wide">
+                        {company}
+                      </span>
+                    </div>
+                  ) : null;
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
