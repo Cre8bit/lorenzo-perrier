@@ -209,7 +209,7 @@ const ExperienceSection = () => {
               </h2>
 
               <p className="mt-1 text-xs text-muted-foreground ml-11">
-                Hover nodes to reveal skills and where I’ve applied them
+                Hover nodes to reveal skills, each color represents an experience.
               </p>
             </div>
 

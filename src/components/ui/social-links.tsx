@@ -40,14 +40,14 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
         className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
           isHovered
             ? "bg-primary/20 border-primary/40 scale-110"
-            : "bg-glass-bg/30 border-white/5"
+            : "bg-glass-bg/60 border-white/10"
         }`}
         style={{
           backdropFilter: "blur(12px)",
           border: "1px solid",
           borderColor: isHovered
             ? "hsl(var(--primary) / 0.4)"
-            : "hsl(var(--foreground) / 0.05)",
+            : "hsl(var(--foreground) / 0.22)",
         }}
       >
         {/* Liquid shine effect */}
@@ -69,7 +69,7 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
 
         <span
           className={`relative z-10 transition-colors duration-300 ${
-            isHovered ? "text-primary" : "text-muted-foreground/60"
+            isHovered ? "text-primary" : "text-muted-foreground"
           }`}
         >
           {icon}
@@ -276,14 +276,14 @@ const ContactButton = () => {
           className={`relative px-0 sm:px-4 h-10 sm:h-10 w-10 sm:w-auto rounded-full flex items-center justify-center gap-0 sm:gap-2 transition-all duration-500 ${
             isHovered
               ? "bg-primary/20 border-primary/40 scale-105"
-              : "bg-glass-bg/30 border-white/5"
+              : "bg-glass-bg/60 border-white/10"
           }`}
           style={{
             backdropFilter: "blur(12px)",
             border: "1px solid",
             borderColor: isHovered
               ? "hsl(var(--primary) / 0.4)"
-              : "hsl(var(--foreground) / 0.05)",
+              : "hsl(var(--foreground) / 0.22)",
           }}
         >
           <div
@@ -304,13 +304,13 @@ const ContactButton = () => {
 
           <Mail
             className={`w-4 h-4 transition-colors duration-300 ${
-              isHovered ? "text-primary" : "text-muted-foreground/60"
+              isHovered ? "text-primary" : "text-muted-foreground"
             }`}
             strokeWidth={1.5}
           />
           <span
             className={`hidden sm:inline relative z-10 select-none text-sm font-medium transition-colors duration-300 ${
-              isHovered ? "text-primary" : "text-muted-foreground/60"
+              isHovered ? "text-primary" : "text-muted-foreground"
             }`}
           >
             Let's connect
