@@ -1,329 +1,578 @@
-import { useRef, useState, useEffect, useMemo, useCallback } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Environment } from "@react-three/drei";
+// CubeScene.tsx — drop-in replacement using @react-three/rapier
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { OrbitControls, Environment, Grid, useGLTF } from "@react-three/drei";
+import { Physics, RigidBody, CuboidCollider, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { getRandomColor } from "@/components/cubespace/cubeColors";
 
-// Simple physics constants
-const GRAVITY = -15;
-const BOUNCE_DAMPING = 0.3;
-const FRICTION = 0.98;
 const FLOOR_Y = 0;
 const CUBE_SIZE = 0.8;
-const MAX_CUBES = 100;
+const MAX_CUBES = 150;
+
+const DROP_CLEARANCE = 8;
+const DROP_PLANE_MAX_RADIUS = 7;
+const FLAG_OFFSET = 0.45;
 
 interface CubeData {
   id: number;
-  position: THREE.Vector3;
-  velocity: THREE.Vector3;
-  rotation: THREE.Euler;
-  rotationVel: THREE.Vector3;
+  position: [number, number, number];
+  rotation: [number, number, number];
   color: string;
-  settled: boolean;
-  name: string;
+  impulse?: [number, number, number];
 }
 
-// Matte color palette
-const CUBE_COLORS = [
-  "hsl(185, 40%, 45%)", // teal
-  "hsl(220, 35%, 50%)", // blue
-  "hsl(260, 30%, 55%)", // purple
-  "hsl(340, 35%, 50%)", // rose
-  "hsl(30, 40%, 50%)",  // amber
-  "hsl(160, 35%, 45%)", // emerald
-];
-
-const getRandomColor = () =>
-  CUBE_COLORS[Math.floor(Math.random() * CUBE_COLORS.length)];
-
-// Single falling cube component
-const FallingCube = ({
-  data,
-  allCubes,
-  onUpdate,
-}: {
-  data: CubeData;
-  allCubes: CubeData[];
-  onUpdate: (id: number, updates: Partial<CubeData>) => void;
-}) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  useFrame((_, delta) => {
-    if (!meshRef.current || data.settled) return;
-
-    const clampedDelta = Math.min(delta, 0.05);
-
-    // Apply gravity
-    let newVelY = data.velocity.y + GRAVITY * clampedDelta;
-    let newY = data.position.y + newVelY * clampedDelta;
-    let newVelX = data.velocity.x * FRICTION;
-    let newVelZ = data.velocity.z * FRICTION;
-    let newX = data.position.x + newVelX * clampedDelta;
-    let newZ = data.position.z + newVelZ * clampedDelta;
-
-    // Check floor collision
-    const halfSize = CUBE_SIZE / 2;
-    if (newY - halfSize < FLOOR_Y) {
-      newY = FLOOR_Y + halfSize;
-      newVelY > -0.5
-        ? ((newVelX = 0), (newVelZ = 0))
-        : null;
-      const bounceVelY = -newVelY * BOUNCE_DAMPING;
-      
-      // Check if settled
-      if (Math.abs(bounceVelY) < 0.3) {
-        onUpdate(data.id, {
-          position: new THREE.Vector3(newX, newY, newZ),
-          velocity: new THREE.Vector3(0, 0, 0),
-          settled: true,
-        });
-        return;
-      }
-      
-      onUpdate(data.id, {
-        position: new THREE.Vector3(newX, newY, newZ),
-        velocity: new THREE.Vector3(newVelX, bounceVelY, newVelZ),
-      });
-      return;
-    }
-
-    // Simple cube-cube collision (check against settled cubes)
-    for (const other of allCubes) {
-      if (other.id === data.id || !other.settled) continue;
-
-      const dx = newX - other.position.x;
-      const dy = newY - other.position.y;
-      const dz = newZ - other.position.z;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-      if (dist < CUBE_SIZE * 0.95) {
-        // Collision detected - push apart and bounce
-        const overlap = CUBE_SIZE - dist;
-        const nx = dx / dist || 0;
-        const ny = dy / dist || 1;
-        const nz = dz / dist || 0;
-
-        newX += nx * overlap * 0.6;
-        newY += ny * overlap * 0.6;
-        newZ += nz * overlap * 0.6;
-
-        // Reflect velocity
-        const dot = newVelX * nx + newVelY * ny + newVelZ * nz;
-        newVelX = (newVelX - 2 * dot * nx) * BOUNCE_DAMPING;
-        newVelY = (newVelY - 2 * dot * ny) * BOUNCE_DAMPING;
-        newVelZ = (newVelZ - 2 * dot * nz) * BOUNCE_DAMPING;
-
-        // Check if should settle on top
-        if (ny > 0.7 && Math.abs(newVelY) < 0.5) {
-          onUpdate(data.id, {
-            position: new THREE.Vector3(newX, other.position.y + CUBE_SIZE, newZ),
-            velocity: new THREE.Vector3(0, 0, 0),
-            settled: true,
-          });
-          return;
-        }
-      }
-    }
-
-    // Update rotation
-    const newRotX = data.rotation.x + data.rotationVel.x * clampedDelta;
-    const newRotZ = data.rotation.z + data.rotationVel.z * clampedDelta;
-
-    onUpdate(data.id, {
-      position: new THREE.Vector3(newX, newY, newZ),
-      velocity: new THREE.Vector3(newVelX, newVelY, newVelZ),
-      rotation: new THREE.Euler(newRotX, data.rotation.y, newRotZ),
-    });
-  });
-
-  // Update mesh from data
-  useEffect(() => {
-    if (meshRef.current) {
-      meshRef.current.position.copy(data.position);
-      meshRef.current.rotation.copy(data.rotation);
-    }
-  }, [data.position, data.rotation]);
-
-  return (
-    <mesh ref={meshRef} castShadow receiveShadow>
-      <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
-      <meshStandardMaterial
-        color={data.color}
-        roughness={0.8}
-        metalness={0.1}
-      />
-    </mesh>
-  );
+export type CubeSceneStats = {
+  cubeCount: number;
+  towerHeight: number;
 };
 
-// Floor platform
-const Floor = () => {
-  return (
-    <mesh
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, 0, 0]}
-      receiveShadow
-    >
-      <planeGeometry args={[20, 20]} />
-      <meshStandardMaterial
-        color="hsl(220, 15%, 10%)"
-        roughness={0.9}
-        metalness={0.1}
-        transparent
-        opacity={0.6}
-      />
-    </mesh>
-  );
+type Props = {
+  isPlacing?: boolean;
+  onStatsChange?: (s: CubeSceneStats) => void;
+  selectedColor?: string;
+  onPlaced?: () => void;
 };
 
-// Grid lines for subtle floor indication
-const FloorGrid = () => {
+function clamp(v: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, v));
+}
+
+const InfiniteGrid = () => {
   return (
-    <gridHelper
-      args={[20, 20, "hsl(185, 30%, 25%)", "hsl(220, 20%, 15%)"]}
+    <Grid
       position={[0, 0.01, 0]}
+      infiniteGrid
+      fadeDistance={45}
+      fadeStrength={2.5}
+      cellSize={1}
+      cellThickness={0.35}
+      sectionSize={4}
+      sectionThickness={1}
+      // Keep mood: subtle, not neon
+      cellColor={"hsl(186, 38%, 38%)"}
+      sectionColor={"hsl(249, 39%, 32%)"}
     />
   );
 };
 
-// Scene content
-const SceneContent = ({
-  dropTrigger,
-  guestName,
+const DropPlane = ({
+  enabled,
+  y,
+  onPlace,
+  color,
 }: {
-  dropTrigger: number;
-  guestName: string;
+  enabled: boolean;
+  y: number;
+  onPlace: (pos: THREE.Vector3) => void;
+  color: string;
 }) => {
+  const planeRef = useRef<THREE.Mesh>(null);
+  const ghostRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const zoneRef = useRef<THREE.Mesh>(null);
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
+  const pointerMovedRef = useRef(false);
+
+  const [hoverPos, setHoverPos] = useState<THREE.Vector3 | null>(null);
+
+  useEffect(() => {
+    if (planeRef.current) planeRef.current.position.y = y;
+    if (zoneRef.current) zoneRef.current.position.y = y + 0.01;
+  }, [y]);
+
+  useFrame(() => {
+    if (!enabled) return;
+    if (ghostRef.current && hoverPos) {
+      ghostRef.current.position.copy(hoverPos);
+      ghostRef.current.position.y = y + CUBE_SIZE / 2;
+    }
+    if (ringRef.current && hoverPos) {
+      ringRef.current.position.set(hoverPos.x, y + 0.03, hoverPos.z);
+    }
+  });
+
+  if (!enabled) return null;
+
+  const handleMove = (e: ThreeEvent<PointerEvent>) => {
+    const p = e.point as THREE.Vector3;
+    const r = Math.sqrt(p.x * p.x + p.z * p.z);
+    if (r > DROP_PLANE_MAX_RADIUS) {
+      const t = DROP_PLANE_MAX_RADIUS / (r || 1);
+      setHoverPos(new THREE.Vector3(p.x * t, y, p.z * t));
+    } else {
+      setHoverPos(new THREE.Vector3(p.x, y, p.z));
+    }
+
+    if (pointerDownRef.current) {
+      const dx = e.clientX - pointerDownRef.current.x;
+      const dy = e.clientY - pointerDownRef.current.y;
+      if (dx * dx + dy * dy > 36) {
+        pointerMovedRef.current = true;
+      }
+    }
+  };
+
+  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
+    pointerDownRef.current = { x: e.clientX, y: e.clientY };
+    pointerMovedRef.current = false;
+  };
+
+  const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
+    if (!hoverPos) return;
+    if (pointerMovedRef.current) {
+      pointerDownRef.current = null;
+      pointerMovedRef.current = false;
+      return;
+    }
+    e.stopPropagation();
+    onPlace(new THREE.Vector3(hoverPos.x, y + CUBE_SIZE / 2, hoverPos.z));
+    pointerDownRef.current = null;
+    pointerMovedRef.current = false;
+  };
+
+  return (
+    <group>
+      <mesh ref={zoneRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, y + 0.01, 0]}>
+        <circleGeometry args={[DROP_PLANE_MAX_RADIUS, 64]} />
+        <meshBasicMaterial color={color} transparent opacity={0.12} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, y + 0.02, 0]}>
+        <ringGeometry args={[DROP_PLANE_MAX_RADIUS - 0.05, DROP_PLANE_MAX_RADIUS + 0.05, 96]} />
+        <meshBasicMaterial color={color} transparent opacity={0.35} />
+      </mesh>
+
+      <mesh
+        ref={planeRef}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, y, 0]}
+        onPointerMove={handleMove}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+      >
+        <planeGeometry args={[200, 200]} />
+        <meshBasicMaterial transparent opacity={0} />
+      </mesh>
+
+      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, y + 0.03, 0]}>
+        <ringGeometry args={[0.55, 0.75, 48]} />
+        <meshBasicMaterial color={color} transparent opacity={0.22} />
+      </mesh>
+
+      <mesh ref={ghostRef} position={[0, y + CUBE_SIZE / 2, 0]}>
+        <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
+        <meshStandardMaterial
+          color={color}
+          transparent
+          opacity={0.18}
+          roughness={0.4}
+          metalness={0.2}
+        />
+      </mesh>
+    </group>
+  );
+};
+
+const CubeRigid = ({
+  cube,
+  onRegister,
+}: {
+  cube: CubeData;
+  onRegister: (id: number, api: RapierRigidBody | null) => void;
+}) => {
+  const bodyRef = useRef<RapierRigidBody | null>(null);
+
+  useEffect(() => {
+    if (bodyRef.current && cube.impulse) {
+      const [x, y, z] = cube.impulse;
+      bodyRef.current.setLinvel({ x, y, z }, true);
+    }
+  }, [cube.impulse]);
+
+  return (
+    <RigidBody
+      ref={(api) => {
+        bodyRef.current = api;
+        onRegister(cube.id, api);
+      }}
+      colliders={false}
+      position={cube.position}
+      rotation={cube.rotation}
+      restitution={0.12}
+      friction={0.7}
+      linearDamping={0.4}
+      angularDamping={0.6}
+      canSleep
+    >
+      <CuboidCollider args={[CUBE_SIZE / 2, CUBE_SIZE / 2, CUBE_SIZE / 2]} />
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
+        <meshStandardMaterial color={cube.color} roughness={0.82} metalness={0.08} />
+      </mesh>
+    </RigidBody>
+  );
+};
+
+const FlagMarker = ({
+  position,
+  rotation,
+}: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+}) => {
+  const { scene } = useGLTF("/flag.glb");
+  const flagScene = useMemo(() => scene.clone(true), [scene]);
+  return (
+    <group position={position} rotation={rotation} scale={[0.6, 0.6, 0.6]}>
+      <primitive object={flagScene} />
+    </group>
+  );
+};
+
+const SceneContent = ({
+  isPlacing,
+  onStatsChange,
+  selectedColor,
+  onPlaced,
+}: Props) => {
   const [cubes, setCubes] = useState<CubeData[]>([]);
+  const [towerHeight, setTowerHeight] = useState(0);
+  const [flagPose, setFlagPose] = useState<{
+    position: [number, number, number];
+    rotation: [number, number, number];
+  } | null>(null);
   const cubeIdRef = useRef(0);
+  const pendingPlaceIdRef = useRef<number | null>(null);
+  const pendingPlaceSettledFramesRef = useRef(0);
+  const isDropLockedRef = useRef(false);
+  const flagCubeIdRef = useRef<number | null>(null);
+  const bodyMapRef = useRef<Map<number, RapierRigidBody>>(new Map());
+  const updateTickRef = useRef(0);
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const fallbackColorRef = useRef(getRandomColor());
+  const initialCameraSetRef = useRef(false);
+  const baseTargetRef = useRef({ y: 2, distance: 10 });
+  const placementTargetRef = useRef(0);
+  const placementDistanceRef = useRef(0);
+  const transitionRef = useRef<{
+    active: boolean;
+    progress: number;
+    duration: number;
+    fromTargetY: number;
+    toTargetY: number;
+    fromDistance: number;
+    toDistance: number;
+    theta: number;
+    phi: number;
+  }>({
+    active: false,
+    progress: 0,
+    duration: 1.1,
+    fromTargetY: 0,
+    toTargetY: 0,
+    fromDistance: 0,
+    toDistance: 0,
+    theta: 0,
+    phi: Math.PI / 3,
+  });
   const { camera } = useThree();
 
-  // Set initial camera position
+  const dropY = useMemo(() => {
+    const base = Math.max(8, towerHeight + DROP_CLEARANCE);
+    return clamp(base, 8, 60);
+  }, [towerHeight]);
+
+  const targetY = useMemo(
+    () => clamp(towerHeight * 0.5 + 0.6, 1.4, 24),
+    [towerHeight]
+  );
+  const desiredDistance = useMemo(
+    () => clamp(8 + towerHeight * 0.75, 8, 42),
+    [towerHeight]
+  );
+
+  const placementTargetY = useMemo(() => clamp(dropY * 0.6, 5, 30), [dropY]);
+  const placementDistance = useMemo(() => clamp(16 + dropY * 1.1, 22, 90), [dropY]);
+
   useEffect(() => {
-    camera.position.set(8, 6, 8);
-    camera.lookAt(0, 2, 0);
-  }, [camera]);
+    placementTargetRef.current = placementTargetY;
+    placementDistanceRef.current = placementDistance;
+  }, [placementDistance, placementTargetY]);
 
-  // Handle drop trigger
   useEffect(() => {
-    if (dropTrigger === 0) return;
+    if (!isPlacing) {
+      isDropLockedRef.current = false;
+      pendingPlaceIdRef.current = null;
+      pendingPlaceSettledFramesRef.current = 0;
+    }
+  }, [isPlacing]);
 
-    // Limit max cubes
-    setCubes((prev) => {
-      const trimmed = prev.length >= MAX_CUBES ? prev.slice(-MAX_CUBES + 1) : prev;
-      
-      const newCube: CubeData = {
-        id: cubeIdRef.current++,
-        position: new THREE.Vector3(
-          (Math.random() - 0.5) * 4,
-          8 + Math.random() * 2,
-          (Math.random() - 0.5) * 4
-        ),
-        velocity: new THREE.Vector3(
-          (Math.random() - 0.5) * 2,
-          0,
-          (Math.random() - 0.5) * 2
-        ),
-        rotation: new THREE.Euler(
-          Math.random() * Math.PI,
-          Math.random() * Math.PI,
-          Math.random() * Math.PI
-        ),
-        rotationVel: new THREE.Vector3(
-          (Math.random() - 0.5) * 5,
-          0,
-          (Math.random() - 0.5) * 5
-        ),
-        color: getRandomColor(),
-        settled: false,
-        name: guestName,
-      };
+  useEffect(() => {
+    if (!controlsRef.current || initialCameraSetRef.current) return;
+    if (towerHeight < 0.2 && cubes.length > 0) return;
+    const target = new THREE.Vector3(0, targetY, 0);
+    const dir = new THREE.Vector3(1, 0.9, 1).normalize();
+    const desiredPos = target.clone().add(dir.multiplyScalar(desiredDistance));
+    camera.position.copy(desiredPos);
+    controlsRef.current.target.copy(target);
+    controlsRef.current.update();
+    baseTargetRef.current = { y: targetY, distance: desiredDistance };
+    initialCameraSetRef.current = true;
+  }, [camera, desiredDistance, targetY, towerHeight, cubes.length]);
 
-      return [...trimmed, newCube];
+  useEffect(() => {
+    if (!controlsRef.current || !initialCameraSetRef.current) return;
+    const controls = controlsRef.current;
+    const currentTarget = controls.target.clone();
+    const offset = camera.position.clone().sub(currentTarget);
+    const spherical = new THREE.Spherical().setFromVector3(offset);
+    const startDistance = offset.length();
+
+    transitionRef.current = {
+      active: true,
+      progress: 0,
+      duration: 1.15,
+      fromTargetY: currentTarget.y,
+      toTargetY: isPlacing ? placementTargetRef.current : baseTargetRef.current.y,
+      fromDistance: startDistance,
+      toDistance: isPlacing ? placementDistanceRef.current : baseTargetRef.current.distance,
+      theta: spherical.theta,
+      phi: spherical.phi,
+    };
+    controls.enabled = false;
+  }, [camera, isPlacing]);
+
+  useEffect(() => {
+    onStatsChange?.({ cubeCount: cubes.length, towerHeight });
+  }, [cubes.length, towerHeight, onStatsChange]);
+
+  const registerBody = useCallback((id: number, api: RapierRigidBody | null) => {
+    if (api) bodyMapRef.current.set(id, api);
+    else bodyMapRef.current.delete(id);
+  }, []);
+
+  useFrame(() => {
+    updateTickRef.current += 1;
+    if (updateTickRef.current % 6 !== 0) return;
+
+    let maxSettledY = 0;
+    let hasActive = false;
+    let highestSettledY = -Infinity;
+    let highestSettledId: number | null = null;
+    let highestSettledPos = { x: 0, y: 0, z: 0 };
+
+    bodyMapRef.current.forEach((api, id) => {
+      const pos = api?.translation?.() ?? { x: 0, y: 0, z: 0 };
+      const lin = api?.linvel?.() ?? { x: 0, y: 0, z: 0 };
+      const ang = api?.angvel?.() ?? { x: 0, y: 0, z: 0 };
+      const speed = Math.hypot(lin.x, lin.y, lin.z);
+      const spin = Math.hypot(ang.x, ang.y, ang.z);
+      const isSettled = api?.isSleeping?.() ?? (speed < 0.05 && spin < 0.05);
+      if (!isSettled) {
+        hasActive = true;
+        return;
+      }
+      maxSettledY = Math.max(maxSettledY, pos.y + CUBE_SIZE / 2);
+      if (pos.y > highestSettledY) {
+        highestSettledY = pos.y;
+        highestSettledId = id ?? null;
+        highestSettledPos = pos;
+      }
     });
-  }, [dropTrigger, guestName]);
 
-  const handleCubeUpdate = useCallback(
-    (id: number, updates: Partial<CubeData>) => {
-      setCubes((prev) =>
-        prev.map((cube) =>
-          cube.id === id ? { ...cube, ...updates } : cube
-        )
-      );
+    setTowerHeight((prev) => {
+      if (hasActive && maxSettledY < prev) return prev;
+      const next = prev + (maxSettledY - prev) * 0.2;
+      return Math.abs(next - prev) < 0.02 ? maxSettledY : next;
+    });
+
+    if (!hasActive && highestSettledId !== null && highestSettledId !== flagCubeIdRef.current) {
+      flagCubeIdRef.current = highestSettledId;
+      setFlagPose({
+        position: [
+          highestSettledPos.x,
+          highestSettledPos.y + CUBE_SIZE / 2 + FLAG_OFFSET,
+          highestSettledPos.z,
+        ],
+        rotation: [
+          (Math.random() - 0.5) * 0.25,
+          Math.random() * Math.PI * 2,
+          (Math.random() - 0.5) * 0.25,
+        ],
+      });
+    }
+
+    const pendingId = pendingPlaceIdRef.current;
+    if (pendingId !== null) {
+      const api = bodyMapRef.current.get(pendingId);
+      if (api) {
+        const lin = api?.linvel?.() ?? { x: 0, y: 0, z: 0 };
+        const ang = api?.angvel?.() ?? { x: 0, y: 0, z: 0 };
+        const speed = Math.hypot(lin.x, lin.y, lin.z);
+        const spin = Math.hypot(ang.x, ang.y, ang.z);
+        const isSettled = api?.isSleeping?.() ?? (speed < 0.05 && spin < 0.05);
+        if (isSettled) {
+          pendingPlaceSettledFramesRef.current += 1;
+        } else {
+          pendingPlaceSettledFramesRef.current = 0;
+        }
+        if (pendingPlaceSettledFramesRef.current >= 8) {
+          pendingPlaceIdRef.current = null;
+          pendingPlaceSettledFramesRef.current = 0;
+          onPlaced?.();
+        }
+      }
+    }
+  });
+
+  useFrame((_, delta) => {
+    if (!transitionRef.current.active || !controlsRef.current) return;
+    const t = transitionRef.current;
+    t.progress = Math.min(1, t.progress + delta / t.duration);
+    const eased = t.progress * t.progress * (3 - 2 * t.progress);
+    const targetYValue = t.fromTargetY + (t.toTargetY - t.fromTargetY) * eased;
+    const distanceValue = t.fromDistance + (t.toDistance - t.fromDistance) * eased;
+
+    const target = new THREE.Vector3(0, targetYValue, 0);
+    const spherical = new THREE.Spherical(distanceValue, t.phi, t.theta);
+    const desiredPos = new THREE.Vector3().setFromSpherical(spherical).add(target);
+
+    camera.position.copy(desiredPos);
+    controlsRef.current.target.copy(target);
+    controlsRef.current.update();
+
+    if (t.progress >= 1) {
+      transitionRef.current.active = false;
+      controlsRef.current.enabled = true;
+    }
+  });
+
+  const spawnCubeAt = useCallback(
+    (pos: THREE.Vector3, opts?: { impulse?: boolean; color?: string }) => {
+      const newId = cubeIdRef.current++;
+      setCubes((prev) => {
+        const trimmed = prev.length >= MAX_CUBES ? prev.slice(-MAX_CUBES + 1) : prev;
+        const impulse = opts?.impulse ?? true;
+        const impulseVec: [number, number, number] | undefined = impulse
+          ? [
+              (Math.random() - 0.5) * 1.2,
+              0.4 + Math.random() * 0.6,
+              (Math.random() - 0.5) * 1.2,
+            ]
+          : undefined;
+
+        const newCube: CubeData = {
+          id: newId,
+          position: [pos.x, pos.y, pos.z],
+          rotation: [Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI],
+          color: opts?.color ?? getRandomColor(),
+          impulse: impulseVec,
+        };
+
+        return [...trimmed, newCube];
+      });
+      return newId;
     },
     []
   );
 
+  useEffect(() => {
+    setCubes((prev) => {
+      if (prev.length > 0) return prev;
+      const baseY = FLOOR_Y + CUBE_SIZE / 2;
+      const seed: CubeData[] = Array.from({ length: 3 }, (_, i) => ({
+        id: cubeIdRef.current++,
+        position: [0, baseY + i * CUBE_SIZE, 0],
+        rotation: [
+          (Math.random() - 0.5) * 0.12,
+          Math.random() * Math.PI,
+          (Math.random() - 0.5) * 0.12,
+        ],
+        color: getRandomColor(),
+        name: "Seed",
+      }));
+      return seed;
+    });
+  }, []);
+
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.42} />
       <directionalLight
-        position={[10, 15, 10]}
-        intensity={0.8}
+        position={[10, 16, 10]}
+        intensity={0.85}
         castShadow
         shadow-mapSize={[1024, 1024]}
-        shadow-camera-far={50}
-        shadow-camera-left={-10}
-        shadow-camera-right={10}
-        shadow-camera-top={10}
-        shadow-camera-bottom={-10}
+        shadow-camera-far={60}
+        shadow-camera-left={-12}
+        shadow-camera-right={12}
+        shadow-camera-top={12}
+        shadow-camera-bottom={-12}
       />
-      <pointLight position={[-5, 8, -5]} intensity={0.3} color="hsl(185, 50%, 60%)" />
+      <pointLight position={[-5, 8, -5]} intensity={0.32} color="hsl(185, 50%, 60%)" />
 
-      {/* Environment for subtle reflections */}
       <Environment preset="night" />
 
-      {/* Floor */}
-      <Floor />
-      <FloorGrid />
+      <InfiniteGrid />
 
-      {/* Cubes */}
-      {cubes.map((cube) => (
-        <FallingCube
-          key={cube.id}
-          data={cube}
-          allCubes={cubes}
-          onUpdate={handleCubeUpdate}
+      <Physics gravity={[0, -18, 0]}>
+        <RigidBody type="fixed" colliders={false} friction={1} restitution={0.05}>
+          <CuboidCollider args={[60, 0.1, 60]} position={[0, FLOOR_Y - 0.1, 0]} />
+        </RigidBody>
+
+        <DropPlane
+          enabled={!!isPlacing && !isDropLockedRef.current}
+          y={dropY}
+          color={selectedColor ?? fallbackColorRef.current}
+          onPlace={(p) => {
+            if (isDropLockedRef.current || pendingPlaceIdRef.current !== null) return;
+            const id = spawnCubeAt(p, {
+              impulse: false,
+              color: selectedColor ?? fallbackColorRef.current,
+            });
+            pendingPlaceIdRef.current = id;
+            pendingPlaceSettledFramesRef.current = 0;
+            isDropLockedRef.current = true;
+          }}
         />
-      ))}
 
-      {/* Camera controls */}
+        {cubes.map((cube) => (
+          <CubeRigid key={cube.id} cube={cube} onRegister={registerBody} />
+        ))}
+        {flagPose && <FlagMarker position={flagPose.position} rotation={flagPose.rotation} />}
+      </Physics>
+
       <OrbitControls
+        ref={controlsRef}
         enablePan={false}
-        minDistance={5}
-        maxDistance={20}
-        maxPolarAngle={Math.PI / 2 - 0.1} // Prevent going under floor
+        enableZoom={!isPlacing}
+        minDistance={
+          isPlacing ? placementDistance : Math.max(6, (baseTargetRef.current.distance || 14) * 0.35)
+        }
+        maxDistance={isPlacing ? placementDistance : 140}
+        maxPolarAngle={Math.PI / 2 - 0.12}
         minPolarAngle={0.2}
         enableDamping
-        dampingFactor={0.05}
-        target={[0, 1, 0]}
+        dampingFactor={0.06}
       />
     </>
   );
 };
 
-// Main exported component
-const CubeScene = ({
-  dropTrigger,
-  guestName,
-}: {
-  dropTrigger: number;
-  guestName: string;
-}) => {
+const CubeScene = (props: Props) => {
   return (
     <Canvas
       shadows
       dpr={[1, 2]}
-      gl={{
-        antialias: true,
-        alpha: true,
-        powerPreference: "high-performance",
-      }}
-      camera={{ fov: 45, near: 0.1, far: 100 }}
+      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+      camera={{ fov: 45, near: 0.1, far: 140 }}
     >
-      <SceneContent dropTrigger={dropTrigger} guestName={guestName} />
+      <SceneContent {...props} />
     </Canvas>
   );
 };
 
 export default CubeScene;
+
+useGLTF.preload("/flag.glb");
