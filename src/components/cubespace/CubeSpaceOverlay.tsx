@@ -15,8 +15,7 @@ type Props = {
 
 function formatHeight(h: number) {
   // interpret 1 unit ≈ 1 meter-ish for fun UI
-  const meters = h;
-  if (meters < 1) return "0.0m";
+  const meters = Math.max(0, h);
   return `${meters.toFixed(meters < 10 ? 1 : 0)}m`;
 }
 
@@ -38,17 +37,6 @@ export const CubeSpaceOverlay = ({
     [maxScale]
   );
   const fillPercent = Math.min(100, (towerHeight / maxScale) * 100);
-  const ctaSpectrum = useMemo(() => {
-    const stops = CUBE_COLORS.map((color, index) => {
-      const pct = Math.round((index / (CUBE_COLORS.length - 1)) * 100);
-      const glow = color.replace("hsl(", "hsla(").replace(")", ", 0.35)");
-      const bg = color.replace("hsl(", "hsla(").replace(")", ", 0.28)");
-      const text = color.replace("hsl(", "hsla(").replace(")", ", 0.95)");
-      return `${pct}% { background-color: ${bg}; border-color: ${color}; color: ${text}; box-shadow: 0 14px 32px ${glow}; }`;
-    }).join("\n");
-    return `@keyframes ctaSpectrum { ${stops} }`;
-  }, []);
-
   return (
     <>
       {/* Title */}
@@ -82,7 +70,7 @@ export const CubeSpaceOverlay = ({
                 color: "hsla(185, 40%, 45%, 0.95)",
                 boxShadow: "0 14px 32px hsla(185, 40%, 45%, 0.35)",
                 animation:
-                  "ctaPulse 2.4s ease-in-out infinite, ctaSpectrum 22s ease-in-out infinite",
+                  "ctaPulse 2.4s ease-in-out infinite, ctaHue 18s linear infinite",
                 transformOrigin: "center",
               }}
             >
@@ -220,7 +208,10 @@ export const CubeSpaceOverlay = ({
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.06); }
           }
-          ${ctaSpectrum}
+          @keyframes ctaHue {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+          }
         `}
       </style>
     </>

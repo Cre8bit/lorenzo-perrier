@@ -247,6 +247,12 @@ const SceneContent = ({
   const pendingPlaceSettledFramesRef = useRef(0);
   const isDropLockedRef = useRef(false);
   const flagCubeIdRef = useRef<number | null>(null);
+  const flagLockIdRef = useRef<number | null>(null);
+  const lastHighestSettledIdRef = useRef<number | null>(null);
+  const lastHighestSettledPosRef = useRef<{ x: number; y: number; z: number } | null>(null);
+  const flagRotationRef = useRef<[number, number, number]>([0, 0, 0]);
+  const flagRotationReadyRef = useRef(false);
+  const wasActiveRef = useRef(false);
   const bodyMapRef = useRef<Map<number, RapierRigidBody>>(new Map());
   const updateTickRef = useRef(0);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
@@ -356,14 +362,23 @@ const SceneContent = ({
     updateTickRef.current += 1;
     if (updateTickRef.current % 6 !== 0) return;
 
-    let maxSettledY = 0;
+    let maxSettledTop = 0;
     let hasActive = false;
-    let highestSettledY = -Infinity;
+    let highestSettledTop = -Infinity;
     let highestSettledId: number | null = null;
     let highestSettledPos = { x: 0, y: 0, z: 0 };
+    let highestOverallTop = -Infinity;
+    let highestOverallId: number | null = null;
+    let highestOverallPos = { x: 0, y: 0, z: 0 };
 
     bodyMapRef.current.forEach((api, id) => {
       const pos = api?.translation?.() ?? { x: 0, y: 0, z: 0 };
+      const topY = pos.y + CUBE_SIZE / 2;
+      if (topY > highestOverallTop) {
+        highestOverallTop = topY;
+        highestOverallId = id ?? null;
+        highestOverallPos = pos;
+      }
       const lin = api?.linvel?.() ?? { x: 0, y: 0, z: 0 };
       const ang = api?.angvel?.() ?? { x: 0, y: 0, z: 0 };
       const speed = Math.hypot(lin.x, lin.y, lin.z);
@@ -373,34 +388,61 @@ const SceneContent = ({
         hasActive = true;
         return;
       }
-      maxSettledY = Math.max(maxSettledY, pos.y + CUBE_SIZE / 2);
-      if (pos.y > highestSettledY) {
-        highestSettledY = pos.y;
+      maxSettledTop = Math.max(maxSettledTop, topY);
+      if (topY > highestSettledTop) {
+        highestSettledTop = topY;
         highestSettledId = id ?? null;
         highestSettledPos = pos;
       }
     });
 
-    setTowerHeight((prev) => {
-      if (hasActive && maxSettledY < prev) return prev;
-      const next = prev + (maxSettledY - prev) * 0.2;
-      return Math.abs(next - prev) < 0.02 ? maxSettledY : next;
-    });
+    const justSettled = wasActiveRef.current && !hasActive;
+    wasActiveRef.current = hasActive;
 
-    if (!hasActive && highestSettledId !== null && highestSettledId !== flagCubeIdRef.current) {
-      flagCubeIdRef.current = highestSettledId;
-      setFlagPose({
-        position: [
-          highestSettledPos.x,
-          highestSettledPos.y + CUBE_SIZE / 2 + FLAG_OFFSET,
-          highestSettledPos.z,
-        ],
-        rotation: [
-          (Math.random() - 0.5) * 0.25,
-          Math.random() * Math.PI * 2,
-          (Math.random() - 0.5) * 0.25,
-        ],
-      });
+    if (!hasActive) {
+      const nextHeight = bodyMapRef.current.size > 0 ? maxSettledTop : 0;
+      setTowerHeight(nextHeight);
+      lastHighestSettledIdRef.current = highestSettledId;
+      lastHighestSettledPosRef.current =
+        highestSettledId !== null ? highestSettledPos : null;
+    }
+
+    if (hasActive && flagLockIdRef.current !== null) {
+      const locked = bodyMapRef.current.get(flagLockIdRef.current);
+      const pos = locked?.translation?.();
+      if (pos) {
+        setFlagPose({
+          position: [pos.x, pos.y + CUBE_SIZE / 2 + FLAG_OFFSET, pos.z],
+          rotation: flagRotationRef.current,
+        });
+      }
+    }
+
+    if (!hasActive && highestSettledId !== null) {
+      const prevFlagId = flagCubeIdRef.current;
+      const shouldUpdatePose = highestSettledId !== prevFlagId || !flagPose;
+      if (shouldUpdatePose) {
+        flagCubeIdRef.current = highestSettledId;
+        flagLockIdRef.current = null;
+        if (highestSettledId !== prevFlagId || !flagPose) {
+          flagRotationRef.current = [
+            (Math.random() - 0.5) * 0.25,
+            Math.random() * Math.PI * 2,
+            (Math.random() - 0.5) * 0.25,
+          ];
+          flagRotationReadyRef.current = true;
+        }
+        setFlagPose({
+          position: [
+            highestSettledPos.x,
+            highestSettledPos.y + CUBE_SIZE / 2 + FLAG_OFFSET,
+            highestSettledPos.z,
+          ],
+          rotation: flagRotationRef.current,
+        });
+      }
+    } else if (!hasActive && highestSettledId === null && flagPose) {
+      setFlagPose(null);
     }
 
     const pendingId = pendingPlaceIdRef.current;
@@ -527,6 +569,22 @@ const SceneContent = ({
           color={selectedColor ?? fallbackColorRef.current}
           onPlace={(p) => {
             if (isDropLockedRef.current || pendingPlaceIdRef.current !== null) return;
+            const lockId = lastHighestSettledIdRef.current;
+            if (lockId !== null) {
+              flagLockIdRef.current = lockId;
+              flagCubeIdRef.current = lockId;
+              const lockPos = lastHighestSettledPosRef.current;
+              if (lockPos) {
+                setFlagPose({
+                  position: [
+                    lockPos.x,
+                    lockPos.y + CUBE_SIZE / 2 + FLAG_OFFSET,
+                    lockPos.z,
+                  ],
+                  rotation: flagRotationRef.current,
+                });
+              }
+            }
             const id = spawnCubeAt(p, {
               impulse: false,
               color: selectedColor ?? fallbackColorRef.current,
