@@ -1,29 +1,19 @@
-import { lazy, Suspense, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { AmbientBackground } from "@/components/ui/ambient-background";
 import { HeroSection } from "@/components/sections/HeroSection";
-import { LiquidNavigation } from "@/components/sections/LiquidNavigation";
 import { ScrollIndicator } from "@/components/ui/scroll-indicator";
-import { ContactActions, SocialLinks } from "@/components/ui/social-links";
 import { PhilosophyReveal } from "@/components/sections/PhilosophySection/PhilosophyReveal";
 import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGlide";
 import { ScrollTransition } from "@/components/transitions/ScrollTransition";
 import { useInViewport } from "@/hooks/use-in-viewport";
 import { useAppContext } from "@/contexts/useAppContext";
-import { AppProvider } from "@/contexts/AppProvider";
 import ExperienceSection from "@/components/sections/ExperienceSection/ExperienceSection";
-import { ConstellationRevealLoader } from "@/components/transitions/ConstellationRevealLoader";
 import { reportPerformance } from "@/components/ui/performance-overlay";
+import ParticleField3D from "@/components/ui/particle-field-3d";
 
-// Lazy load Three.js particle field for better initial bundle size
-const ParticleField3D = lazy(() => import("@/components/ui/particle-field-3d"));
-
-const IndexContent = () => {
-  const {
-    activePresetIndex,
-    currentSection,
-    setCurrentSection,
-    isInitialized,
-  } = useAppContext();
+const HomeContent = () => {
+  const { activePresetIndex, currentSection, setCurrentSection } =
+    useAppContext();
 
   // Stable spy options - memoized to prevent observer recreation
   const spyOptions = useMemo<IntersectionObserverInit>(
@@ -119,25 +109,6 @@ const IndexContent = () => {
       className="relative min-h-screen w-full"
       style={{ overflowX: "clip" }}
     >
-      {/* Loading overlay - shown until Three.js initializes */}
-      {!isInitialized && (
-        <div className="fixed inset-0 z-50 bg-gradient-to-b from-background via-background to-background flex items-center justify-center pointer-events-auto">
-          <div className="text-center space-y-4">
-            <ConstellationRevealLoader
-              size={190}
-              points={14}
-              durationMs={4200} // slower
-              seed={Math.floor(Math.random() * 10000)}
-              maxLinkDist={38}
-              neighbors={2}
-            />
-            <p className="text-sm text-muted-foreground font-body">
-              Initializing…
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Background stack - behind content but above page background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         {/* Solid background color layer */}
@@ -149,20 +120,11 @@ const IndexContent = () => {
         {/* Ambient background with gradient orbs */}
         <AmbientBackground />
 
-        {/* Interactive 3D particle field (lazy loaded) */}
-        <Suspense fallback={null}>
-          <ParticleField3D activePresetIndex={effectivePresetIndex} />
-        </Suspense>
+        <ParticleField3D activePresetIndex={effectivePresetIndex} />
       </div>
 
       {/* Foreground stack */}
       <div className="relative z-10">
-        {/* Social links - top right */}
-        <SocialLinks hide={currentSection === "experience"} />
-
-        {/* Contact link - bottom left */}
-        <ContactActions hide={currentSection === "experience"} />
-
         {/* Hero section with floating text */}
         <section id="hero" ref={hero.ref}>
           <HeroSection />
@@ -188,20 +150,13 @@ const IndexContent = () => {
         <section id="experience" ref={experience.ref}>
           <ExperienceSection />
         </section>
-
-        {/* Liquid horizontal navigation */}
-        <LiquidNavigation />
       </div>
     </main>
   );
 };
 
-const Index = () => {
-  return (
-    <AppProvider>
-      <IndexContent />
-    </AppProvider>
-  );
+const Home = () => {
+  return <HomeContent />;
 };
 
-export default Index;
+export default Home;

@@ -7,8 +7,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { SocialLinks, ContactActions } from "@/components/ui/social-links";
-import { LiquidNavigation } from "@/components/sections/LiquidNavigation";
 import { PageWrapper } from "@/components/transitions/PageTransition";
 import { ConstellationRevealLoader } from "@/components/transitions/ConstellationRevealLoader";
 
@@ -34,6 +32,7 @@ import {
   type StoredUser,
   type Vec3,
 } from "@/lib/cubespaceStorage";
+import { useAppContext } from "@/contexts/useAppContext";
 
 // Lazy load the heavy Three.js scene
 const CubeScene = lazy(() => import("@/components/cubespace/CubeScene"));
@@ -57,6 +56,7 @@ const writeStorage = (key: string, value: unknown) => {
 };
 
 const CubeSpace = () => {
+  const { setCurrentSection } = useAppContext();
   const [selectedColor, setSelectedColor] = useState(() => getRandomColor());
 
   // NEW: placing mode + live stats from scene
@@ -109,6 +109,10 @@ const CubeSpace = () => {
     >
   >(new Map());
   const pendingRevealIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setCurrentSection("cubeSpace");
+  }, [setCurrentSection]);
 
   useEffect(() => {
     writeStorage(VIEWER_PROFILE_KEY, viewerProfile);
@@ -539,16 +543,6 @@ const CubeSpace = () => {
 
         {/* UI Overlay Layer */}
         <div className="relative z-20 pointer-events-none">
-          {/* Social links */}
-          <div className="pointer-events-auto">
-            <SocialLinks />
-          </div>
-
-          {/* Contact button */}
-          <div className="pointer-events-auto">
-            <ContactActions />
-          </div>
-
           {/* NEW overlay */}
           {sceneReady && (
             <CubeSpaceOverlay
@@ -611,10 +605,6 @@ const CubeSpace = () => {
             </>
           )}
 
-          {/* Liquid Navigation */}
-          <div className="pointer-events-auto">
-            <LiquidNavigation />
-          </div>
         </div>
       </main>
     </PageWrapper>

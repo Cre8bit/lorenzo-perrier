@@ -4,7 +4,7 @@ import { AppContext, AppSection } from "./AppContext";
 export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [activePresetIndex, setActivePresetIndex] = useState(0);
   const [currentSection, setCurrentSection] = useState<AppSection>("hero");
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isParticleFieldInitialized, setIsParticleFieldInitialized] = useState(false);
   const [isResumeViewVisible, setIsResumeViewVisible] = useState(false);
 
   return (
@@ -14,8 +14,8 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
         setActivePresetIndex,
         currentSection,
         setCurrentSection,
-        isInitialized,
-        setIsInitialized,
+        isParticleFieldInitialized,
+        setIsParticleFieldInitialized,
         isResumeViewVisible,
         setIsResumeViewVisible,
       }}

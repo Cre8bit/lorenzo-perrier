@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-export type AppSection = "hero" | "philosophy" | "carousel" | "experience";
+export type AppSection = "hero" | "philosophy" | "carousel" | "experience" | "cubeSpace";
 
 export interface AppContextType {
   // Particle field preset for current section
@@ -11,9 +11,9 @@ export interface AppContextType {
   currentSection: AppSection;
   setCurrentSection: (section: AppSection) => void;
 
-  // Three.js initialization state
-  isInitialized: boolean;
-  setIsInitialized: (initialized: boolean) => void;
+  // Particle field initialized
+  isParticleFieldInitialized: boolean;
+  setIsParticleFieldInitialized: (initialized: boolean) => void;
 
   // Resume view visible: show experience header when scrolled past hero AND in experience section
   isResumeViewVisible: boolean;

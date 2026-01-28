@@ -94,7 +94,7 @@ export const AnimatedSubtitle = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [textVisible, setTextVisible] = useState(true);
   const [transitionKey, setTransitionKey] = useState(0);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Only show/animate the constellation in the HERO section
   const isHero = currentSection === "hero";
