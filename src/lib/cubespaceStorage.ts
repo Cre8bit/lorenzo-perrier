@@ -19,37 +19,55 @@ export type StoredCube = {
   createdAt?: number;
 };
 
-const STORAGE_KEYS = {
-  users: "cubespace-users",
-  cubes: "cubespace-cubes",
-} as const;
+import {
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  type Unsubscribe,
+} from "firebase/firestore";
+import { getFirestoreDb } from "@/lib/firebase";
 
-const readStorage = <T,>(key: string, fallback: T): T => {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
+const USERS_COLLECTION = "users";
+const CUBES_COLLECTION = "cubes";
+
+export const listenUsers = (onChange: (users: StoredUser[]) => void): Unsubscribe => {
+  const db = getFirestoreDb();
+  const ref = collection(db, USERS_COLLECTION);
+  return onSnapshot(ref, (snapshot) => {
+    const users = snapshot.docs.map((item) => {
+      const data = item.data() as StoredUser;
+      return { ...data, id: data.id ?? item.id };
+    });
+    console.log("[firestore] users snapshot", users);
+    onChange(users);
+  });
 };
 
-const writeStorage = (key: string, value: unknown) => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(value));
+export const listenCubes = (onChange: (cubes: StoredCube[]) => void): Unsubscribe => {
+  const db = getFirestoreDb();
+  const ref = collection(db, CUBES_COLLECTION);
+  return onSnapshot(ref, (snapshot) => {
+    const cubes = snapshot.docs.map((item) => {
+      const data = item.data() as StoredCube;
+      const parsedId = typeof data.id === "number" ? data.id : Number(item.id);
+      return { ...data, id: Number.isNaN(parsedId) ? data.id : parsedId };
+    });
+    console.log("[firestore] cubes snapshot", cubes);
+    onChange(cubes);
+  });
 };
 
-export const loadUsers = () => readStorage<StoredUser[]>(STORAGE_KEYS.users, []);
-
-export const loadCubes = () => readStorage<StoredCube[]>(STORAGE_KEYS.cubes, []);
-
-export const saveUsers = (users: StoredUser[]) => {
-  writeStorage(STORAGE_KEYS.users, users);
+export const upsertUser = async (user: StoredUser) => {
+  const db = getFirestoreDb();
+  const ref = doc(db, USERS_COLLECTION, user.id);
+  await setDoc(ref, user, { merge: true });
 };
 
-export const saveCubes = (cubes: StoredCube[]) => {
-  writeStorage(STORAGE_KEYS.cubes, cubes);
+export const upsertCube = async (cube: StoredCube) => {
+  const db = getFirestoreDb();
+  const ref = doc(db, CUBES_COLLECTION, String(cube.id));
+  await setDoc(ref, cube, { merge: true });
 };
 
 export const normalizeNameKey = (firstName: string, lastName: string) => {

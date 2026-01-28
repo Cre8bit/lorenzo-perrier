@@ -22,13 +22,14 @@ import {
   type CubeProfileMap,
 } from "@/components/cubespace/cubeProfiles";
 import { isAuth0Configured, loginWithLinkedInPopup } from "@/lib/auth0";
+import { ensureAnonymousAuth } from "@/lib/firebase";
 import {
-  loadCubes,
-  loadUsers,
+  listenCubes,
+  listenUsers,
   normalizeLinkedIn,
   normalizeNameKey,
-  saveCubes,
-  saveUsers,
+  upsertCube,
+  upsertUser,
   type StoredCube,
   type StoredUser,
   type Vec3,
@@ -65,12 +66,8 @@ const CubeSpace = () => {
     towerHeight: 0,
   });
 
-  const [storedUsers, setStoredUsers] = useState<StoredUser[]>(() =>
-    loadUsers(),
-  );
-  const [storedCubes, setStoredCubes] = useState<StoredCube[]>(() =>
-    loadCubes(),
-  );
+  const [storedUsers, setStoredUsers] = useState<StoredUser[]>([]);
+  const [storedCubes, setStoredCubes] = useState<StoredCube[]>([]);
   const [viewerProfile, setViewerProfile] = useState<CubeProfile | null>(() =>
     readStorage<CubeProfile | null>(VIEWER_PROFILE_KEY, null),
   );
@@ -81,6 +78,7 @@ const CubeSpace = () => {
   const [focusCubeId, setFocusCubeId] = useState<number | null>(null);
   const [ownerCardOpen, setOwnerCardOpen] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
+  const [cubesLoaded, setCubesLoaded] = useState(false);
   const [activeCubeScreen, setActiveCubeScreen] = useState<{
     id: number | null;
     x: number;
@@ -116,13 +114,38 @@ const CubeSpace = () => {
     writeStorage(VIEWER_PROFILE_KEY, viewerProfile);
   }, [viewerProfile]);
 
-  useEffect(() => {
-    saveUsers(storedUsers);
-  }, [storedUsers]);
+  const handleUsersSnapshot = useCallback((users: StoredUser[]) => {
+    setStoredUsers(users);
+  }, []);
+
+  const handleCubesSnapshot = useCallback((cubes: StoredCube[]) => {
+    setStoredCubes(cubes);
+    setCubesLoaded(true);
+  }, []);
 
   useEffect(() => {
-    saveCubes(storedCubes);
-  }, [storedCubes]);
+    let unsubUsers: (() => void) | null = null;
+    let unsubCubes: (() => void) | null = null;
+    let alive = true;
+
+    const start = async () => {
+      try {
+        await ensureAnonymousAuth();
+        if (!alive) return;
+        unsubUsers = listenUsers(handleUsersSnapshot);
+        unsubCubes = listenCubes(handleCubesSnapshot);
+      } catch (error) {
+        console.error("Failed to init anonymous auth:", error);
+      }
+    };
+
+    start();
+    return () => {
+      alive = false;
+      unsubUsers?.();
+      unsubCubes?.();
+    };
+  }, [handleCubesSnapshot, handleUsersSnapshot]);
 
   useEffect(() => {
     if (!ownerCardOpen && authStatus.status !== "idle") {
@@ -214,6 +237,23 @@ const CubeSpace = () => {
             },
           ],
     );
+    ensureAnonymousAuth()
+      .then(() =>
+        Promise.all([
+          upsertUser(user),
+          upsertCube({
+            id: pending.id,
+            userId: user.id,
+            color: pending.color,
+            dropPosition: pending.dropPosition,
+            finalPosition: pending.finalPosition,
+            createdAt: pending.createdAt ?? Date.now(),
+          }),
+        ]),
+      )
+      .catch((error) => {
+        console.error("Failed to save cube or user:", error);
+      });
     pendingCubesRef.current.delete(id);
     setEphemeralProfiles((prev) => {
       const next = { ...prev };
@@ -460,23 +500,7 @@ const CubeSpace = () => {
 
         {/* Three.js Scene */}
         <div className="absolute inset-0 z-10">
-          <Suspense
-            fallback={
-              <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-                <ConstellationRevealLoader
-                  size={190}
-                  points={14}
-                  durationMs={4200} // slower
-                  seed={Math.floor(Math.random() * 10000)}
-                  maxLinkDist={38}
-                  neighbors={2}
-                />{" "}
-                <div className="text-xs uppercase tracking-[0.3em] text-muted-foreground/70">
-                  Loading cubes
-                </div>
-              </div>
-            }
-          >
+          <Suspense fallback={null}>
             <CubeScene
               isPlacing={isPlacing}
               onStatsChange={setStats}
@@ -484,6 +508,7 @@ const CubeSpace = () => {
               onCubeDropped={handleCubeDropped}
               onCubeSettled={handleCubeSettled}
               initialCubes={initialCubes}
+              initialCubesLoaded={cubesLoaded}
               cubeProfiles={cubeProfiles}
               focusCubeId={focusCubeId}
               focusTick={focusTick}
@@ -496,7 +521,7 @@ const CubeSpace = () => {
           </Suspense>
         </div>
 
-        {!sceneReady && (
+        {(!cubesLoaded || !sceneReady) && (
           <div className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/40 backdrop-blur-sm pointer-events-auto">
             <ConstellationRevealLoader
               size={190}

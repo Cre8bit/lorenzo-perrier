@@ -42,6 +42,7 @@ type Props = {
   onActiveCubeScreenChange?: (payload: { id: number | null; x: number; y: number; visible: boolean }) => void;
   onSceneReady?: () => void;
   initialCubes?: CubeData[];
+  initialCubesLoaded?: boolean;
   cubeProfiles?: CubeProfileMap;
   focusCubeId?: number | null;
   focusTick?: number;
@@ -357,6 +358,7 @@ const SceneContent = ({
   onActiveCubeScreenChange,
   onSceneReady,
   initialCubes,
+  initialCubesLoaded,
   cubeProfiles,
   focusCubeId,
   focusTick,
@@ -835,6 +837,7 @@ const SceneContent = ({
 
   useEffect(() => {
     if (initialCubes && initialCubes.length > 0) return;
+    if (initialCubesLoaded) return;
     setCubes((prev) => {
       if (prev.length > 0) return prev;
       const baseY = FLOOR_Y + CUBE_SIZE / 2;
