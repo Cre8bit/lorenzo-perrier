@@ -3,14 +3,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useMatch } from "react-router-dom";
+
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import { LiquidNavigation } from "@/components/sections/LiquidNavigation";
 import { ContactActions, SocialLinks } from "@/components/ui/social-links";
-import { ConstellationRevealLoader } from "@/components/transitions/ConstellationRevealLoader";
 import { AppProvider } from "@/contexts/AppProvider";
 import { useAppContext } from "@/contexts/useAppContext";
+import { GlobalBackground } from "@/components/ui/global-background";
+import { AppLoaderGate } from "@/components/transitions/AppLoaderGate";
+import { CubeSpaceDataProvider } from "@/contexts/CubeSpaceDataProvider";
+import { CubeSpaceConstellationLoader } from "@/components/cubespace/CubeSpaceConstellationLoader";
 import {
   PerformanceOverlay,
   usePerformanceOverlay,
@@ -23,80 +27,88 @@ import { setParticleField3DQuality } from "./components/ui/particle-quality";
 
 const queryClient = new QueryClient();
 
-const loadCubeSpace = () => import("./pages/CubeSpace");
+// Lazy only the heavy route
+const CubeSpace = lazy(() => import("./pages/CubeSpace"));
 
-const CubeSpace = lazy(loadCubeSpace);
+const AppRouterLayer = () => {
+  const isCubeSpaceRoute = useMatch("/cubespace/*") != null;
+  const { currentSection } = useAppContext();
+  const [hasVisitedCubeSpace, setHasVisitedCubeSpace] = useState(false);
+  const keepAliveEnabled = hasVisitedCubeSpace || isCubeSpaceRoute;
 
-const AppBootLoader = () => (
-  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gradient-to-b from-background via-background to-background">
-    <div className="text-center space-y-4">
-      <ConstellationRevealLoader
-        size={190}
-        points={14}
-        durationMs={4200}
-        seed={Math.floor(Math.random() * 10000)}
-        maxLinkDist={38}
-        neighbors={2}
-      />
-      <p className="text-sm text-muted-foreground font-body">
-        Initializing...
-      </p>
-    </div>
-  </div>
-);
+  useEffect(() => {
+    if (isCubeSpaceRoute) setHasVisitedCubeSpace(true);
+  }, [isCubeSpaceRoute]);
+
+  return (
+    <>
+      <GlobalBackground particleMode={isCubeSpaceRoute ? "idle" : "active"} />
+      <CubeSpaceDataProvider enabled={keepAliveEnabled}>
+        <AppLoaderGate>
+          <SocialLinks hide={currentSection === "experience"} />
+          <ContactActions hide={currentSection === "experience"} />
+          <LiquidNavigation />
+
+          <Suspense fallback={null}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/cubespace/*" element={null} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+
+          {keepAliveEnabled && (
+            <Suspense
+              fallback={
+                isCubeSpaceRoute ? (
+                  <CubeSpaceConstellationLoader
+                    className="fixed inset-0 z-30"
+                    message="Loading CubeSpace..."
+                    size={170}
+                  />
+                ) : null
+              }
+            >
+              <CubeSpace active={isCubeSpaceRoute} />
+            </Suspense>
+          )}
+        </AppLoaderGate>
+      </CubeSpaceDataProvider>
+    </>
+  );
+};
 
 const AppShell = () => {
   const perfEnabled = usePerformanceOverlay();
   const qualityEnabled = useQualityControls();
-  const [routesReady, setRoutesReady] = useState(false);
-  const { isParticleFieldInitialized, currentSection } = useAppContext();
 
   useEffect(() => {
-    let alive = true;
-    loadCubeSpace().then(() => {
-      if (alive) setRoutesReady(true);
-    });
-    return () => {
-      alive = false;
-    };
+    // Intentionally no CubeSpace/CubeScene prefetch here.
+    // We only load/keep-alive CubeSpace after the user visits /cubespace once.
   }, []);
-
-  const bootReady = routesReady && isParticleFieldInitialized;
 
   return (
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <PerformanceOverlay enabled={perfEnabled} />
-      <QualityControls
-        enabled={qualityEnabled}
-        onSettingsChange={setParticleField3DQuality}
-      />
-      {!bootReady && <AppBootLoader />}
+        <QualityControls
+          enabled={qualityEnabled}
+          onSettingsChange={setParticleField3DQuality}
+        />
       <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-        <SocialLinks hide={currentSection === "experience"}/>
-        <ContactActions hide={currentSection === "experience"}/>
-        <LiquidNavigation />
-        <Suspense fallback={<AppBootLoader />}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/cubespace" element={<CubeSpace />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+        <AppRouterLayer />
       </BrowserRouter>
     </TooltipProvider>
   );
 };
 
-const App = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <AppShell />
-      </AppProvider>
-    </QueryClientProvider>
-  );
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AppProvider>
+      <AppShell />
+    </AppProvider>
+  </QueryClientProvider>
+);
 
 export default App;

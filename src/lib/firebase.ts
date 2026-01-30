@@ -35,14 +35,31 @@ export const getFirebaseAuth = (): Auth => {
   return getAuth(getFirebaseApp());
 };
 
+let anonymousAuthPromise: Promise<void> | null = null;
+
 export const ensureAnonymousAuth = async (): Promise<void> => {
   const auth = getFirebaseAuth();
   if (auth.currentUser) return;
-  const existing = await new Promise<boolean>((resolve) => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      unsub();
-      resolve(Boolean(user));
+
+  if (anonymousAuthPromise) {
+    await anonymousAuthPromise;
+    return;
+  }
+
+  anonymousAuthPromise = (async () => {
+    const existing = await new Promise<boolean>((resolve) => {
+      const unsub = onAuthStateChanged(auth, (user) => {
+        unsub();
+        resolve(Boolean(user));
+      });
     });
-  });
-  if (!existing) await signInAnonymously(auth);
+    if (!existing) await signInAnonymously(auth);
+  })();
+
+  try {
+    await anonymousAuthPromise;
+  } catch (e) {
+    anonymousAuthPromise = null;
+    throw e;
+  }
 };

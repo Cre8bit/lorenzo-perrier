@@ -48,6 +48,7 @@ type Props = {
   focusTick?: number;
   activeCubeId?: number | null;
   ownerCardOpen?: boolean;
+  active?: boolean;
 };
 
 function clamp(v: number, min: number, max: number) {
@@ -364,6 +365,7 @@ const SceneContent = ({
   focusTick,
   activeCubeId,
   ownerCardOpen,
+  active = true,
 }: Props) => {
   const [cubes, setCubes] = useState<CubeData[]>(() => initialCubes ?? []);
   const [towerHeight, setTowerHeight] = useState(0);
@@ -572,6 +574,7 @@ const SceneContent = ({
   }, []);
 
   useFrame(() => {
+    if (!active) return;
     updateTickRef.current += 1;
     if (updateTickRef.current % 4 !== 0) return;
 
@@ -614,6 +617,22 @@ const SceneContent = ({
         highestSettledCreatedAt = recency;
       }
     });
+
+    if (!initialCameraSetRef.current && controlsRef.current) {
+      const nextDistance = desiredDistanceRef.current || 10;
+      const target =
+        highestOverallId !== null
+          ? new THREE.Vector3(highestOverallPos.x, highestOverallPos.y, highestOverallPos.z)
+          : new THREE.Vector3(0, 1.4, 0);
+
+      const dir = new THREE.Vector3(1, 0.9, 1).normalize();
+      const desiredPos = target.clone().add(dir.multiplyScalar(nextDistance));
+      camera.position.copy(desiredPos);
+      controlsRef.current.target.copy(target);
+      controlsRef.current.update();
+      baseTargetRef.current = { target, distance: nextDistance };
+      initialCameraSetRef.current = true;
+    }
 
     const justSettled = wasActiveRef.current && !hasActive;
     wasActiveRef.current = hasActive;
@@ -700,13 +719,12 @@ const SceneContent = ({
       setFlagPose(null);
     }
 
-    if (!hasActive) {
-      const bodiesReady =
-        bodyMapRef.current.size >= cubes.length || (cubes.length === 0 && bodyMapRef.current.size === 0);
-      if (!sceneReadyRef.current && bodiesReady && initialCameraSetRef.current) {
-        sceneReadyRef.current = true;
-        onSceneReady?.();
-      }
+    const bodiesReady =
+      bodyMapRef.current.size >= cubes.length ||
+      (cubes.length === 0 && bodyMapRef.current.size === 0);
+    if (!sceneReadyRef.current && bodiesReady && initialCameraSetRef.current) {
+      sceneReadyRef.current = true;
+      onSceneReady?.();
     }
 
     const pendingId = pendingPlaceIdRef.current;
@@ -741,6 +759,7 @@ const SceneContent = ({
   });
 
   useFrame((_, delta) => {
+    if (!active) return;
     if (!transitionRef.current.active || !controlsRef.current) return;
     const t = transitionRef.current;
     t.progress = Math.min(1, t.progress + delta / t.duration);
@@ -765,6 +784,7 @@ const SceneContent = ({
   });
 
   useFrame(() => {
+    if (!active) return;
     if (transitionRef.current.active) return;
     if (isPlacing) return;
     const pending = pendingFocusRef.current;
@@ -783,6 +803,7 @@ const SceneContent = ({
   });
 
   useFrame(() => {
+    if (!active) return;
     if (!onActiveCubeScreenChange) return;
     if (!ownerCardOpen || activeCubeId == null) {
       if (lastScreenRef.current?.visible !== false) {
@@ -830,29 +851,15 @@ const SceneContent = ({
 
   useEffect(() => {
     if (!initialCubes || initialCubes.length === 0) return;
-    setCubes((prev) => (prev.length > 0 ? prev : initialCubes));
     const maxId = initialCubes.reduce((max, cube) => Math.max(max, cube.id), 0);
     cubeIdRef.current = Math.max(cubeIdRef.current, maxId + 1);
-  }, [initialCubes]);
 
-  useEffect(() => {
-    if (initialCubes && initialCubes.length > 0) return;
-    if (initialCubesLoaded) return;
     setCubes((prev) => {
-      if (prev.length > 0) return prev;
-      const baseY = FLOOR_Y + CUBE_SIZE / 2;
-      const seed: CubeData[] = Array.from({ length: 3 }, (_, i) => ({
-        id: cubeIdRef.current++,
-        position: [0, baseY + i * CUBE_SIZE, 0],
-        rotation: [
-          (Math.random() - 0.5) * 0.12,
-          Math.random() * Math.PI,
-          (Math.random() - 0.5) * 0.12,
-        ],
-        color: getRandomColor(),
-        createdAt: Date.now() - (2 - i) * 1000,
-      }));
-      return seed;
+      const existingIds = new Set(prev.map((cube) => cube.id));
+      const additions = initialCubes.filter((cube) => !existingIds.has(cube.id));
+      if (additions.length === 0) return prev;
+      const merged = [...prev, ...additions];
+      return merged.length > MAX_CUBES ? merged.slice(-MAX_CUBES) : merged;
     });
   }, [initialCubes]);
 
@@ -968,14 +975,16 @@ const SceneContent = ({
 };
 
 const CubeScene = (props: Props) => {
+  const { active = true, ...rest } = props;
   return (
     <Canvas
       shadows
+      frameloop={active ? "always" : "demand"}
       dpr={[1, 2]}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       camera={{ fov: 45, near: 0.1, far: 140 }}
     >
-      <SceneContent {...props} />
+      <SceneContent active={active} {...rest} />
     </Canvas>
   );
 };

@@ -1,5 +1,4 @@
 import { useEffect, useMemo } from "react";
-import { AmbientBackground } from "@/components/ui/ambient-background";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { ScrollIndicator } from "@/components/ui/scroll-indicator";
 import { PhilosophyReveal } from "@/components/sections/PhilosophySection/PhilosophyReveal";
@@ -9,11 +8,15 @@ import { useInViewport } from "@/hooks/use-in-viewport";
 import { useAppContext } from "@/contexts/useAppContext";
 import ExperienceSection from "@/components/sections/ExperienceSection/ExperienceSection";
 import { reportPerformance } from "@/components/ui/performance-overlay";
-import ParticleField3D from "@/components/ui/particle-field-3d";
 
 const HomeContent = () => {
-  const { activePresetIndex, currentSection, setCurrentSection } =
-    useAppContext();
+  const { currentSection, setCurrentSection } = useAppContext();
+
+  useEffect(() => {
+    if (currentSection === "cubeSpace") {
+      setCurrentSection("hero");
+    }
+  }, [currentSection, setCurrentSection]);
 
   // Stable spy options - memoized to prevent observer recreation
   const spyOptions = useMemo<IntersectionObserverInit>(
@@ -100,57 +103,30 @@ const HomeContent = () => {
     setCurrentSection,
   ]);
 
-  // Compute effective preset index based on section
-  const effectivePresetIndex =
-    currentSection === "philosophy" ? activePresetIndex : -1; // -1 = default preset
-
   return (
     <main
-      className="relative min-h-screen w-full"
+      className="relative z-10 min-h-screen w-full"
       style={{ overflowX: "clip" }}
     >
-      {/* Background stack - behind content but above page background */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        {/* Solid background color layer */}
-        <div className="absolute inset-0 bg-background" />
+      <section id="hero" ref={hero.ref}>
+        <HeroSection />
+      </section>
 
-        {/* Noise overlay for texture */}
-        <div className="noise-overlay" />
+      <ScrollIndicator />
 
-        {/* Ambient background with gradient orbs */}
-        <AmbientBackground />
+      <section id="philosophy" ref={philo.ref}>
+        <PhilosophyReveal />
+      </section>
 
-        <ParticleField3D activePresetIndex={effectivePresetIndex} />
-      </div>
+      <section id="carousel" ref={carousel.ref}>
+        <CarouselGlide />
+      </section>
 
-      {/* Foreground stack */}
-      <div className="relative z-10">
-        {/* Hero section with floating text */}
-        <section id="hero" ref={hero.ref}>
-          <HeroSection />
-        </section>
+      <ScrollTransition />
 
-        {/* Scroll indicator with glow */}
-        <ScrollIndicator />
-
-        {/* Philosophy Section 2: Sequential Reveal with Timer + Overview */}
-        <section id="philosophy" ref={philo.ref}>
-          <PhilosophyReveal />
-        </section>
-
-        {/* Carousel Showcase Section */}
-        <section id="carousel" ref={carousel.ref}>
-          <CarouselGlide />
-        </section>
-
-        {/* Creative scroll transitions (POCs) */}
-        <ScrollTransition />
-
-        {/* Scrollable experience/resume section */}
-        <section id="experience" ref={experience.ref}>
-          <ExperienceSection />
-        </section>
-      </div>
+      <section id="experience" ref={experience.ref}>
+        <ExperienceSection />
+      </section>
     </main>
   );
 };

@@ -8,11 +8,10 @@ import {
   useState,
 } from "react";
 import { PageWrapper } from "@/components/transitions/PageTransition";
-import { ConstellationRevealLoader } from "@/components/transitions/ConstellationRevealLoader";
-
 import type { CubeSceneStats } from "@/components/cubespace/CubeScene";
 import { CubeSpaceOverlay } from "@/components/cubespace/CubeSpaceOverlay";
 import { CubeOwnerCard } from "@/components/cubespace/CubeOwnerCard";
+import { CubeSpaceConstellationLoader } from "@/components/cubespace/CubeSpaceConstellationLoader";
 import { getRandomColor } from "@/components/cubespace/cubeColors";
 import {
   buildFullName,
@@ -22,17 +21,15 @@ import {
 import { isAuth0Configured, loginWithLinkedInPopup } from "@/lib/auth0";
 import { ensureAnonymousAuth } from "@/lib/firebase";
 import {
-  listenCubes,
-  listenUsers,
   normalizeLinkedIn,
   normalizeNameKey,
   upsertCube,
   upsertUser,
-  type StoredCube,
   type StoredUser,
   type Vec3,
 } from "@/lib/cubespaceStorage";
 import { useAppContext } from "@/contexts/useAppContext";
+import { useCubeSpaceData } from "@/contexts/useCubeSpaceData";
 
 // Lazy load the heavy Three.js scene
 const CubeScene = lazy(() => import("@/components/cubespace/CubeScene"));
@@ -55,8 +52,26 @@ const writeStorage = (key: string, value: unknown) => {
   localStorage.setItem(key, JSON.stringify(value));
 };
 
-const CubeSpace = () => {
-  const { setCurrentSection } = useAppContext();
+type Props = {
+  active?: boolean;
+};
+
+const CubeSpace = ({ active = true }: Props) => {
+  const {
+    setCurrentSection,
+    setIsCubeSpaceReady,
+    setIsCubeSpaceSceneReady,
+  } = useAppContext();
+  const {
+    authReady,
+    usersLoaded,
+    cubesLoaded,
+    users: storedUsers,
+    cubes: storedCubes,
+    setUsers: setStoredUsers,
+    setCubes: setStoredCubes,
+    error: cubeSpaceDataError,
+  } = useCubeSpaceData();
   const [selectedColor, setSelectedColor] = useState(() => getRandomColor());
 
   // NEW: placing mode + live stats from scene
@@ -66,8 +81,6 @@ const CubeSpace = () => {
     towerHeight: 0,
   });
 
-  const [storedUsers, setStoredUsers] = useState<StoredUser[]>([]);
-  const [storedCubes, setStoredCubes] = useState<StoredCube[]>([]);
   const [viewerProfile, setViewerProfile] = useState<CubeProfile | null>(() =>
     readStorage<CubeProfile | null>(VIEWER_PROFILE_KEY, null),
   );
@@ -78,7 +91,6 @@ const CubeSpace = () => {
   const [focusCubeId, setFocusCubeId] = useState<number | null>(null);
   const [ownerCardOpen, setOwnerCardOpen] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
-  const [cubesLoaded, setCubesLoaded] = useState(false);
   const [activeCubeScreen, setActiveCubeScreen] = useState<{
     id: number | null;
     x: number;
@@ -111,45 +123,22 @@ const CubeSpace = () => {
   const pendingRevealIdRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (!active) return;
     setCurrentSection("cubeSpace");
-  }, [setCurrentSection]);
+  }, [active, setCurrentSection]);
 
   useEffect(() => {
     writeStorage(VIEWER_PROFILE_KEY, viewerProfile);
   }, [viewerProfile]);
 
-  const handleUsersSnapshot = useCallback((users: StoredUser[]) => {
-    setStoredUsers(users);
-  }, []);
-
-  const handleCubesSnapshot = useCallback((cubes: StoredCube[]) => {
-    setStoredCubes(cubes);
-    setCubesLoaded(true);
-  }, []);
+  const cubeSpaceReady =
+    sceneReady &&
+    (cubeSpaceDataError != null || (authReady && usersLoaded && cubesLoaded));
 
   useEffect(() => {
-    let unsubUsers: (() => void) | null = null;
-    let unsubCubes: (() => void) | null = null;
-    let alive = true;
-
-    const start = async () => {
-      try {
-        await ensureAnonymousAuth();
-        if (!alive) return;
-        unsubUsers = listenUsers(handleUsersSnapshot);
-        unsubCubes = listenCubes(handleCubesSnapshot);
-      } catch (error) {
-        console.error("Failed to init anonymous auth:", error);
-      }
-    };
-
-    start();
-    return () => {
-      alive = false;
-      unsubUsers?.();
-      unsubCubes?.();
-    };
-  }, [handleCubesSnapshot, handleUsersSnapshot]);
+    if (!active) return;
+    setIsCubeSpaceReady(cubeSpaceReady);
+  }, [active, cubeSpaceReady, setIsCubeSpaceReady]);
 
   useEffect(() => {
     if (!ownerCardOpen && authStatus.status !== "idle") {
@@ -158,8 +147,10 @@ const CubeSpace = () => {
   }, [authStatus.status, ownerCardOpen]);
 
   const handleSceneReady = useCallback(() => {
+    if (!active) return;
     setSceneReady(true);
-  }, []);
+    setIsCubeSpaceSceneReady(true);
+  }, [active, setIsCubeSpaceSceneReady]);
 
   useEffect(() => {
     if (!ownerCardOpen) {
@@ -465,9 +456,16 @@ const CubeSpace = () => {
     }
   };
 
+  const showSceneLoader = active && !cubeSpaceReady;
+  const sceneLoaderMessage = sceneReady ? "Loading cubes..." : "Loading scene...";
+
   return (
-    <PageWrapper>
-      <main className="relative h-screen w-full overflow-hidden">
+    <div
+      aria-hidden={!active}
+      className={`fixed inset-0 z-20 ${active ? "" : "invisible pointer-events-none"}`}
+    >
+      <PageWrapper>
+        <main className="relative h-screen w-full overflow-hidden">
         {/* Background gradient */}
         <div className="fixed inset-0 z-0">
           <div
@@ -506,6 +504,7 @@ const CubeSpace = () => {
         <div className="absolute inset-0 z-10">
           <Suspense fallback={null}>
             <CubeScene
+              active={active}
               isPlacing={isPlacing}
               onStatsChange={setStats}
               selectedColor={selectedColor}
@@ -523,28 +522,19 @@ const CubeSpace = () => {
               onSceneReady={handleSceneReady}
             />
           </Suspense>
+          {showSceneLoader && (
+            <CubeSpaceConstellationLoader
+              className="absolute inset-0 z-20"
+              message={sceneLoaderMessage}
+              size={170}
+            />
+          )}
         </div>
-
-        {(!cubesLoaded || !sceneReady) && (
-          <div className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/40 backdrop-blur-sm pointer-events-auto">
-            <ConstellationRevealLoader
-              size={190}
-              points={14}
-              durationMs={4200} // slower
-              seed={Math.floor(Math.random() * 10000)}
-              maxLinkDist={38}
-              neighbors={2}
-            />{" "}
-            <div className="text-xs uppercase tracking-[0.3em] text-muted-foreground/70">
-              Loading cubes
-            </div>
-          </div>
-        )}
 
         {/* UI Overlay Layer */}
         <div className="relative z-20 pointer-events-none">
           {/* NEW overlay */}
-          {sceneReady && (
+          {active && cubeSpaceReady && (
             <CubeSpaceOverlay
               cubeCount={stats.cubeCount}
               towerHeight={stats.towerHeight}
@@ -556,7 +546,7 @@ const CubeSpace = () => {
           )}
 
           {/* Owner panel + tether line */}
-          {sceneReady && ownerCardOpen && (
+          {active && cubeSpaceReady && ownerCardOpen && (
             <>
               <svg className="fixed inset-0 h-full w-full pointer-events-none">
                 {activeCubeScreen?.visible && ownerPanelRect && (
@@ -604,10 +594,10 @@ const CubeSpace = () => {
               </div>
             </>
           )}
-
         </div>
       </main>
-    </PageWrapper>
+      </PageWrapper>
+    </div>
   );
 };
 
