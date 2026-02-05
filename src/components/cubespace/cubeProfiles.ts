@@ -7,7 +7,7 @@ export type CubeProfile = {
   verified?: boolean;
 };
 
-export type CubeProfileMap = Record<number, CubeProfile>;
+export type CubeProfileMap = Record<string, CubeProfile>;
 
 export const buildFullName = (firstName: string, lastName: string) => {
   return `${firstName} ${lastName}`.trim();

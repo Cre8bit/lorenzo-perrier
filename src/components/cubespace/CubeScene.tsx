@@ -1,30 +1,52 @@
-// CubeScene.tsx — drop-in replacement using @react-three/rapier
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { OrbitControls, Environment, Grid, Html, useGLTF, useTexture } from "@react-three/drei";
-import { Physics, RigidBody, CuboidCollider, type RapierRigidBody } from "@react-three/rapier";
+import {
+  Canvas,
+  useFrame,
+  useThree,
+  type ThreeEvent,
+} from "@react-three/fiber";
+import {
+  OrbitControls,
+  Environment,
+  Grid,
+  Html,
+  useGLTF,
+  useTexture,
+} from "@react-three/drei";
+import {
+  Physics,
+  RigidBody,
+  CuboidCollider,
+  type RapierRigidBody,
+} from "@react-three/rapier";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { getRandomColor } from "@/components/cubespace/cubeColors";
-import type { CubeProfile, CubeProfileMap } from "@/components/cubespace/cubeProfiles";
-import type { Vec3 } from "@/lib/cubespaceStorage";
+import type {
+  CubeProfile,
+  CubeProfileMap,
+} from "@/components/cubespace/cubeProfiles";
+import type { Vec3, CubeDomain } from "@/types/CubeModel";
+import { BidirectionalMap } from "@/utils/BidirectionalMap";
 
 const FLOOR_Y = 0;
 const CUBE_SIZE = 0.8;
-const MAX_CUBES = 150;
 
 const DROP_CLEARANCE = 8;
 const DROP_PLANE_MAX_RADIUS = 7;
 const FLAG_OFFSET = 0.45;
 const HEIGHT_EPS = 0.0005;
 
-interface CubeData {
-  id: number;
+// Internal representation for rendering
+interface RenderCube {
+  sceneId: number; // Stable numeric ID for rendering/physics
+  localId: string;
   position: [number, number, number];
   rotation: [number, number, number];
   color: string;
+  status: CubeDomain["status"];
   impulse?: [number, number, number];
-  createdAt?: number;
+  createdAt: number;
 }
 
 export type CubeSceneStats = {
@@ -36,23 +58,39 @@ type Props = {
   isPlacing?: boolean;
   onStatsChange?: (s: CubeSceneStats) => void;
   selectedColor?: string;
-  onCubeDropped?: (payload: { id: number; dropPosition: Vec3; color: string; createdAt: number }) => void;
-  onCubeSettled?: (payload: { id: number; finalPosition: Vec3 }) => void;
-  onFocusComplete?: (payload: { id: number }) => void;
-  onActiveCubeScreenChange?: (payload: { id: number | null; x: number; y: number; visible: boolean }) => void;
+  onCubeDropped?: (payload: {
+    localId: string;
+    dropPosition: Vec3;
+    color: string;
+    createdAt: number;
+  }) => void;
+  onCubeSettled?: (payload: { localId: string; finalPosition: Vec3 }) => void;
+  onFocusComplete?: (payload: { localId: string }) => void;
+  onActiveCubeScreenChange?: (payload: {
+    localId: string | null;
+    x: number;
+    y: number;
+    visible: boolean;
+  }) => void;
   onSceneReady?: () => void;
-  initialCubes?: CubeData[];
-  initialCubesLoaded?: boolean;
-  cubeProfiles?: CubeProfileMap;
-  focusCubeId?: number | null;
-  focusTick?: number;
-  activeCubeId?: number | null;
+
+  cubes?: CubeDomain[]; // Controlled cubes prop
+  cubeProfiles?: CubeProfileMap; // Keyed by localId (UUID string)
+
+  focusCubeId?: string | null;
+  activeCubeId?: string | null;
   ownerCardOpen?: boolean;
   active?: boolean;
 };
 
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
+}
+
+function lerpAngle(a: number, b: number, t: number) {
+  const delta =
+    THREE.MathUtils.euclideanModulo(b - a + Math.PI, Math.PI * 2) - Math.PI;
+  return a + delta * t;
 }
 
 const InfiniteGrid = () => {
@@ -78,12 +116,17 @@ const DropPlane = ({
   onPlace,
   color,
   center,
+  guard,
 }: {
   enabled: boolean;
   y: number;
   onPlace: (pos: THREE.Vector3) => void;
   color: string;
   center: { x: number; z: number };
+  guard: {
+    placingStartedAtRef: { current: number };
+    lastWheelAtRef: { current: number };
+  };
 }) => {
   const planeRef = useRef<THREE.Mesh>(null);
   const ghostRef = useRef<THREE.Mesh>(null);
@@ -140,6 +183,14 @@ const DropPlane = ({
 
   const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
     if (!hoverPos) return;
+    const now = Date.now();
+    const recentlyEnabled = now - guard.placingStartedAtRef.current < 350;
+    const recentlyWheeled = now - guard.lastWheelAtRef.current < 300;
+    if (recentlyEnabled || recentlyWheeled) {
+      pointerDownRef.current = null;
+      pointerMovedRef.current = false;
+      return;
+    }
     if (pointerMovedRef.current) {
       pointerDownRef.current = null;
       pointerMovedRef.current = false;
@@ -161,8 +212,17 @@ const DropPlane = ({
         <circleGeometry args={[DROP_PLANE_MAX_RADIUS, 64]} />
         <meshBasicMaterial color={color} transparent opacity={0.12} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[center.x, y + 0.02, center.z]}>
-        <ringGeometry args={[DROP_PLANE_MAX_RADIUS - 0.05, DROP_PLANE_MAX_RADIUS + 0.05, 96]} />
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[center.x, y + 0.02, center.z]}
+      >
+        <ringGeometry
+          args={[
+            DROP_PLANE_MAX_RADIUS - 0.05,
+            DROP_PLANE_MAX_RADIUS + 0.05,
+            96,
+          ]}
+        />
         <meshBasicMaterial color={color} transparent opacity={0.35} />
       </mesh>
 
@@ -210,11 +270,11 @@ const CubeRigid = ({
   hoverEnabled,
   highlight,
 }: {
-  cube: CubeData;
-  onRegister: (id: number, api: RapierRigidBody | null) => void;
+  cube: RenderCube;
+  onRegister: (sceneId: number, api: RapierRigidBody | null) => void;
   profile?: CubeProfile;
   isHovered?: boolean;
-  onHover?: (id: number | null) => void;
+  onHover?: (sceneId: number | null) => void;
   hoverEnabled?: boolean;
   highlight?: boolean;
 }) => {
@@ -225,7 +285,7 @@ const CubeRigid = ({
   const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
     if (!hoverEnabled) return;
     e.stopPropagation();
-    onHover?.(cube.id);
+    onHover?.(cube.sceneId);
   };
 
   const handlePointerOut = (e: ThreeEvent<PointerEvent>) => {
@@ -245,7 +305,7 @@ const CubeRigid = ({
     <RigidBody
       ref={(api) => {
         bodyRef.current = api;
-        onRegister(cube.id, api);
+        onRegister(cube.sceneId, api);
       }}
       colliders={false}
       position={cube.position}
@@ -258,12 +318,23 @@ const CubeRigid = ({
     >
       <CuboidCollider args={[CUBE_SIZE / 2, CUBE_SIZE / 2, CUBE_SIZE / 2]} />
       <group>
-        <mesh castShadow receiveShadow onPointerOver={handlePointerOver} onPointerOut={handlePointerOut}>
+        <mesh
+          castShadow
+          receiveShadow
+          onPointerOver={handlePointerOver}
+          onPointerOut={handlePointerOut}
+        >
           <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
-          <meshStandardMaterial color={cube.color} roughness={0.82} metalness={0.08} />
+          <meshStandardMaterial
+            color={cube.color}
+            roughness={0.82}
+            metalness={0.08}
+          />
         </mesh>
         {highlight && <HighlightShell />}
-        {profile?.photoUrl && <PhotoBadge url={profile.photoUrl} verified={profile.verified} />}
+        {profile?.photoUrl && (
+          <PhotoBadge url={profile.photoUrl} verified={profile.verified} />
+        )}
         {showBubble && displayName ? <HoverBubble name={displayName} /> : null}
       </group>
     </RigidBody>
@@ -297,12 +368,21 @@ const PhotoBadge = ({ url, verified }: { url: string; verified?: boolean }) => {
     <group position={[0, 0, CUBE_SIZE / 2 + 0.01]}>
       <mesh>
         <planeGeometry args={[0.42, 0.42]} />
-        <meshBasicMaterial map={texture} transparent opacity={0.98} toneMapped={false} />
+        <meshBasicMaterial
+          map={texture}
+          transparent
+          opacity={0.98}
+          toneMapped={false}
+        />
       </mesh>
       {verified && (
         <mesh position={[0.17, 0.17, 0.01]}>
           <circleGeometry args={[0.06, 16]} />
-          <meshBasicMaterial color="hsl(164, 55%, 58%)" transparent opacity={0.7} />
+          <meshBasicMaterial
+            color="hsl(164, 55%, 58%)"
+            transparent
+            opacity={0.7}
+          />
         </mesh>
       )}
     </group>
@@ -337,7 +417,9 @@ const HighlightShell = () => {
 
   return (
     <mesh raycast={() => null}>
-      <boxGeometry args={[CUBE_SIZE + 0.06, CUBE_SIZE + 0.06, CUBE_SIZE + 0.06]} />
+      <boxGeometry
+        args={[CUBE_SIZE + 0.06, CUBE_SIZE + 0.06, CUBE_SIZE + 0.06]}
+      />
       <meshBasicMaterial
         ref={materialRef}
         color="hsl(185, 60%, 62%)"
@@ -358,48 +440,92 @@ const SceneContent = ({
   onFocusComplete,
   onActiveCubeScreenChange,
   onSceneReady,
-  initialCubes,
-  initialCubesLoaded,
+  cubes = [],
   cubeProfiles,
   focusCubeId,
-  focusTick,
   activeCubeId,
   ownerCardOpen,
   active = true,
 }: Props) => {
-  const [cubes, setCubes] = useState<CubeData[]>(() => initialCubes ?? []);
+  // --- ID Mapping ---
+  // Map localId (stable string) <-> sceneId (stable number for physics/rendering)
+  // Using BidirectionalMap for automatic consistency
+  const idMappingRef = useRef(new BidirectionalMap<string, number>());
+  const nextSceneIdRef = useRef(2000);
+
+  // --- Derived State ---
+  const renderCubes = useMemo<RenderCube[]>(() => {
+    return cubes.map((c) => {
+      let sid = idMappingRef.current.getByKey(c.localId);
+      if (sid === undefined) {
+        sid = nextSceneIdRef.current++;
+        idMappingRef.current.set(c.localId, sid);
+      }
+
+      const useFinal = c.status !== "draft" && c.finalPosition;
+      const x = useFinal ? c.finalPosition!.x : c.dropPosition.x;
+      const y = useFinal ? c.finalPosition!.y : c.dropPosition.y;
+      const z = useFinal ? c.finalPosition!.z : c.dropPosition.z;
+
+      return {
+        sceneId: sid,
+        localId: c.localId,
+        position: [x, y, z],
+        rotation: [0, 0, 0], // Simple accumulation; real rotation matches physics body
+        color: c.color,
+        status: c.status,
+        createdAt: c.createdAtLocal,
+        // Impulse not really used in store yet, but can be added if needed
+      };
+    });
+  }, [cubes]);
+
   const [towerHeight, setTowerHeight] = useState(0);
-  const [hoveredCubeId, setHoveredCubeId] = useState<number | null>(null);
+  const [hoveredCubeId, setHoveredCubeId] = useState<number | null>(null); // Scene ID
+  const [isSimulating, setIsSimulating] = useState(false);
   const [flagPose, setFlagPose] = useState<{
     position: [number, number, number];
     rotation: [number, number, number];
   } | null>(null);
-  const cubeIdRef = useRef(0);
-  const pendingPlaceIdRef = useRef<number | null>(null);
+
+  // Refs
+  const pendingPlaceIdRef = useRef<number | null>(null); // Scene ID
   const pendingPlaceSettledFramesRef = useRef(0);
   const isDropLockedRef = useRef(false);
-  const flagCubeIdRef = useRef<number | null>(null);
-  const flagLockIdRef = useRef<number | null>(null);
-  const lastHighestSettledIdRef = useRef<number | null>(null);
-  const lastHighestSettledPosRef = useRef<{ x: number; y: number; z: number } | null>(null);
+  const wasActiveRef = useRef(active);
+  const flagCubeIdRef = useRef<number | null>(null); // Scene ID
+  const flagLockIdRef = useRef<number | null>(null); // Scene ID
+  const lastHighestSettledIdRef = useRef<number | null>(null); // Scene ID
+  const lastHighestSettledPosRef = useRef<{
+    x: number;
+    y: number;
+    z: number;
+  } | null>(null);
   const flagRotationRef = useRef<[number, number, number]>([0, 0, 0]);
   const flagRotationReadyRef = useRef(false);
-  const wasActiveRef = useRef(false);
-  const bodyMapRef = useRef<Map<number, RapierRigidBody>>(new Map());
+  const bodyMapRef = useRef<Map<number, RapierRigidBody>>(new Map()); // Key: Scene ID
   const updateTickRef = useRef(0);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const fallbackColorRef = useRef(getRandomColor());
   const initialCameraSetRef = useRef(false);
   const sceneReadyRef = useRef(false);
-  const baseTargetRef = useRef({ target: new THREE.Vector3(0, 2, 0), distance: 10 });
+  const baseTargetRef = useRef({
+    target: new THREE.Vector3(0, 2, 0),
+    distance: 10,
+  });
   const [focusDistance, setFocusDistance] = useState(6);
-  const pendingFocusRef = useRef<{ id: number; tick: number } | null>(null);
+  const pendingFocusRef = useRef<{ id: number } | null>(null); // Scene ID
   const dropInFlightRef = useRef(false);
   const lastDropSettledAtRef = useRef<number | null>(null);
-  const lastScreenRef = useRef<{ x: number; y: number; visible: boolean } | null>(null);
-  const createdAtMapRef = useRef<Map<number, number>>(new Map());
+  const lastScreenRef = useRef<{
+    x: number;
+    y: number;
+    visible: boolean;
+  } | null>(null);
   const desiredDistanceRef = useRef(10);
-  const [dropCenter, setDropCenter] = useState<{ x: number; z: number }>({ x: 0, z: 0 });
+  const placingStartedAtRef = useRef(0);
+  const lastWheelAtRef = useRef(0);
+  const simulatingRef = useRef(false);
   const placementTargetRef = useRef(0);
   const placementDistanceRef = useRef(0);
   const transitionRef = useRef<{
@@ -410,10 +536,12 @@ const SceneContent = ({
     toTarget: THREE.Vector3;
     fromDistance: number;
     toDistance: number;
-    theta: number;
-    phi: number;
+    fromTheta: number;
+    toTheta: number;
+    fromPhi: number;
+    toPhi: number;
     kind: "base" | "placing" | "focus";
-    focusId: number | null;
+    focusId: number | null; // Scene ID
   }>({
     active: false,
     progress: 0,
@@ -422,8 +550,10 @@ const SceneContent = ({
     toTarget: new THREE.Vector3(0, 0, 0),
     fromDistance: 0,
     toDistance: 0,
-    theta: 0,
-    phi: Math.PI / 3,
+    fromTheta: 0,
+    toTheta: 0,
+    fromPhi: Math.PI / 3,
+    toPhi: Math.PI / 3,
     kind: "base",
     focusId: null,
   });
@@ -436,33 +566,33 @@ const SceneContent = ({
 
   const desiredDistance = useMemo(
     () => clamp(8 + towerHeight * 0.75, 8, 42),
-    [towerHeight]
+    [towerHeight],
   );
 
   const placementTargetY = useMemo(() => clamp(dropY * 0.6, 5, 30), [dropY]);
-  const placementDistance = useMemo(() => clamp(16 + dropY * 1.1, 22, 90), [dropY]);
+  const placementDistance = useMemo(
+    () => clamp(16 + dropY * 1.1, 22, 90),
+    [dropY],
+  );
 
   useEffect(() => {
     desiredDistanceRef.current = desiredDistance;
   }, [desiredDistance]);
 
   useEffect(() => {
-    const map = new Map<number, number>();
-    cubes.forEach((cube) => {
-      map.set(cube.id, cube.createdAt ?? 0);
-    });
-    createdAtMapRef.current = map;
-  }, [cubes]);
-
-  useEffect(() => {
     placementTargetRef.current = placementTargetY;
     placementDistanceRef.current = placementDistance;
   }, [placementDistance, placementTargetY]);
+
+  // NOTE: createdAtMap removed as it's not strictly needed if we have store access or pass via props.
+  // But if sorting relies on it...
+  // Actually, we can just use renderCubes index or createdAt property.
 
   useEffect(() => {
     if (isPlacing) {
       setHoveredCubeId(null);
       dropInFlightRef.current = false;
+      placingStartedAtRef.current = Date.now();
     }
     if (!isPlacing) {
       isDropLockedRef.current = false;
@@ -479,12 +609,21 @@ const SceneContent = ({
     }
   }, [ownerCardOpen]);
 
+  useEffect(() => {
+    if (!isPlacing) return;
+    const handleWheel = () => {
+      lastWheelAtRef.current = Date.now();
+    };
+    window.addEventListener("wheel", handleWheel, { passive: true });
+    return () => window.removeEventListener("wheel", handleWheel);
+  }, [isPlacing]);
+
   const beginTransition = useCallback(
     (
       target: THREE.Vector3,
       distance: number,
       duration = 1.15,
-      meta?: { kind?: "base" | "placing" | "focus"; focusId?: number | null }
+      meta?: { kind?: "base" | "placing" | "focus"; focusId?: number | null },
     ) => {
       if (!controlsRef.current) return;
       const controls = controlsRef.current;
@@ -492,6 +631,11 @@ const SceneContent = ({
       const offset = camera.position.clone().sub(currentTarget);
       const spherical = new THREE.Spherical().setFromVector3(offset);
       const startDistance = offset.length();
+      const kind = meta?.kind ?? "base";
+      const fromTheta = spherical.theta;
+      const fromPhi = spherical.phi;
+      const toTheta = kind === "placing" ? Math.PI / 4 : fromTheta;
+      const toPhi = kind === "placing" ? Math.PI / 3 : fromPhi;
 
       transitionRef.current = {
         active: true,
@@ -501,26 +645,32 @@ const SceneContent = ({
         toTarget: target.clone(),
         fromDistance: startDistance,
         toDistance: distance,
-        theta: spherical.theta,
-        phi: spherical.phi,
-        kind: meta?.kind ?? "base",
+        fromTheta,
+        toTheta,
+        fromPhi,
+        toPhi,
+        kind,
         focusId: meta?.focusId ?? null,
       };
       controls.enabled = false;
     },
-    [camera]
+    [camera],
   );
 
   const resolveCubePosition = useCallback(
-    (id: number) => {
-      const body = bodyMapRef.current.get(id);
+    (sceneId: number) => {
+      const body = bodyMapRef.current.get(sceneId);
       const bodyPos = body?.translation?.();
       if (bodyPos) return new THREE.Vector3(bodyPos.x, bodyPos.y, bodyPos.z);
-      const fallback = cubes.find((cube) => cube.id === id);
+      const fallback = renderCubes.find((cube) => cube.sceneId === sceneId);
       if (!fallback) return null;
-      return new THREE.Vector3(fallback.position[0], fallback.position[1], fallback.position[2]);
+      return new THREE.Vector3(
+        fallback.position[0],
+        fallback.position[1],
+        fallback.position[2],
+      );
     },
-    [cubes]
+    [renderCubes],
   );
 
   useEffect(() => {
@@ -531,47 +681,74 @@ const SceneContent = ({
         new THREE.Vector3(0, placementTargetRef.current, 0),
         placementDistanceRef.current,
         1.05,
-        { kind: "placing" }
+        { kind: "placing" },
       );
       return;
     }
-    if (focusCubeId != null) return;
+    // Lookup scene ID from localId
+    const focusSceneId = focusCubeId
+      ? idMappingRef.current.getByKey(focusCubeId)
+      : null;
+
+    if (focusSceneId != null) return;
     if (dropInFlightRef.current) return;
     if (lastDropSettledAtRef.current) {
       const elapsed = Date.now() - lastDropSettledAtRef.current;
       if (elapsed < 700) return;
       lastDropSettledAtRef.current = null;
     }
-    beginTransition(baseTargetRef.current.target.clone(), baseTargetRef.current.distance, 1.1, {
-      kind: "base",
-    });
+    beginTransition(
+      baseTargetRef.current.target.clone(),
+      baseTargetRef.current.distance,
+      1.1,
+      {
+        kind: "base",
+      },
+    );
   }, [beginTransition, focusCubeId, isPlacing]);
 
   useEffect(() => {
     if (!controlsRef.current || !initialCameraSetRef.current) return;
-    if (focusCubeId == null) {
+
+    const focusSceneId = focusCubeId
+      ? idMappingRef.current.getByKey(focusCubeId)
+      : null;
+    if (focusSceneId == null) {
       return;
     }
     if (isPlacing) return;
+
+    // Check if this cube is currently being placed/settled
+    if (focusSceneId === pendingPlaceIdRef.current) {
+      pendingFocusRef.current = { id: focusSceneId };
+      return;
+    }
+
     lastDropSettledAtRef.current = null;
-    pendingFocusRef.current = { id: focusCubeId, tick: focusTick ?? 0 };
-    const focusPos = resolveCubePosition(focusCubeId);
+    pendingFocusRef.current = { id: focusSceneId };
+    const focusPos = resolveCubePosition(focusSceneId);
     if (!focusPos) return;
     const target = focusPos.clone().add(new THREE.Vector3(0, 0.15, 0));
     const nextDistance = clamp(5.2 + target.y * 0.08, 5.2, 12);
     setFocusDistance(nextDistance);
-    beginTransition(target, nextDistance, 0.95, { kind: "focus", focusId: focusCubeId });
+    beginTransition(target, nextDistance, 0.95, {
+      kind: "focus",
+      focusId: focusSceneId,
+    });
     pendingFocusRef.current = null;
-  }, [beginTransition, focusCubeId, focusTick, isPlacing, resolveCubePosition]);
+  }, [beginTransition, focusCubeId, isPlacing, resolveCubePosition]);
 
   useEffect(() => {
-    onStatsChange?.({ cubeCount: cubes.length, towerHeight });
-  }, [cubes.length, towerHeight, onStatsChange]);
+    onStatsChange?.({ cubeCount: renderCubes.length, towerHeight });
+  }, [renderCubes.length, towerHeight, onStatsChange]);
 
-  const registerBody = useCallback((id: number, api: RapierRigidBody | null) => {
-    if (api) bodyMapRef.current.set(id, api);
-    else bodyMapRef.current.delete(id);
-  }, []);
+  const registerBody = useCallback(
+    (id: number, api: RapierRigidBody | null) => {
+      if (api) bodyMapRef.current.set(id, api);
+      else bodyMapRef.current.delete(id);
+    },
+    [],
+  );
 
   useFrame(() => {
     if (!active) return;
@@ -606,8 +783,12 @@ const SceneContent = ({
         return;
       }
       maxSettledTop = Math.max(maxSettledTop, topY);
-      const createdAt = createdAtMapRef.current.get(id ?? -1);
-      const recency = createdAt ?? (id ?? 0);
+
+      // Find createdAt from renderCubes
+      const cube = renderCubes.find((c) => c.sceneId === id);
+      const createdAt = cube?.createdAt;
+
+      const recency = createdAt ?? id ?? 0;
       const isHigher = topY > highestSettledTop + HEIGHT_EPS;
       const isTie = Math.abs(topY - highestSettledTop) <= HEIGHT_EPS;
       if (isHigher || (isTie && recency >= highestSettledCreatedAt)) {
@@ -622,7 +803,11 @@ const SceneContent = ({
       const nextDistance = desiredDistanceRef.current || 10;
       const target =
         highestOverallId !== null
-          ? new THREE.Vector3(highestOverallPos.x, highestOverallPos.y, highestOverallPos.z)
+          ? new THREE.Vector3(
+              highestOverallPos.x,
+              highestOverallPos.y,
+              highestOverallPos.z,
+            )
           : new THREE.Vector3(0, 1.4, 0);
 
       const dir = new THREE.Vector3(1, 0.9, 1).normalize();
@@ -634,7 +819,11 @@ const SceneContent = ({
       initialCameraSetRef.current = true;
     }
 
-    const justSettled = wasActiveRef.current && !hasActive;
+    if (simulatingRef.current !== hasActive) {
+      simulatingRef.current = hasActive;
+      setIsSimulating(hasActive);
+      if (hasActive) setHoveredCubeId(null);
+    }
     wasActiveRef.current = hasActive;
 
     if (!hasActive) {
@@ -649,18 +838,14 @@ const SceneContent = ({
         const target = new THREE.Vector3(
           highestSettledPos.x,
           highestSettledPos.y,
-          highestSettledPos.z
+          highestSettledPos.z,
         );
         baseTargetRef.current = { target, distance: nextDistance };
-        if (
-          dropCenter.x !== highestSettledPos.x ||
-          dropCenter.z !== highestSettledPos.z
-        ) {
-          setDropCenter({ x: highestSettledPos.x, z: highestSettledPos.z });
-        }
         if (!initialCameraSetRef.current && controlsRef.current) {
           const dir = new THREE.Vector3(1, 0.9, 1).normalize();
-          const desiredPos = target.clone().add(dir.multiplyScalar(nextDistance));
+          const desiredPos = target
+            .clone()
+            .add(dir.multiplyScalar(nextDistance));
           camera.position.copy(desiredPos);
           controlsRef.current.target.copy(target);
           controlsRef.current.update();
@@ -674,9 +859,6 @@ const SceneContent = ({
         controlsRef.current.target.copy(target);
         controlsRef.current.update();
         baseTargetRef.current = { target, distance: nextDistance };
-        if (dropCenter.x !== 0 || dropCenter.z !== 0) {
-          setDropCenter({ x: 0, z: 0 });
-        }
         initialCameraSetRef.current = true;
       }
     }
@@ -720,8 +902,8 @@ const SceneContent = ({
     }
 
     const bodiesReady =
-      bodyMapRef.current.size >= cubes.length ||
-      (cubes.length === 0 && bodyMapRef.current.size === 0);
+      bodyMapRef.current.size >= renderCubes.length ||
+      (renderCubes.length === 0 && bodyMapRef.current.size === 0);
     if (!sceneReadyRef.current && bodiesReady && initialCameraSetRef.current) {
       sceneReadyRef.current = true;
       onSceneReady?.();
@@ -747,10 +929,13 @@ const SceneContent = ({
           dropInFlightRef.current = false;
           lastDropSettledAtRef.current = Date.now();
           const finalPos = api?.translation?.() ?? { x: 0, y: 0, z: 0 };
-          onCubeSettled?.({
-            id: pendingId,
-            finalPosition: { x: finalPos.x, y: finalPos.y, z: finalPos.z },
-          });
+          const localId = idMappingRef.current.getByValue(pendingId);
+          if (localId) {
+            onCubeSettled?.({
+              localId,
+              finalPosition: { x: finalPos.x, y: finalPos.y, z: finalPos.z },
+            });
+          }
         }
       }
     } else if (!hasActive) {
@@ -764,11 +949,16 @@ const SceneContent = ({
     const t = transitionRef.current;
     t.progress = Math.min(1, t.progress + delta / t.duration);
     const eased = t.progress * t.progress * (3 - 2 * t.progress);
-    const distanceValue = t.fromDistance + (t.toDistance - t.fromDistance) * eased;
+    const distanceValue =
+      t.fromDistance + (t.toDistance - t.fromDistance) * eased;
 
     const target = t.fromTarget.clone().lerp(t.toTarget, eased);
-    const spherical = new THREE.Spherical(distanceValue, t.phi, t.theta);
-    const desiredPos = new THREE.Vector3().setFromSpherical(spherical).add(target);
+    const theta = lerpAngle(t.fromTheta, t.toTheta, eased);
+    const phi = THREE.MathUtils.lerp(t.fromPhi, t.toPhi, eased);
+    const spherical = new THREE.Spherical(distanceValue, phi, theta);
+    const desiredPos = new THREE.Vector3()
+      .setFromSpherical(spherical)
+      .add(target);
 
     camera.position.copy(desiredPos);
     controlsRef.current.target.copy(target);
@@ -778,7 +968,10 @@ const SceneContent = ({
       transitionRef.current.active = false;
       controlsRef.current.enabled = true;
       if (t.kind === "focus" && t.focusId != null) {
-        onFocusComplete?.({ id: t.focusId });
+        const localId = idMappingRef.current.getByValue(t.focusId);
+        if (localId) {
+          onFocusComplete?.({ localId });
+        }
       }
     }
   });
@@ -787,9 +980,17 @@ const SceneContent = ({
     if (!active) return;
     if (transitionRef.current.active) return;
     if (isPlacing) return;
+
     const pending = pendingFocusRef.current;
     if (!pending) return;
-    if (pending.id !== focusCubeId || focusCubeId == null) {
+
+    // If we're waiting for this specific cube to settle, defer transition
+    if (pendingPlaceIdRef.current === pending.id) return;
+
+    const focusSceneId = focusCubeId
+      ? idMappingRef.current.getByKey(focusCubeId)
+      : null;
+    if (pending.id !== focusSceneId || focusSceneId == null) {
       pendingFocusRef.current = null;
       return;
     }
@@ -798,7 +999,10 @@ const SceneContent = ({
     const target = focusPos.clone().add(new THREE.Vector3(0, 0.15, 0));
     const nextDistance = clamp(5.2 + target.y * 0.08, 5.2, 12);
     setFocusDistance(nextDistance);
-    beginTransition(target, nextDistance, 0.95, { kind: "focus", focusId: pending.id });
+    beginTransition(target, nextDistance, 0.95, {
+      kind: "focus",
+      focusId: pending.id,
+    });
     pendingFocusRef.current = null;
   });
 
@@ -808,7 +1012,7 @@ const SceneContent = ({
     if (!ownerCardOpen || activeCubeId == null) {
       if (lastScreenRef.current?.visible !== false) {
         lastScreenRef.current = { x: 0, y: 0, visible: false };
-        onActiveCubeScreenChange({ id: null, x: 0, y: 0, visible: false });
+        onActiveCubeScreenChange({ localId: null, x: 0, y: 0, visible: false });
       }
       return;
     }
@@ -816,61 +1020,40 @@ const SceneContent = ({
     const y = size.height * 0.5;
     const visible = true;
     lastScreenRef.current = { x, y, visible };
-    onActiveCubeScreenChange({ id: activeCubeId, x, y, visible });
+    onActiveCubeScreenChange({ localId: activeCubeId, x, y, visible });
   });
 
-  const spawnCubeAt = useCallback(
-    (pos: THREE.Vector3, opts?: { impulse?: boolean; color?: string; createdAt?: number }) => {
-      const newId = cubeIdRef.current++;
-      setCubes((prev) => {
-        const trimmed = prev.length >= MAX_CUBES ? prev.slice(-MAX_CUBES + 1) : prev;
-        const impulse = opts?.impulse ?? true;
-        const impulseVec: [number, number, number] | undefined = impulse
-          ? [
-              (Math.random() - 0.5) * 1.2,
-              0.4 + Math.random() * 0.6,
-              (Math.random() - 0.5) * 1.2,
-            ]
-          : undefined;
+  const handleAddCube = useCallback(
+    (pos: THREE.Vector3) => {
+      if (isDropLockedRef.current) return;
+      isDropLockedRef.current = true;
+      dropInFlightRef.current = true;
 
-        const newCube: CubeData = {
-          id: newId,
-          position: [pos.x, pos.y, pos.z],
-          rotation: [Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI],
-          color: opts?.color ?? getRandomColor(),
-          impulse: impulseVec,
-          createdAt: opts?.createdAt ?? Date.now(),
-        };
+      // Pre-generate ID
+      const localId = crypto.randomUUID();
+      // Reserve Scene ID
+      const sceneId = nextSceneIdRef.current++;
+      idMappingRef.current.set(localId, sceneId);
 
-        return [...trimmed, newCube];
+      pendingPlaceIdRef.current = sceneId;
+
+      onCubeDropped?.({
+        localId,
+        dropPosition: { x: pos.x, y: pos.y, z: pos.z },
+        color: selectedColor ?? getRandomColor(),
+        createdAt: Date.now(),
       });
-      return newId;
     },
-    []
+    [onCubeDropped, selectedColor],
   );
-
-  useEffect(() => {
-    if (!initialCubes || initialCubes.length === 0) return;
-    const maxId = initialCubes.reduce((max, cube) => Math.max(max, cube.id), 0);
-    cubeIdRef.current = Math.max(cubeIdRef.current, maxId + 1);
-
-    setCubes((prev) => {
-      const existingIds = new Set(prev.map((cube) => cube.id));
-      const additions = initialCubes.filter((cube) => !existingIds.has(cube.id));
-      if (additions.length === 0) return prev;
-      const merged = [...prev, ...additions];
-      return merged.length > MAX_CUBES ? merged.slice(-MAX_CUBES) : merged;
-    });
-  }, [initialCubes]);
-
   const focusActive = focusCubeId != null;
   const minDistance = isPlacing
-    ? placementDistance
+    ? clamp(placementDistance * 0.72, 12, 120)
     : focusActive
       ? focusDistance * 0.75
       : Math.max(6, (baseTargetRef.current.distance || 14) * 0.35);
   const maxDistance = isPlacing
-    ? placementDistance
+    ? clamp(placementDistance * 1.28, minDistance + 2, 160)
     : focusActive
       ? focusDistance * 2.4
       : 140;
@@ -889,24 +1072,43 @@ const SceneContent = ({
         shadow-camera-top={12}
         shadow-camera-bottom={-12}
       />
-      <pointLight position={[-5, 8, -5]} intensity={0.32} color="hsl(185, 50%, 60%)" />
+      <pointLight
+        position={[-5, 8, -5]}
+        intensity={0.32}
+        color="hsl(185, 50%, 60%)"
+      />
 
       <Environment preset="night" />
 
       <InfiniteGrid />
 
       <Physics gravity={[0, -18, 0]}>
-        <RigidBody type="fixed" colliders={false} friction={1} restitution={0.05}>
-          <CuboidCollider args={[60, 0.1, 60]} position={[0, FLOOR_Y - 0.1, 0]} />
+        <RigidBody
+          type="fixed"
+          colliders={false}
+          friction={1}
+          restitution={0.05}
+        >
+          <CuboidCollider
+            args={[60, 0.1, 60]}
+            position={[0, FLOOR_Y - 0.1, 0]}
+          />
         </RigidBody>
 
         <DropPlane
           enabled={!!isPlacing && !isDropLockedRef.current}
           y={dropY}
           color={selectedColor ?? fallbackColorRef.current}
-          center={dropCenter}
+          center={{ x: 0, z: 0 }}
+          guard={{
+            placingStartedAtRef,
+            lastWheelAtRef,
+          }}
           onPlace={(p) => {
-            if (isDropLockedRef.current || pendingPlaceIdRef.current !== null) return;
+            const spawnPos = new THREE.Vector3(p.x, p.y + CUBE_SIZE / 2, p.z);
+            handleAddCube(spawnPos);
+
+            // Visual flag lock logic (ported from old onPlace)
             const lockId = lastHighestSettledIdRef.current;
             if (lockId !== null) {
               flagLockIdRef.current = lockId;
@@ -923,46 +1125,34 @@ const SceneContent = ({
                 });
               }
             }
-            const spawnPos = new THREE.Vector3(p.x, p.y + CUBE_SIZE / 2, p.z);
-            const color = selectedColor ?? fallbackColorRef.current;
-            const createdAt = Date.now();
-            const id = spawnCubeAt(spawnPos, {
-              impulse: false,
-              color,
-              createdAt,
-            });
-            pendingPlaceIdRef.current = id;
-            pendingPlaceSettledFramesRef.current = 0;
-            isDropLockedRef.current = true;
-            dropInFlightRef.current = true;
-            onCubeDropped?.({
-              id,
-              dropPosition: { x: p.x, y: p.y, z: p.z },
-              color,
-              createdAt,
-            });
           }}
         />
 
-        {cubes.map((cube) => (
+        {renderCubes.map((cube) => (
           <CubeRigid
-            key={cube.id}
+            key={cube.localId}
             cube={cube}
             onRegister={registerBody}
-            profile={cubeProfiles?.[cube.id]}
-            isHovered={hoveredCubeId === cube.id}
+            profile={cubeProfiles?.[cube.localId]}
+            isHovered={hoveredCubeId === cube.sceneId}
             onHover={setHoveredCubeId}
-            hoverEnabled={!isPlacing && !ownerCardOpen}
-            highlight={ownerCardOpen && activeCubeId === cube.id}
+            hoverEnabled={!isPlacing && !ownerCardOpen && !isSimulating}
+            highlight={ownerCardOpen && activeCubeId === cube.localId}
           />
         ))}
-        {flagPose && <FlagMarker position={flagPose.position} rotation={flagPose.rotation} />}
+        {flagPose && (
+          <FlagMarker
+            position={flagPose.position}
+            rotation={flagPose.rotation}
+          />
+        )}
       </Physics>
 
       <OrbitControls
         ref={controlsRef}
         enablePan={false}
-        enableZoom={!isPlacing}
+        enableZoom
+        enableRotate
         minDistance={minDistance}
         maxDistance={maxDistance}
         maxPolarAngle={Math.PI / 2 - 0.12}

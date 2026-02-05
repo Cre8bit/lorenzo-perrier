@@ -7,6 +7,7 @@ type Props = {
   authConfigured: boolean;
   authStatus?: { status: "idle" | "loading" | "error"; message?: string };
   error?: string | null;
+  saving?: boolean;
   onDismiss?: () => void;
   onConnectLinkedIn?: () => void;
   onSaveName?: (data: { firstName: string; lastName: string; linkedinUrl?: string }) => void;
@@ -18,6 +19,7 @@ export const CubeOwnerCard = ({
   authConfigured,
   authStatus,
   error,
+  saving = false,
   onDismiss,
   onConnectLinkedIn,
   onSaveName,
@@ -27,6 +29,7 @@ export const CubeOwnerCard = ({
   const [lastName, setLastName] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const isConnecting = authStatus?.status === "loading";
+  const isSaving = saving;
   const connectError = authStatus?.status === "error" ? authStatus.message : null;
   const hasProfile = Boolean(profile?.fullName);
   const isLinkedInConnected = Boolean(profile?.verified);
@@ -105,6 +108,7 @@ export const CubeOwnerCard = ({
               <input
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
+                disabled={isSaving}
                 className="h-8 rounded-md border border-white/10 bg-transparent px-2 text-xs text-foreground/90"
                 required
               />
@@ -114,6 +118,7 @@ export const CubeOwnerCard = ({
               <input
                 value={lastName}
                 onChange={(event) => setLastName(event.target.value)}
+                disabled={isSaving}
                 className="h-8 rounded-md border border-white/10 bg-transparent px-2 text-xs text-foreground/90"
                 required
               />
@@ -124,6 +129,7 @@ export const CubeOwnerCard = ({
             <input
               value={linkedinUrl}
               onChange={(event) => setLinkedinUrl(event.target.value)}
+              disabled={isSaving}
               className="h-8 rounded-md border border-white/10 bg-transparent px-2 text-xs text-foreground/90"
               placeholder="https://www.linkedin.com/in/..."
             />
@@ -132,17 +138,18 @@ export const CubeOwnerCard = ({
             <button
               type="button"
               onClick={() => setShowNameForm(false)}
+              disabled={isSaving}
               className="text-[11px] text-muted-foreground/70 hover:text-muted-foreground"
             >
               Back
             </button>
             <button
               type="submit"
-              disabled={!formValid}
+              disabled={!formValid || isSaving}
               className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-semibold text-foreground/90 transition disabled:opacity-50"
               style={{ background: "hsl(var(--primary) / 0.18)" }}
             >
-              Save name
+              {isSaving ? "Saving..." : "Save name"}
             </button>
           </div>
         </form>
@@ -150,7 +157,7 @@ export const CubeOwnerCard = ({
         <div className="mt-4 flex flex-col gap-2">
           <button
             onClick={onConnectLinkedIn}
-            disabled={!authConfigured || isConnecting || isLinkedInConnected}
+            disabled={!authConfigured || isConnecting || isLinkedInConnected || isSaving}
             className="rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition disabled:opacity-50"
             style={{
               borderColor: "hsl(210 60% 70% / 0.4)",
@@ -170,6 +177,7 @@ export const CubeOwnerCard = ({
           )}
           <button
             onClick={() => setShowNameForm(true)}
+            disabled={isSaving}
             className="rounded-full border border-white/10 px-3 py-2 text-[11px] font-semibold text-foreground/80 transition hover:text-foreground"
           >
             Add name
@@ -182,11 +190,19 @@ export const CubeOwnerCard = ({
       )}
 
       <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground/70">
-        <button onClick={onDismiss} className="hover:text-muted-foreground">
+        <button
+          onClick={onDismiss}
+          disabled={isSaving}
+          className="hover:text-muted-foreground disabled:opacity-50"
+        >
           Not now
         </button>
         {hasProfile && !showNameForm && (
-          <button onClick={onDismiss} className="hover:text-foreground">
+          <button
+            onClick={onDismiss}
+            disabled={isSaving}
+            className="hover:text-foreground disabled:opacity-50"
+          >
             Done
           </button>
         )}

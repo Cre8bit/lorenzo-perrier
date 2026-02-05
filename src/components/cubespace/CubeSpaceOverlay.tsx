@@ -8,6 +8,7 @@ type Props = {
   towerHeight: number; // world units from CubeScene
   isPlacing: boolean;
   onTogglePlacing: () => void;
+  canAddCube: boolean;
 
   selectedColor: string;
   onColorChange: (color: string) => void;
@@ -24,6 +25,7 @@ export const CubeSpaceOverlay = ({
   towerHeight,
   isPlacing,
   onTogglePlacing,
+  canAddCube,
   selectedColor,
   onColorChange,
 }: Props) => {
@@ -56,7 +58,7 @@ export const CubeSpaceOverlay = ({
           <p className="mt-3 text-xs text-primary/80 tracking-wide">
             Click anywhere on the glowing plane to place your cube.
           </p>
-        ) : (
+        ) : canAddCube ? (
           <>
             <p className="mt-2 text-xs text-muted-foreground/60 tracking-wide">
               Help us stack cubes and reach new heights!
@@ -77,6 +79,10 @@ export const CubeSpaceOverlay = ({
               Add your cube !
             </button>
           </>
+        ) : (
+          <p className="mt-3 text-xs text-muted-foreground/60 tracking-wide">
+            Thanks — you’ve already added your cube.
+          </p>
         )}
       </div>
 

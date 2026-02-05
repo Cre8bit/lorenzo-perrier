@@ -1,24 +1,34 @@
-import { type FC, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type FC,
+  type ReactNode,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { CubeSpaceDataContext } from "@/contexts/CubeSpaceDataContext";
 import { ensureAnonymousAuth } from "@/lib/firebase";
-import { listenCubes, listenUsers, type StoredCube, type StoredUser } from "@/lib/cubespaceStorage";
+import { listenCubes, listenUsers } from "@/lib/cubespaceStorage";
+import type { UserDomain, CubeFirestoreView, Vec3 } from "@/types/CubeModel";
+import { cubeDataReducer } from "@/contexts/cubeReducerHandlers";
 
+// --- Fallback Data ---
 const FALLBACK_USER_ID = "xm87b1nkG3SvJF3Tovih";
-const FALLBACK_USERS: StoredUser[] = [
+const FALLBACK_USERS: UserDomain[] = [
   {
     id: FALLBACK_USER_ID,
     firstName: "Lorenzo",
     lastName: "Perrier de La Bâthie",
-    fullName: "Lorenzo Perrier de La Bâthie",
     linkedinUrl: "https://www.linkedin.com/in/lorenzoperrier/",
     profession: "AI & Software engineer",
     verified: true,
     createdAt: 1769555247650,
   },
 ];
-const FALLBACK_CUBES: StoredCube[] = [
+const FALLBACK_CUBES: CubeFirestoreView[] = [
   {
-    id: 1,
+    remoteId: "fallback-cube-1",
     userId: FALLBACK_USER_ID,
     color: "hsl(192, 55%, 58%)",
     dropPosition: { x: 0, y: 10, z: 0 },
@@ -30,17 +40,52 @@ const FALLBACK_CUBES: StoredCube[] = [
 export const CubeSpaceDataProvider: FC<{
   children: ReactNode;
   enabled?: boolean;
-}> = ({
-  children,
-  enabled = false,
-}) => {
+}> = ({ children, enabled = false }) => {
   const startedRef = useRef(false);
   const [authReady, setAuthReady] = useState(false);
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [cubesLoaded, setCubesLoaded] = useState(false);
-  const [users, setUsers] = useState<StoredUser[]>([]);
-  const [cubes, setCubes] = useState<StoredCube[]>([]);
+  const [users, setUsers] = useState<UserDomain[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // Use new extracted reducer with activeFlowId tracking
+  const [state, dispatch] = useReducer(cubeDataReducer, {
+    cubesByLocalId: new Map(),
+    localIdByRemoteId: new Map(),
+    bufferedSnapshot: null,
+    activeFlowId: null, // NEW: O(1) flow tracking
+  });
+
+  // Actions
+  const dropCube = useCallback(
+    (payload: { localId: string; color: string; dropPosition: Vec3 }) => {
+      dispatch({ type: "DROP_CUBE", payload });
+    },
+    [],
+  );
+
+  const settleCube = useCallback(
+    (payload: { localId: string; finalPosition: Vec3 }) => {
+      dispatch({ type: "SETTLE_CUBE", payload });
+    },
+    [],
+  );
+
+  const requestSaveCube = useCallback((localId: string) => {
+    dispatch({ type: "SAVE_REQUEST", payload: { localId } });
+  }, []);
+
+  const confirmSaveCube = useCallback((localId: string, remoteId: string) => {
+    dispatch({ type: "SAVE_SUCCESS", payload: { localId, remoteId } });
+  }, []);
+
+  const failSaveCube = useCallback((localId: string, error: string) => {
+    dispatch({ type: "SAVE_FAIL", payload: { localId, error } });
+  }, []);
+
+  const abandonFlow = useCallback(() => {
+    dispatch({ type: "ABANDON_FLOW" });
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
@@ -57,7 +102,7 @@ export const CubeSpaceDataProvider: FC<{
       setUsersLoaded(true);
       setCubesLoaded(true);
       setUsers((prev) => (prev.length > 0 ? prev : FALLBACK_USERS));
-      setCubes((prev) => (prev.length > 0 ? prev : FALLBACK_CUBES));
+      dispatch({ type: "RESET_WITH_FALLBACK", payload: FALLBACK_CUBES });
     };
 
     const start = async () => {
@@ -88,11 +133,8 @@ export const CubeSpaceDataProvider: FC<{
             if (!alive) return;
             setError(null);
             if (!meta.fromCache || !meta.empty) setCubesLoaded(true);
-            setCubes((prev) => {
-              const merged = new Map(prev.map((c) => [c.id, c]));
-              for (const c of snapshotCubes) merged.set(c.id, c);
-              return Array.from(merged.values());
-            });
+            // Dispatch snapshot to reducer
+            dispatch({ type: "LISTENER_SNAPSHOT", payload: snapshotCubes });
           },
           (err) => {
             const message = err instanceof Error ? err.message : String(err);
@@ -120,10 +162,17 @@ export const CubeSpaceDataProvider: FC<{
         usersLoaded,
         cubesLoaded,
         users,
-        cubes,
+        cubesByLocalId: state.cubesByLocalId,
+        localIdByRemoteId: state.localIdByRemoteId,
+        activeFlowId: state.activeFlowId, // NEW: Expose activeFlowId
         error,
         setUsers,
-        setCubes,
+        dropCube,
+        settleCube,
+        requestSaveCube,
+        confirmSaveCube,
+        failSaveCube,
+        abandonFlow, // NEW: Expose abandonFlow
       }}
     >
       {children}

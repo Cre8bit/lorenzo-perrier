@@ -27,7 +27,6 @@ import { setParticleField3DQuality } from "./components/ui/particle-quality";
 
 const queryClient = new QueryClient();
 
-// Lazy only the heavy route
 const CubeSpace = lazy(() => import("./pages/CubeSpace"));
 
 const AppRouterLayer = () => {
@@ -82,20 +81,15 @@ const AppShell = () => {
   const perfEnabled = usePerformanceOverlay();
   const qualityEnabled = useQualityControls();
 
-  useEffect(() => {
-    // Intentionally no CubeSpace/CubeScene prefetch here.
-    // We only load/keep-alive CubeSpace after the user visits /cubespace once.
-  }, []);
-
   return (
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <PerformanceOverlay enabled={perfEnabled} />
-        <QualityControls
-          enabled={qualityEnabled}
-          onSettingsChange={setParticleField3DQuality}
-        />
+      <QualityControls
+        enabled={qualityEnabled}
+        onSettingsChange={setParticleField3DQuality}
+      />
       <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <AppRouterLayer />
       </BrowserRouter>

@@ -1,42 +1,34 @@
-export type Vec3 = { x: number; y: number; z: number };
+// Re-export types from centralized model
+export type {
+  Vec3,
+  FirestoreTimestampLike,
+  CubeStatus,
+  CubeDomain,
+  CubeFirestoreView,
+  UserDomain,
+  CreateUserInput,
+  CreateCubeInput,
+} from "@/types/CubeModel";
 
-export type FirestoreTimestampLike = {
-  seconds: number;
-  nanoseconds: number;
-};
-
-export type StoredUser = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  linkedinUrl?: string;
-  verified: boolean;
-  photoUrl?: string;
-  profession?: string;
-  createdAt?: number;
-};
-
-export type StoredCube = {
-  id: number;
-  userId: string;
-  color: string;
-  dropPosition: Vec3;
-  finalPosition: Vec3;
-  createdAt?: number;
-};
+import type {
+  Vec3,
+  CubeFirestoreView,
+  UserDomain,
+  CreateUserInput,
+  CreateCubeInput,
+} from "@/types/CubeModel";
 
 import {
-  collection,
-  doc,
-  onSnapshot,
-  setDoc,
   type Unsubscribe,
+  collection,
+  onSnapshot,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase";
 
-const USERS_COLLECTION = "users";
-const CUBES_COLLECTION = "cubes";
+const USERS_COLLECTION = import.meta.env.DEV ? "users_dev" : "users";
+const CUBES_COLLECTION = import.meta.env.DEV ? "cubes_dev" : "cubes";
 
 type SnapshotMeta = {
   fromCache: boolean;
@@ -54,16 +46,6 @@ const toFiniteNumber = (value: unknown): number | null => {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
-};
-
-const hashStringToUint32 = (input: string): number => {
-  // FNV-1a 32-bit
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
 };
 
 const parseTimestampToMillis = (value: unknown): number | undefined => {
@@ -106,62 +88,63 @@ const parseVec3 = (value: unknown): Vec3 | null => {
   return null;
 };
 
-const parseCubeId = (rawId: unknown, docId: string): number => {
-  const fromRaw = toFiniteNumber(rawId);
-  if (fromRaw != null) return fromRaw;
-  const fromDoc = toFiniteNumber(docId);
-  if (fromDoc != null) return fromDoc;
-  const hashed = hashStringToUint32(docId);
-  return hashed === 0 ? 1 : hashed;
-};
-
-const parseStoredUser = (docId: string, raw: unknown): StoredUser | null => {
+const parseStoredUser = (docId: string, raw: unknown): UserDomain | null => {
   if (!isRecord(raw)) return null;
-  const id = typeof raw.id === "string" && raw.id.trim().length > 0 ? raw.id : docId;
   const firstName = typeof raw.firstName === "string" ? raw.firstName : "";
   const lastName = typeof raw.lastName === "string" ? raw.lastName : "";
-  const fullName =
-    typeof raw.fullName === "string" && raw.fullName.trim().length > 0
-      ? raw.fullName
-      : `${firstName} ${lastName}`.trim();
+
+  const userId =
+    typeof raw.userId === "string" && raw.userId.trim().length > 0
+      ? raw.userId
+      : typeof raw.userID === "string" && raw.userID.trim().length > 0
+        ? raw.userID
+        : typeof raw.nameKey === "string" && raw.nameKey.trim().length > 0
+          ? raw.nameKey
+          : typeof raw.id === "string" && raw.id.trim().length > 0
+            ? raw.id
+            : docId;
 
   return {
-    id,
+    id: userId,
     firstName,
     lastName,
-    fullName,
-    linkedinUrl: typeof raw.linkedinUrl === "string" ? raw.linkedinUrl : undefined,
+    linkedinUrl:
+      typeof raw.linkedinUrl === "string" ? raw.linkedinUrl : undefined,
     verified: typeof raw.verified === "boolean" ? raw.verified : false,
     photoUrl: typeof raw.photoUrl === "string" ? raw.photoUrl : undefined,
     profession: typeof raw.profession === "string" ? raw.profession : undefined,
-    createdAt: parseTimestampToMillis(raw.createdAt),
+    createdAt: parseTimestampToMillis(raw.createdAt ?? raw.createdDate),
   };
 };
 
-const parseStoredCube = (docId: string, raw: unknown): StoredCube | null => {
+const parseStoredCube = (
+  docId: string,
+  raw: unknown,
+): CubeFirestoreView | null => {
   if (!isRecord(raw)) return null;
-  const id = parseCubeId(raw.id, docId);
   const userId =
     typeof raw.userId === "string"
       ? raw.userId
       : typeof raw.userID === "string"
         ? raw.userID
-          : "";
+        : "";
   const dropPosition = parseVec3(raw.dropPosition) ?? { x: 0, y: 0, z: 0 };
   const finalPosition =
-    parseVec3(raw.finalPosition) ?? parseVec3(raw.final_position) ?? dropPosition;
+    parseVec3(raw.finalPosition) ??
+    parseVec3(raw.final_position) ??
+    dropPosition;
   return {
-    id,
+    remoteId: docId,
     userId,
     color: typeof raw.color === "string" ? raw.color : "hsl(185, 40%, 45%)",
     dropPosition,
     finalPosition,
-    createdAt: parseTimestampToMillis(raw.createdAt),
+    createdAt: parseTimestampToMillis(raw.createdAt ?? raw.createdDate),
   };
 };
 
 export const listenUsers = (
-  onChange: (users: StoredUser[], meta: SnapshotMeta) => void,
+  onChange: (users: UserDomain[], meta: SnapshotMeta) => void,
   onError?: (error: unknown) => void,
 ): Unsubscribe => {
   const db = getFirestoreDb();
@@ -171,8 +154,8 @@ export const listenUsers = (
     (snapshot) => {
       const users = snapshot.docs
         .map((item) => parseStoredUser(item.id, item.data()))
-        .filter((item): item is StoredUser => item != null);
-    console.log("[firestore] users snapshot", users);
+        .filter((item): item is UserDomain => item != null);
+      console.warn("[firestore] users snapshot", users);
       onChange(users, {
         fromCache: snapshot.metadata.fromCache,
         size: snapshot.size,
@@ -184,7 +167,7 @@ export const listenUsers = (
 };
 
 export const listenCubes = (
-  onChange: (cubes: StoredCube[], meta: SnapshotMeta) => void,
+  onChange: (cubes: CubeFirestoreView[], meta: SnapshotMeta) => void,
   onError?: (error: unknown) => void,
 ): Unsubscribe => {
   const db = getFirestoreDb();
@@ -194,8 +177,8 @@ export const listenCubes = (
     (snapshot) => {
       const cubes = snapshot.docs
         .map((item) => parseStoredCube(item.id, item.data()))
-        .filter((item): item is StoredCube => item != null);
-    console.log("[firestore] cubes snapshot", cubes);
+        .filter((item): item is CubeFirestoreView => item != null);
+      console.warn("[firestore] cubes snapshot", cubes);
       onChange(cubes, {
         fromCache: snapshot.metadata.fromCache,
         size: snapshot.size,
@@ -206,20 +189,68 @@ export const listenCubes = (
   );
 };
 
-export const upsertUser = async (user: StoredUser) => {
+export const createUserDoc = async (user: CreateUserInput) => {
   const db = getFirestoreDb();
-  const ref = doc(db, USERS_COLLECTION, user.id);
-  await setDoc(ref, user, { merge: true });
+  const ref = collection(db, USERS_COLLECTION);
+  const payload = {
+    firstName: user.firstName,
+    lastName: user.lastName,
+    linkedinUrl: user.linkedinUrl ?? "",
+    verified: user.verified,
+    photoUrl: user.photoUrl ?? "",
+    profession: user.profession ?? "",
+    createdDate: serverTimestamp(),
+  } as const;
+
+  console.warn("[firestore][createUserDoc] payload", {
+    ...payload,
+    createdDate: "[serverTimestamp()]",
+  });
+
+  const docRef = await addDoc(ref, payload);
+  const autogeneratedUserId = docRef.id;
+  console.warn("[firestore][createUserDoc] created", {
+    collection: USERS_COLLECTION,
+    docId: autogeneratedUserId,
+  });
+
+  return autogeneratedUserId;
 };
 
-export const upsertCube = async (cube: StoredCube) => {
+export const createCubeDoc = async (cube: CreateCubeInput) => {
   const db = getFirestoreDb();
-  const ref = doc(db, CUBES_COLLECTION, String(cube.id));
-  await setDoc(ref, cube, { merge: true });
-};
+  const ref = collection(db, CUBES_COLLECTION);
+  const payload = {
+    userId: cube.userId,
+    color: cube.color,
+    dropPosition: [
+      cube.dropPosition.x,
+      cube.dropPosition.y,
+      cube.dropPosition.z,
+    ],
+    finalPosition: [
+      cube.finalPosition.x,
+      cube.finalPosition.y,
+      cube.finalPosition.z,
+    ],
+    createdDate: serverTimestamp(),
+  } as const;
 
-export const normalizeNameKey = (firstName: string, lastName: string) => {
-  return `${firstName.trim().toLowerCase()}::${lastName.trim().toLowerCase()}`;
+  console.warn("[firestore][createCubeDoc] payload", {
+    ...payload,
+    createdDate: "[serverTimestamp()]",
+  });
+
+  const docRef = await addDoc(ref, payload);
+  console.warn("[firestore][createCubeDoc] created", {
+    collection: CUBES_COLLECTION,
+    docId: docRef.id,
+    userId: cube.userId,
+  });
+
+  return {
+    docId: docRef.id,
+  } as const;
 };
 
 export const normalizeLinkedIn = (url?: string) => {
