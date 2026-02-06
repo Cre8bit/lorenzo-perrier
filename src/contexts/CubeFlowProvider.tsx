@@ -121,10 +121,17 @@ export const CubeFlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
     abandonDataFlow();
   }, [abandonDataFlow]);
 
-  // Handle cube dropped - end placing mode and set draft
+  // Handle cube dropped - set draft but keep placing mode active
+  // This keeps the camera in top-down view during physics simulation
   const onCubeDropped = useCallback((localId: string) => {
     setDraftId(localId);
-    setIsPlacing(false); // Exit placing mode
+    // Keep isPlacing true to maintain camera position during simulation
+  }, []);
+
+  // Handle simulation complete - end placing mode
+  // Called when cube has settled, allowing camera to focus
+  const onSimulationComplete = useCallback(() => {
+    setIsPlacing(false);
   }, []);
 
   // Handle focus complete - show owner card
@@ -148,6 +155,7 @@ export const CubeFlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
         ownerError: ownerError || saveError,
         hasUnsavedDraft,
         togglePlacing,
+        onSimulationComplete,
         setDraftId,
         setOwnerCardOpen,
         onCubeDropped,

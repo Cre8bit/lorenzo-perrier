@@ -33,7 +33,8 @@ export type CubeFlowContextType = {
   togglePlacing: () => void;
   setDraftId: (id: string | null) => void;
   setOwnerCardOpen: (open: boolean) => void;
-  onCubeDropped: (localId: string) => void; 
+  onCubeDropped: (localId: string) => void;
+  onSimulationComplete: () => void;
   onCubeFocused: (localId: string) => void;
   onConnectLinkedIn: () => Promise<
     { name?: string; given_name?: string; email?: string } | undefined

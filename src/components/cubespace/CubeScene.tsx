@@ -718,16 +718,13 @@ const SceneContent = ({
     }
     if (isPlacing) return;
 
-    // Check if this cube is currently being placed/settled
-    if (focusSceneId === pendingPlaceIdRef.current) {
+    lastDropSettledAtRef.current = null;
+    const focusPos = resolveCubePosition(focusSceneId);
+    if (!focusPos) {
+      // If we can't get position yet, defer to pending focus mechanism
       pendingFocusRef.current = { id: focusSceneId };
       return;
     }
-
-    lastDropSettledAtRef.current = null;
-    pendingFocusRef.current = { id: focusSceneId };
-    const focusPos = resolveCubePosition(focusSceneId);
-    if (!focusPos) return;
     const target = focusPos.clone().add(new THREE.Vector3(0, 0.15, 0));
     const nextDistance = clamp(5.2 + target.y * 0.08, 5.2, 12);
     setFocusDistance(nextDistance);

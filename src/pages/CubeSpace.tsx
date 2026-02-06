@@ -84,6 +84,7 @@ const CubeSpaceInner = ({ active = true }: Props) => {
     draftId,
     ownerCardOpen,
     onCubeDropped: flowHandleCubeDropped,
+    onSimulationComplete,
     onCubeFocused: flowHandleCubeFocused,
     onOwnerDismiss,
     onSaveConfirm,
@@ -131,12 +132,14 @@ const CubeSpaceInner = ({ active = true }: Props) => {
     [dropCube, flowHandleCubeDropped],
   );
 
-  // 2. Settle: Update position
+  // 2. Settle: Update position and end placing mode for camera focus
   const handleCubeSettled = useCallback(
     (payload: { localId: string; finalPosition: Vec3 }) => {
       settleCube(payload);
+      // End placing mode so camera can focus on the settled cube
+      onSimulationComplete();
     },
-    [settleCube],
+    [settleCube, onSimulationComplete],
   );
 
   // 3. Focus Complete: Ready for Owner Input

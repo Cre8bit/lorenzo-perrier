@@ -10,13 +10,12 @@ type Chapter = {
 const chapters: Chapter[] = [
   { id: "cube-space", label: "CubeSpace", route: "/cubespace" },
   { id: "home", label: "Home", route: "/" },
-  { id: "astrolab", label: "Astrolab" },
 ];
 
 export const LiquidNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Determine initial active index based on current route
   const getInitialIndex = () => {
     const currentPath = location.pathname;
@@ -93,10 +92,13 @@ export const LiquidNavigation = () => {
     const handleMouseUp = () => {
       setIsDragging(false);
       setDragOffset(0);
-      
+
       // Navigate to the selected chapter's route if it exists
       const selectedChapter = chapters[activeIndex];
-      if (selectedChapter?.route && selectedChapter.route !== location.pathname) {
+      if (
+        selectedChapter?.route &&
+        selectedChapter.route !== location.pathname
+      ) {
         navigate(selectedChapter.route);
       }
     };
@@ -171,34 +173,36 @@ export const LiquidNavigation = () => {
         />
 
         {/* Chapter markers */}
-        <div className="flex justify-between relative z-10">
+        <div className="grid grid-cols-2 items-center relative z-10">
           {chapters.map((chapter, index) => (
-            <button
-              key={chapter.id}
-              ref={(el) => (chapterRefs.current[index] = el)}
-              onClick={() => {
-                setActiveIndex(index);
-                // Navigate on click if route exists
-                if (chapter.route && chapter.route !== location.pathname) {
-                  navigate(chapter.route);
-                }
-              }}
-              className="relative font-body text-sm tracking-wide transition-all duration-500"
-              style={{
-                color:
-                  index === activeIndex
-                    ? "hsl(210, 20%, 92%)"
-                    : isHovered
-                    ? "hsla(210, 20%, 92%, 0.4)"
-                    : "hsla(210, 20%, 92%, 0.15)",
-                textShadow:
-                  index === activeIndex && isHovered
-                    ? "0 0 20px hsla(185, 50%, 55%, 0.5)"
-                    : "none",
-              }}
-            >
-              {chapter.label}
-            </button>
+            <div key={chapter.id} className="flex justify-center">
+              <button
+                ref={(el) => {
+                  chapterRefs.current[index] = el;
+                }}
+                onClick={() => {
+                  setActiveIndex(index);
+                  if (chapter.route && chapter.route !== location.pathname) {
+                    navigate(chapter.route);
+                  }
+                }}
+                className="relative w-fit font-body text-sm tracking-wide transition-all duration-500"
+                style={{
+                  color:
+                    index === activeIndex
+                      ? "hsl(210, 20%, 92%)"
+                      : isHovered
+                        ? "hsla(210, 20%, 92%, 0.4)"
+                        : "hsla(210, 20%, 92%, 0.15)",
+                  textShadow:
+                    index === activeIndex && isHovered
+                      ? "0 0 20px hsla(185, 50%, 55%, 0.5)"
+                      : "none",
+                }}
+              >
+                {chapter.label}
+              </button>
+            </div>
           ))}
         </div>
 
