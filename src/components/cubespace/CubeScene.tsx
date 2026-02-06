@@ -266,7 +266,9 @@ const CubeRigid = ({
   onRegister,
   profile,
   isHovered,
+  isSelected,
   onHover,
+  onClick,
   hoverEnabled,
   highlight,
 }: {
@@ -274,13 +276,15 @@ const CubeRigid = ({
   onRegister: (sceneId: number, api: RapierRigidBody | null) => void;
   profile?: CubeProfile;
   isHovered?: boolean;
+  isSelected?: boolean;
   onHover?: (sceneId: number | null) => void;
+  onClick?: (sceneId: number) => void;
   hoverEnabled?: boolean;
   highlight?: boolean;
 }) => {
   const bodyRef = useRef<RapierRigidBody | null>(null);
   const displayName = profile?.fullName;
-  const showBubble = Boolean(displayName && isHovered);
+  const showBubble = Boolean(displayName && (isHovered || isSelected));
 
   const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
     if (!hoverEnabled) return;
@@ -292,6 +296,12 @@ const CubeRigid = ({
     if (!hoverEnabled) return;
     e.stopPropagation();
     onHover?.(null);
+  };
+
+  const handleClick = (e: ThreeEvent<PointerEvent>) => {
+    if (!hoverEnabled) return; // Reuse hoverEnabled as "interactEnabled"
+    e.stopPropagation();
+    onClick?.(cube.sceneId);
   };
 
   useEffect(() => {
@@ -323,6 +333,7 @@ const CubeRigid = ({
           receiveShadow
           onPointerOver={handlePointerOver}
           onPointerOut={handlePointerOut}
+          onClick={handleClick}
         >
           <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
           <meshStandardMaterial
@@ -331,7 +342,12 @@ const CubeRigid = ({
             metalness={0.08}
           />
         </mesh>
-        {highlight && <HighlightShell />}
+        {(highlight || (isHovered && hoverEnabled)) && (
+          <HighlightShell
+            color={highlight ? "hsl(185, 60%, 62%)" : "hsl(0, 0%, 90%)"}
+            maxOpacity={highlight ? 0.28 : 0.15}
+          />
+        )}
         {profile?.photoUrl && (
           <PhotoBadge url={profile.photoUrl} verified={profile.verified} />
         )}
@@ -402,12 +418,18 @@ const HoverBubble = ({ name }: { name: string }) => {
   );
 };
 
-const HighlightShell = () => {
+const HighlightShell = ({
+  color = "hsl(185, 60%, 62%)",
+  maxOpacity = 0.28,
+}: {
+  color?: string;
+  maxOpacity?: number;
+}) => {
   const materialRef = useRef<THREE.MeshBasicMaterial | null>(null);
   const opacityRef = useRef(0);
 
   useFrame((_, delta) => {
-    const next = Math.min(0.28, opacityRef.current + delta * 1.2);
+    const next = Math.min(maxOpacity, opacityRef.current + delta * 1.2);
     if (next === opacityRef.current) return;
     opacityRef.current = next;
     if (materialRef.current) {
@@ -422,7 +444,7 @@ const HighlightShell = () => {
       />
       <meshBasicMaterial
         ref={materialRef}
-        color="hsl(185, 60%, 62%)"
+        color={color}
         transparent
         opacity={0}
         wireframe
@@ -482,6 +504,7 @@ const SceneContent = ({
 
   const [towerHeight, setTowerHeight] = useState(0);
   const [hoveredCubeId, setHoveredCubeId] = useState<number | null>(null); // Scene ID
+  const [selectedCubeId, setSelectedCubeId] = useState<number | null>(null); // Scene ID - Click selection
   const [isSimulating, setIsSimulating] = useState(false);
   const [flagPose, setFlagPose] = useState<{
     position: [number, number, number];
@@ -799,14 +822,8 @@ const SceneContent = ({
 
     if (!initialCameraSetRef.current && controlsRef.current) {
       const nextDistance = desiredDistanceRef.current || 10;
-      const target =
-        highestOverallId !== null
-          ? new THREE.Vector3(
-              highestOverallPos.x,
-              highestOverallPos.y,
-              highestOverallPos.z,
-            )
-          : new THREE.Vector3(0, 1.4, 0);
+      // Force initial focus to center (0,0,0) as requested
+      const target = new THREE.Vector3(0, 0, 0);
 
       const dir = new THREE.Vector3(1, 0.9, 1).normalize();
       const desiredPos = target.clone().add(dir.multiplyScalar(nextDistance));
@@ -1044,6 +1061,35 @@ const SceneContent = ({
     onActiveCubeScreenChange({ localId: activeCubeId, x, y, visible });
   });
 
+  const handleCubeClick = useCallback(
+    (sceneId: number) => {
+      // Don't allow selection while placing or if owner card is open
+      if (isPlacing || ownerCardOpen || isSimulating) return;
+
+      setSelectedCubeId(sceneId);
+
+      const focusPos = resolveCubePosition(sceneId);
+      if (!focusPos) return;
+
+      const target = focusPos.clone().add(new THREE.Vector3(0, 0.15, 0));
+      // Calculate optimal distance based on height
+      const nextDistance = clamp(5.2 + target.y * 0.08, 5.2, 12);
+
+      setFocusDistance(nextDistance);
+      beginTransition(target, nextDistance, 0.95, {
+        kind: "focus",
+        focusId: sceneId,
+      });
+    },
+    [
+      isPlacing,
+      ownerCardOpen,
+      isSimulating,
+      resolveCubePosition,
+      beginTransition,
+    ],
+  );
+
   const handleAddCube = useCallback(
     (pos: THREE.Vector3) => {
       if (isDropLockedRef.current) return;
@@ -1128,24 +1174,6 @@ const SceneContent = ({
           onPlace={(p) => {
             const spawnPos = new THREE.Vector3(p.x, p.y + CUBE_SIZE / 2, p.z);
             handleAddCube(spawnPos);
-
-            // Visual flag lock logic (ported from old onPlace)
-            const lockId = lastHighestSettledIdRef.current;
-            if (lockId !== null) {
-              flagLockIdRef.current = lockId;
-              flagCubeIdRef.current = lockId;
-              const lockPos = lastHighestSettledPosRef.current;
-              if (lockPos) {
-                setFlagPose({
-                  position: [
-                    lockPos.x,
-                    lockPos.y + CUBE_SIZE / 2 + FLAG_OFFSET,
-                    lockPos.z,
-                  ],
-                  rotation: flagRotationRef.current,
-                });
-              }
-            }
           }}
         />
 
@@ -1156,9 +1184,14 @@ const SceneContent = ({
             onRegister={registerBody}
             profile={cubeProfiles?.[cube.localId]}
             isHovered={hoveredCubeId === cube.sceneId}
+            isSelected={selectedCubeId === cube.sceneId}
             onHover={setHoveredCubeId}
+            onClick={handleCubeClick}
             hoverEnabled={!isPlacing && !ownerCardOpen && !isSimulating}
-            highlight={ownerCardOpen && activeCubeId === cube.localId}
+            highlight={
+              (ownerCardOpen && activeCubeId === cube.localId) ||
+              selectedCubeId === cube.sceneId
+            }
           />
         ))}
         {flagPose && (

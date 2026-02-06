@@ -23,6 +23,8 @@ import {
   QualityControls,
   useQualityControls,
 } from "./components/ui/quality-controls";
+import { CubeSpaceDebugOverlay } from "./components/ui/cubespace-debug-overlay";
+import { useCubeSpaceDebugOverlay } from "@/hooks/use-cubespace-debug-overlay";
 import { setParticleField3DQuality } from "./components/ui/particle-quality";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,7 @@ const AppRouterLayer = () => {
   const { currentSection } = useAppContext();
   const [hasVisitedCubeSpace, setHasVisitedCubeSpace] = useState(false);
   const keepAliveEnabled = hasVisitedCubeSpace || isCubeSpaceRoute;
+  const cubeDebugEnabled = useCubeSpaceDebugOverlay();
 
   useEffect(() => {
     if (isCubeSpaceRoute) setHasVisitedCubeSpace(true);
@@ -43,6 +46,7 @@ const AppRouterLayer = () => {
     <>
       <GlobalBackground particleMode={isCubeSpaceRoute ? "idle" : "active"} />
       <CubeSpaceDataProvider enabled={keepAliveEnabled}>
+        <CubeSpaceDebugOverlay enabled={cubeDebugEnabled && keepAliveEnabled} />
         <AppLoaderGate>
           <SocialLinks hide={currentSection === "experience"} />
           <ContactActions hide={currentSection === "experience"} />

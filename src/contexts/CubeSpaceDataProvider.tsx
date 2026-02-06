@@ -12,6 +12,72 @@ import { ensureAnonymousAuth } from "@/lib/firebase";
 import { listenCubes, listenUsers } from "@/lib/cubespaceStorage";
 import type { UserDomain, CubeFirestoreView, Vec3 } from "@/types/CubeModel";
 import { cubeDataReducer } from "@/contexts/cubeReducerHandlers";
+import type {
+  CubeDataAction,
+  CubeDataState,
+} from "@/contexts/cubeReducerHandlers";
+import { cubeSpaceMetrics } from "@/lib/cubespaceMetrics";
+
+/**
+ * Telemetry Wrapper for Reducer - DEV only
+ * Logs state transitions and tracks flow metrics
+ */
+const telemetryReducer = (
+  state: CubeDataState,
+  action: CubeDataAction,
+): CubeDataState => {
+  const nextState = cubeDataReducer(state, action);
+
+  // DEV-only logging and metrics
+  if (import.meta.env.DEV && cubeSpaceMetrics.isEnabled()) {
+    const prevCube = state.activeFlowId
+      ? state.cubesByLocalId.get(state.activeFlowId)
+      : null;
+    const nextCube = nextState.activeFlowId
+      ? nextState.cubesByLocalId.get(nextState.activeFlowId)
+      : null;
+
+    const prevStatus = prevCube?.status || "none";
+    const nextStatus = nextCube?.status || "none";
+
+    // Log state transition
+    console.log(`[CubeSpace] ${action.type}: ${prevStatus} → ${nextStatus}`, {
+      activeFlowId: nextState.activeFlowId,
+      buffered: nextState.bufferedSnapshot !== null,
+      cubeCount: nextState.cubesByLocalId.size,
+    });
+
+    // Track flow metrics
+    if (action.type === "DROP_CUBE") {
+      cubeSpaceMetrics.startFlow(action.payload.localId);
+      cubeSpaceMetrics.recordEvent(action.payload.localId, "DROP_CUBE");
+    } else if (action.type === "SETTLE_CUBE") {
+      cubeSpaceMetrics.recordEvent(state.activeFlowId, "SETTLE_CUBE");
+    } else if (action.type === "SAVE_REQUEST") {
+      cubeSpaceMetrics.recordEvent(state.activeFlowId, "SAVE_REQUEST");
+    } else if (action.type === "SAVE_SUCCESS") {
+      cubeSpaceMetrics.recordEvent(state.activeFlowId, "SAVE_SUCCESS");
+      cubeSpaceMetrics.endFlow(action.payload.localId, true);
+    } else if (action.type === "SAVE_FAIL") {
+      cubeSpaceMetrics.recordEvent(state.activeFlowId, "SAVE_FAIL", {
+        error: action.payload.error,
+      });
+      cubeSpaceMetrics.endFlow(action.payload.localId, false);
+    } else if (action.type === "ABANDON_FLOW") {
+      cubeSpaceMetrics.recordEvent(state.activeFlowId, "ABANDON_FLOW");
+      if (state.activeFlowId) {
+        cubeSpaceMetrics.endFlow(state.activeFlowId, false);
+      }
+    } else if (action.type === "LISTENER_SNAPSHOT") {
+      cubeSpaceMetrics.recordEvent(state.activeFlowId, "LISTENER_SNAPSHOT", {
+        cubeCount: action.payload.length,
+        buffered: state.activeFlowId !== null,
+      });
+    }
+  }
+
+  return nextState;
+};
 
 // --- Fallback Data ---
 const FALLBACK_USER_ID = "xm87b1nkG3SvJF3Tovih";
@@ -48,8 +114,7 @@ export const CubeSpaceDataProvider: FC<{
   const [users, setUsers] = useState<UserDomain[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Use new extracted reducer with activeFlowId tracking
-  const [state, dispatch] = useReducer(cubeDataReducer, {
+  const [state, dispatch] = useReducer(telemetryReducer, {
     cubesByLocalId: new Map(),
     localIdByRemoteId: new Map(),
     bufferedSnapshot: null,
