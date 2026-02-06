@@ -37,6 +37,7 @@ export const CubeFlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [authStatus, setAuthStatus] = useState<AuthStatus>(AUTH_IDLE);
   const [ownerError, setOwnerError] = useState<string | null>(null);
   const [ownerCardOpen, setOwnerCardOpen] = useState(false);
+  const [hasSavedCube, setHasSavedCube] = useState(false);
 
   // Derived State
   const draftCube = draftId ? cubesByLocalId.get(draftId) : null;
@@ -50,8 +51,12 @@ export const CubeFlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
       // Don't allow placing a new cube if there's an unsaved draft
       return;
     }
+    if (hasSavedCube && !isPlacing) {
+      // Don't allow placing a new cube if user already saved one
+      return;
+    }
     setIsPlacing((prev) => !prev);
-  }, [hasUnsavedDraft, isPlacing]);
+  }, [hasUnsavedDraft, hasSavedCube, isPlacing]);
 
   const onConnectLinkedIn = useCallback(async () => {
     if (!isAuth0Configured()) {
@@ -92,7 +97,8 @@ export const CubeFlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
         confirmSaveCube(draftId, remoteId); // Updates to 'synced'
 
-        // Success - clean up flow state
+        // Success - clean up flow state and mark cube as saved
+        setHasSavedCube(true);
         setOwnerCardOpen(false);
         setDraftId(null);
       } catch (err) {
@@ -154,6 +160,7 @@ export const CubeFlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
         authStatus,
         ownerError: ownerError || saveError,
         hasUnsavedDraft,
+        hasSavedCube,
         togglePlacing,
         onSimulationComplete,
         setDraftId,

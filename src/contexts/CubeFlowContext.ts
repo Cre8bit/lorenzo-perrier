@@ -28,6 +28,7 @@ export type CubeFlowContextType = {
   authStatus: AuthStatus;
   ownerError: string | null;
   hasUnsavedDraft: boolean;
+  hasSavedCube: boolean;
 
   // Actions
   togglePlacing: () => void;

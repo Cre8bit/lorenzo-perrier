@@ -83,6 +83,7 @@ const CubeSpaceInner = ({ active = true }: Props) => {
     togglePlacing,
     draftId,
     ownerCardOpen,
+    hasSavedCube,
     onCubeDropped: flowHandleCubeDropped,
     onSimulationComplete,
     onCubeFocused: flowHandleCubeFocused,
@@ -300,22 +301,24 @@ const CubeSpaceInner = ({ active = true }: Props) => {
 
           <div className="absolute inset-0 z-10">
             <Suspense fallback={null}>
-              <CubeScene
-                active={active}
-                isPlacing={isPlacing}
-                onStatsChange={setStats}
-                selectedColor={selectedColor}
-                onCubeDropped={handleCubeDropped}
-                onCubeSettled={handleCubeSettled}
-                cubes={cubesList}
-                cubeProfiles={cubeProfiles}
-                focusCubeId={draftId}
-                activeCubeId={draftId}
-                ownerCardOpen={ownerCardOpen}
-                onFocusComplete={handleFocusComplete}
-                onActiveCubeScreenChange={handleActiveCubeScreenChange}
-                onSceneReady={handleSceneReady}
-              />
+              {(cubesLoaded || cubeSpaceDataError) && (
+                <CubeScene
+                  active={active}
+                  isPlacing={isPlacing}
+                  onStatsChange={setStats}
+                  selectedColor={selectedColor}
+                  onCubeDropped={handleCubeDropped}
+                  onCubeSettled={handleCubeSettled}
+                  cubes={cubesList}
+                  cubeProfiles={cubeProfiles}
+                  focusCubeId={draftId}
+                  activeCubeId={draftId}
+                  ownerCardOpen={ownerCardOpen}
+                  onFocusComplete={handleFocusComplete}
+                  onActiveCubeScreenChange={handleActiveCubeScreenChange}
+                  onSceneReady={handleSceneReady}
+                />
+              )}
             </Suspense>
             {showSceneLoader && (
               <CubeSpaceConstellationLoader
@@ -334,7 +337,8 @@ const CubeSpaceInner = ({ active = true }: Props) => {
                 towerHeight={stats.towerHeight}
                 isPlacing={isPlacing}
                 onTogglePlacing={togglePlacing}
-                canAddCube={!draftId}
+                canAddCube={!draftId && !hasSavedCube}
+                hasDraft={!!draftId}
                 selectedColor={selectedColor}
                 onColorChange={setSelectedColor}
               />

@@ -509,6 +509,7 @@ const SceneContent = ({
   const fallbackColorRef = useRef(getRandomColor());
   const initialCameraSetRef = useRef(false);
   const sceneReadyRef = useRef(false);
+  const initialSimulationCompleteRef = useRef(false);
   const baseTargetRef = useRef({
     target: new THREE.Vector3(0, 2, 0),
     distance: 10,
@@ -821,6 +822,16 @@ const SceneContent = ({
       setIsSimulating(hasActive);
       if (hasActive) setHoveredCubeId(null);
     }
+
+    // Track when initial simulation completes
+    if (
+      !hasActive &&
+      !initialSimulationCompleteRef.current &&
+      bodyMapRef.current.size > 0
+    ) {
+      initialSimulationCompleteRef.current = true;
+    }
+
     wasActiveRef.current = hasActive;
 
     if (!hasActive) {
@@ -901,7 +912,20 @@ const SceneContent = ({
     const bodiesReady =
       bodyMapRef.current.size >= renderCubes.length ||
       (renderCubes.length === 0 && bodyMapRef.current.size === 0);
-    if (!sceneReadyRef.current && bodiesReady && initialCameraSetRef.current) {
+
+    const towerReady =
+      renderCubes.length === 0 || // No cubes, ready immediately
+      (initialSimulationCompleteRef.current &&
+        !hasActive &&
+        flagPose !== null &&
+        towerHeight > 0); // Initial sim done, settled, flag positioned, height calculated
+
+    if (
+      !sceneReadyRef.current &&
+      bodiesReady &&
+      initialCameraSetRef.current &&
+      towerReady
+    ) {
       sceneReadyRef.current = true;
       onSceneReady?.();
     }

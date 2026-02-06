@@ -9,6 +9,7 @@ type Props = {
   isPlacing: boolean;
   onTogglePlacing: () => void;
   canAddCube: boolean;
+  hasDraft: boolean;
 
   selectedColor: string;
   onColorChange: (color: string) => void;
@@ -26,17 +27,18 @@ export const CubeSpaceOverlay = ({
   isPlacing,
   onTogglePlacing,
   canAddCube,
+  hasDraft,
   selectedColor,
   onColorChange,
 }: Props) => {
   const heightLabel = useMemo(() => formatHeight(towerHeight), [towerHeight]);
   const maxScale = useMemo(
     () => Math.max(10, Math.ceil((towerHeight + 2) / 5) * 5),
-    [towerHeight]
+    [towerHeight],
   );
   const ticks = useMemo(
     () => Array.from({ length: maxScale / 5 + 1 }, (_, i) => i * 5),
-    [maxScale]
+    [maxScale],
   );
   const fillPercent = Math.min(100, (towerHeight / maxScale) * 100);
   return (
@@ -57,6 +59,10 @@ export const CubeSpaceOverlay = ({
         {isPlacing ? (
           <p className="mt-3 text-xs text-primary/80 tracking-wide">
             Click anywhere on the glowing plane to place your cube.
+          </p>
+        ) : hasDraft ? (
+          <p className="mt-3 text-xs text-primary/70 tracking-wide animate-pulse">
+            Claim your cube by adding your name...
           </p>
         ) : canAddCube ? (
           <>
@@ -122,7 +128,9 @@ export const CubeSpaceOverlay = ({
                   style={{
                     background: color,
                     borderColor:
-                      selectedColor === color ? "hsl(var(--primary) / 0.8)" : "transparent",
+                      selectedColor === color
+                        ? "hsl(var(--primary) / 0.8)"
+                        : "transparent",
                     boxShadow:
                       selectedColor === color
                         ? "0 0 0 2px hsl(var(--primary) / 0.25)"
@@ -133,7 +141,6 @@ export const CubeSpaceOverlay = ({
             </div>
           </div>
         )}
-
       </div>
 
       {/* Bottom-right stats (count + height) */}
@@ -192,7 +199,8 @@ export const CubeSpaceOverlay = ({
             className="absolute bottom-1 left-1 right-1 rounded-full"
             style={{
               height: `${fillPercent}%`,
-              background: "linear-gradient(180deg, hsl(var(--primary) / 0.6), hsl(var(--primary) / 0.1))",
+              background:
+                "linear-gradient(180deg, hsl(var(--primary) / 0.6), hsl(var(--primary) / 0.1))",
               boxShadow: "0 0 28px hsl(var(--primary) / 0.14)",
             }}
           />
