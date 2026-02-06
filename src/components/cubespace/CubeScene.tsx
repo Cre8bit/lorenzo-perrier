@@ -32,6 +32,7 @@ import {
   reportFramePerformance,
   reportPerformance,
 } from "@/components/ui/performance-overlay";
+import { HoverBubble } from "./HoverBubbleVariants";
 
 const FLOOR_Y = 0;
 const CUBE_SIZE = 0.8;
@@ -363,7 +364,16 @@ const CubeRigid = ({
         {profile?.photoUrl && (
           <PhotoBadge url={profile.photoUrl} verified={profile.verified} />
         )}
-        {showBubble && displayName ? <HoverBubble name={displayName} /> : null}
+        {showBubble && displayName ? (
+          <HoverBubble
+            name={displayName}
+            initials={
+              profile?.firstName && profile?.lastName
+                ? `${profile.firstName[0]}${profile.lastName[0]}`
+                : undefined
+            }
+          />
+        ) : null}
       </group>
     </RigidBody>
   );
@@ -414,19 +424,6 @@ const PhotoBadge = ({ url, verified }: { url: string; verified?: boolean }) => {
         </mesh>
       )}
     </group>
-  );
-};
-
-const HoverBubble = ({ name }: { name: string }) => {
-  return (
-    <Html position={[0, CUBE_SIZE / 2 + 0.55, 0]} center distanceFactor={10}>
-      <div className="pointer-events-none select-none">
-        <div className="rounded-full border border-white/10 bg-black/60 px-3 py-1 text-[11px] font-medium text-white/90 shadow-lg backdrop-blur">
-          Hi, I'm {name}!
-        </div>
-        <div className="mx-auto mt-1 h-1.5 w-1.5 rotate-45 border border-white/10 bg-black/60" />
-      </div>
-    </Html>
   );
 };
 
