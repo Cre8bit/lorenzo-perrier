@@ -28,6 +28,10 @@ import type {
 } from "@/components/cubespace/cubeProfiles";
 import type { Vec3, CubeDomain } from "@/types/CubeModel";
 import { BidirectionalMap } from "@/utils/BidirectionalMap";
+import {
+  reportFramePerformance,
+  reportPerformance,
+} from "@/components/ui/performance-overlay";
 
 const FLOOR_Y = 0;
 const CUBE_SIZE = 0.8;
@@ -156,6 +160,7 @@ const DropPlane = ({
   if (!enabled) return null;
 
   const handleMove = (e: ThreeEvent<PointerEvent>) => {
+    const t0 = performance.now();
     const p = e.point as THREE.Vector3;
     const dx = p.x - center.x;
     const dz = p.z - center.z;
@@ -174,6 +179,7 @@ const DropPlane = ({
         pointerMovedRef.current = true;
       }
     }
+    reportPerformance("DropPlane:hover", performance.now() - t0);
   };
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -182,6 +188,7 @@ const DropPlane = ({
   };
 
   const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
+    const t0 = performance.now();
     if (!hoverPos) return;
     const now = Date.now();
     const recentlyEnabled = now - guard.placingStartedAtRef.current < 350;
@@ -200,6 +207,7 @@ const DropPlane = ({
     onPlace(new THREE.Vector3(hoverPos.x, y, hoverPos.z));
     pointerDownRef.current = null;
     pointerMovedRef.current = false;
+    reportPerformance("DropPlane:click", performance.now() - t0);
   };
 
   return (
@@ -287,15 +295,19 @@ const CubeRigid = ({
   const showBubble = Boolean(displayName && (isHovered || isSelected));
 
   const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
+    const t0 = performance.now();
     if (!hoverEnabled) return;
     e.stopPropagation();
     onHover?.(cube.sceneId);
+    reportPerformance("CubeRigid:hover", performance.now() - t0);
   };
 
   const handlePointerOut = (e: ThreeEvent<PointerEvent>) => {
+    const t0 = performance.now();
     if (!hoverEnabled) return;
     e.stopPropagation();
     onHover?.(null);
+    reportPerformance("CubeRigid:unhover", performance.now() - t0);
   };
 
   const handleClick = (e: ThreeEvent<PointerEvent>) => {
@@ -772,6 +784,7 @@ const SceneContent = ({
   );
 
   useFrame(() => {
+    const t0 = performance.now();
     if (!active) return;
     updateTickRef.current += 1;
     if (updateTickRef.current % 4 !== 0) return;
@@ -979,9 +992,12 @@ const SceneContent = ({
     } else if (!hasActive) {
       dropInFlightRef.current = false;
     }
+
+    reportFramePerformance("CubeScene:physics", t0);
   });
 
   useFrame((_, delta) => {
+    const t0 = performance.now();
     if (!active) return;
     if (!transitionRef.current.active || !controlsRef.current) return;
     const t = transitionRef.current;
@@ -1012,9 +1028,12 @@ const SceneContent = ({
         }
       }
     }
+
+    reportFramePerformance("CubeScene:transition", t0);
   });
 
   useFrame(() => {
+    const t0 = performance.now();
     if (!active) return;
     if (transitionRef.current.active) return;
     if (isPlacing) return;
@@ -1042,9 +1061,12 @@ const SceneContent = ({
       focusId: pending.id,
     });
     pendingFocusRef.current = null;
+
+    reportFramePerformance("CubeScene:pendingFocus", t0);
   });
 
   useFrame(() => {
+    const t0 = performance.now();
     if (!active) return;
     if (!onActiveCubeScreenChange) return;
     if (!ownerCardOpen || activeCubeId == null) {
@@ -1052,6 +1074,7 @@ const SceneContent = ({
         lastScreenRef.current = { x: 0, y: 0, visible: false };
         onActiveCubeScreenChange({ localId: null, x: 0, y: 0, visible: false });
       }
+      reportFramePerformance("CubeScene:screenTrack", t0);
       return;
     }
     const x = size.width * 0.5;
@@ -1059,10 +1082,13 @@ const SceneContent = ({
     const visible = true;
     lastScreenRef.current = { x, y, visible };
     onActiveCubeScreenChange({ localId: activeCubeId, x, y, visible });
+
+    reportFramePerformance("CubeScene:screenTrack", t0);
   });
 
   const handleCubeClick = useCallback(
     (sceneId: number) => {
+      const t0 = performance.now();
       // Don't allow selection while placing or if owner card is open
       if (isPlacing || ownerCardOpen || isSimulating) return;
 
@@ -1080,6 +1106,7 @@ const SceneContent = ({
         kind: "focus",
         focusId: sceneId,
       });
+      reportPerformance("CubeScene:cubeClick", performance.now() - t0);
     },
     [
       isPlacing,
