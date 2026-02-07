@@ -1,9 +1,15 @@
-import { createAuth0Client, type Auth0Client, type User } from "@auth0/auth0-spa-js";
+import {
+  createAuth0Client,
+  type Auth0Client,
+  type User,
+} from "@auth0/auth0-spa-js";
 
 const domain = import.meta.env.VITE_AUTH0_DOMAIN as string | undefined;
 const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID as string | undefined;
 const audience = import.meta.env.VITE_AUTH0_AUDIENCE as string | undefined;
-const connection = import.meta.env.VITE_AUTH0_LINKEDIN_CONNECTION as string | undefined;
+const connection = import.meta.env.VITE_AUTH0_LINKEDIN_CONNECTION as
+  | string
+  | undefined;
 
 let clientPromise: Promise<Auth0Client> | null = null;
 
@@ -17,11 +23,12 @@ const getClient = async () => {
     clientPromise = createAuth0Client({
       domain: domain as string,
       clientId: clientId as string,
-      cacheLocation: "localstorage",
       authorizationParams: {
+        redirect_uri: `${window.location.origin}${import.meta.env.BASE_URL}`,
         audience,
         scope: "openid profile email",
       },
+      cacheLocation: "localstorage",
     });
   }
   return clientPromise;
