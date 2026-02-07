@@ -18,6 +18,19 @@ concurrency:
 jobs:
     build:
         runs-on: ubuntu-latest
+        environment: github-pages
+        env:
+            VITE_AUTH0_DOMAIN: ${{ vars.VITE_AUTH0_DOMAIN }}
+            VITE_AUTH0_CLIENT_ID: ${{ vars.VITE_AUTH0_CLIENT_ID }}
+            VITE_AUTH0_AUDIENCE: ${{ vars.VITE_AUTH0_AUDIENCE }}
+            VITE_AUTH0_LINKEDIN_CONNECTION: ${{ vars.VITE_AUTH0_LINKEDIN_CONNECTION }}
+
+            VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+            VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+            VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+            VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+            VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+            VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
