@@ -11,7 +11,11 @@
  * - Context files
  */
 
+import * as THREE from "three";
+
 export type Vec3 = { x: number; y: number; z: number };
+
+export type Quaternion = { x: number; y: number; z: number; w: number };
 
 export type FirestoreTimestampLike = {
   seconds: number;
@@ -38,6 +42,7 @@ export type CubeDomain = {
   color: string; // HSL format: "hsl(192, 55%, 58%)"
   dropPosition: Vec3; // Initial drop coordinates
   finalPosition?: Vec3; // Physics-settled position
+  finalRotation: Quaternion; // Final rotation after physics settlement (required)
   createdAtLocal: number; // Client timestamp (ms)
   createdAtRemote?: number; // Server timestamp (ms) - set after save
 };
@@ -50,6 +55,7 @@ export type CubeFirestoreView = Pick<CubeDomain, "color" | "dropPosition"> & {
   remoteId: string; // Document ID
   userId: string; // Required in storage
   finalPosition: Vec3; // Required in storage
+  finalRotation: Quaternion; // Final rotation (Quaternion) - required
   createdAt?: number; // Server timestamp
 };
 
@@ -63,7 +69,8 @@ export type CubeRenderView = Pick<
 > & {
   sceneId: number; // Stable numeric ID for physics engine
   position: [number, number, number]; // Three.js format
-  rotation: [number, number, number]; // Three.js format
+  rotation: [number, number, number]; // Euler angles for Three.js (converted from quaternion)
+  quaternion?: [number, number, number, number]; // Stored quaternion (optional, for reference)
   impulse?: [number, number, number]; // Initial physics impulse
   createdAt: number; // For animation timing
 };
@@ -99,6 +106,7 @@ export type CreateCubeInput = {
   color: string;
   dropPosition: Vec3;
   finalPosition: Vec3;
+  finalRotation: Quaternion; // Final rotation (Quaternion) - required
 };
 
 /**
@@ -113,6 +121,7 @@ export type DropCubePayload = {
 export type SettleCubePayload = {
   localId: string;
   finalPosition: Vec3;
+  finalRotation: Quaternion; // Final rotation after settling - required
 };
 
 /**
@@ -144,7 +153,7 @@ export const toRenderView = (
   sceneId: number,
 ): CubeRenderView => {
   const pos = cube.finalPosition ?? cube.dropPosition;
-  return {
+  const renderView: CubeRenderView = {
     sceneId,
     localId: cube.localId,
     color: cube.color,
@@ -153,6 +162,29 @@ export const toRenderView = (
     rotation: [0, 0, 0],
     createdAt: cube.createdAtLocal,
   };
+
+  // Apply saved quaternion rotation if available
+  if (cube.finalRotation) {
+    // Convert quaternion to Euler angles for RigidBody
+    const quat = new THREE.Quaternion(
+      cube.finalRotation.x,
+      cube.finalRotation.y,
+      cube.finalRotation.z,
+      cube.finalRotation.w,
+    );
+    const euler = new THREE.Euler().setFromQuaternion(quat);
+    renderView.rotation = [euler.x, euler.y, euler.z];
+
+    // Keep quaternion for reference
+    renderView.quaternion = [
+      cube.finalRotation.x,
+      cube.finalRotation.y,
+      cube.finalRotation.z,
+      cube.finalRotation.w,
+    ];
+  }
+
+  return renderView;
 };
 
 /**

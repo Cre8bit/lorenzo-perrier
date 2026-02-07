@@ -5,7 +5,7 @@
  * The main reducer becomes a simple dispatcher.
  */
 
-import type { CubeDomain, Vec3 } from "@/types/CubeModel";
+import type { CubeDomain, Vec3, Quaternion } from "@/types/CubeModel";
 import type { CubeFirestoreView } from "@/types/CubeModel";
 
 /**
@@ -26,7 +26,14 @@ export type CubeDataAction =
       type: "DROP_CUBE";
       payload: { localId: string; color: string; dropPosition: Vec3 };
     }
-  | { type: "SETTLE_CUBE"; payload: { localId: string; finalPosition: Vec3 } }
+  | {
+      type: "SETTLE_CUBE";
+      payload: {
+        localId: string;
+        finalPosition: Vec3;
+        finalRotation: Quaternion;
+      };
+    }
   | { type: "SAVE_REQUEST"; payload: { localId: string } }
   | { type: "SAVE_SUCCESS"; payload: { localId: string; remoteId: string } }
   | { type: "SAVE_FAIL"; payload: { localId: string; error: string } }
@@ -57,6 +64,7 @@ const processSnapshot = (
           status: "synced",
           color: remoteCube.color,
           finalPosition: remoteCube.finalPosition,
+          finalRotation: remoteCube.finalRotation,
           userId: remoteCube.userId,
           createdAtRemote: remoteCube.createdAt,
         });
@@ -72,6 +80,7 @@ const processSnapshot = (
         color: remoteCube.color,
         dropPosition: remoteCube.dropPosition,
         finalPosition: remoteCube.finalPosition,
+        finalRotation: remoteCube.finalRotation,
         userId: remoteCube.userId,
         createdAtRemote: remoteCube.createdAt,
         createdAtLocal: Date.now(),
@@ -91,11 +100,15 @@ export const handleDropCube = (
   const { localId, color, dropPosition } = payload;
   const newCubes = new Map(state.cubesByLocalId);
 
+  // Initialize with identity quaternion (no rotation)
+  const identityRotation: Quaternion = { x: 0, y: 0, z: 0, w: 1 };
+
   newCubes.set(localId, {
     localId,
     status: "draft",
     color,
     dropPosition,
+    finalRotation: identityRotation,
     createdAtLocal: Date.now(),
   });
 
@@ -108,18 +121,22 @@ export const handleDropCube = (
 
 /**
  * Handler: SETTLE_CUBE
- * Updates the final position of a cube after physics settling
+ * Updates the final position and rotation of a cube after physics settling
  */
 export const handleSettleCube = (
   state: CubeDataState,
-  payload: { localId: string; finalPosition: Vec3 },
+  payload: { localId: string; finalPosition: Vec3; finalRotation: Quaternion },
 ): CubeDataState => {
-  const { localId, finalPosition } = payload;
+  const { localId, finalPosition, finalRotation } = payload;
   const newCubes = new Map(state.cubesByLocalId);
   const cube = newCubes.get(localId);
 
   if (cube) {
-    newCubes.set(localId, { ...cube, finalPosition });
+    newCubes.set(localId, {
+      ...cube,
+      finalPosition,
+      finalRotation: finalRotation,
+    });
   }
 
   return {
@@ -285,6 +302,7 @@ export const handleResetWithFallback = (
       color: fb.color,
       dropPosition: fb.dropPosition,
       finalPosition: fb.finalPosition,
+      finalRotation: fb.finalRotation,
       userId: fb.userId,
       createdAtRemote: fb.createdAt,
       createdAtLocal: Date.now(),

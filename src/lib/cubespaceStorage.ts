@@ -1,6 +1,7 @@
 // Re-export types from centralized model
 export type {
   Vec3,
+  Quaternion,
   FirestoreTimestampLike,
   CubeStatus,
   CubeDomain,
@@ -12,6 +13,7 @@ export type {
 
 import type {
   Vec3,
+  Quaternion,
   CubeFirestoreView,
   UserDomain,
   CreateUserInput,
@@ -88,6 +90,26 @@ const parseVec3 = (value: unknown): Vec3 | null => {
   return null;
 };
 
+const parseQuaternion = (value: unknown): Quaternion | null => {
+  if (Array.isArray(value) && value.length >= 4) {
+    const x = toFiniteNumber(value[0]);
+    const y = toFiniteNumber(value[1]);
+    const z = toFiniteNumber(value[2]);
+    const w = toFiniteNumber(value[3]);
+    if (x == null || y == null || z == null || w == null) return null;
+    return { x, y, z, w };
+  }
+  if (isRecord(value)) {
+    const x = toFiniteNumber(value.x);
+    const y = toFiniteNumber(value.y);
+    const z = toFiniteNumber(value.z);
+    const w = toFiniteNumber(value.w);
+    if (x == null || y == null || z == null || w == null) return null;
+    return { x, y, z, w };
+  }
+  return null;
+};
+
 const parseStoredUser = (docId: string, raw: unknown): UserDomain | null => {
   if (!isRecord(raw)) return null;
   const firstName = typeof raw.firstName === "string" ? raw.firstName : "";
@@ -133,12 +155,16 @@ const parseStoredCube = (
     parseVec3(raw.finalPosition) ??
     parseVec3(raw.final_position) ??
     dropPosition;
+  // Default to identity quaternion if rotation missing (backward compatibility)
+  const finalRotation = parseQuaternion(raw.finalRotation) ??
+    parseQuaternion(raw.rotation) ?? { x: 0, y: 0, z: 0, w: 1 };
   return {
     remoteId: docId,
     userId,
     color: typeof raw.color === "string" ? raw.color : "hsl(185, 40%, 45%)",
     dropPosition,
     finalPosition,
+    finalRotation,
     createdAt: parseTimestampToMillis(raw.createdAt ?? raw.createdDate),
   };
 };
@@ -220,7 +246,7 @@ export const createUserDoc = async (user: CreateUserInput) => {
 export const createCubeDoc = async (cube: CreateCubeInput) => {
   const db = getFirestoreDb();
   const ref = collection(db, CUBES_COLLECTION);
-  const payload = {
+  const payload: Record<string, unknown> = {
     userId: cube.userId,
     color: cube.color,
     dropPosition: [
@@ -233,8 +259,14 @@ export const createCubeDoc = async (cube: CreateCubeInput) => {
       cube.finalPosition.y,
       cube.finalPosition.z,
     ],
+    finalRotation: [
+      cube.finalRotation.x,
+      cube.finalRotation.y,
+      cube.finalRotation.z,
+      cube.finalRotation.w,
+    ],
     createdDate: serverTimestamp(),
-  } as const;
+  };
 
   console.warn("[firestore][createCubeDoc] payload", {
     ...payload,

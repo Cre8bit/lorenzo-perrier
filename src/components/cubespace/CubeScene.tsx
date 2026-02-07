@@ -48,6 +48,7 @@ interface RenderCube {
   localId: string;
   position: [number, number, number];
   rotation: [number, number, number];
+  quaternion?: [number, number, number, number]; // Preferred rotation format
   color: string;
   status: CubeDomain["status"];
   impulse?: [number, number, number];
@@ -69,7 +70,11 @@ type Props = {
     color: string;
     createdAt: number;
   }) => void;
-  onCubeSettled?: (payload: { localId: string; finalPosition: Vec3 }) => void;
+  onCubeSettled?: (payload: {
+    localId: string;
+    finalPosition: Vec3;
+    finalRotation: { x: number; y: number; z: number; w: number };
+  }) => void;
   onFocusComplete?: (payload: { localId: string }) => void;
   onActiveCubeScreenChange?: (payload: {
     localId: string | null;
@@ -355,11 +360,15 @@ const CubeRigid = ({
             metalness={0.08}
           />
         </mesh>
-        {(highlight || (isHovered && hoverEnabled)) && (
-          <HighlightShell
-            color={highlight ? "hsl(185, 60%, 62%)" : "hsl(0, 0%, 90%)"}
-            maxOpacity={highlight ? 0.28 : 0.15}
-          />
+        {/* Visual highlighting - selected takes precedence over hover */}
+        {isSelected ? (
+          <HighlightShell color="hsl(185, 60%, 62%)" maxOpacity={0.35} />
+        ) : isHovered && hoverEnabled ? (
+          <HighlightShell color="hsl(0, 0%, 95%)" maxOpacity={0.12} />
+        ) : null}
+        {/* Additional highlight for active cube in owner card */}
+        {highlight && !isSelected && (
+          <HighlightShell color="hsl(185, 60%, 62%)" maxOpacity={0.28} />
         )}
         {profile?.photoUrl && (
           <PhotoBadge url={profile.photoUrl} verified={profile.verified} />
@@ -498,16 +507,38 @@ const SceneContent = ({
       const y = useFinal ? c.finalPosition!.y : c.dropPosition.y;
       const z = useFinal ? c.finalPosition!.z : c.dropPosition.z;
 
-      return {
+      const renderCube: RenderCube = {
         sceneId: sid,
         localId: c.localId,
         position: [x, y, z],
-        rotation: [0, 0, 0], // Simple accumulation; real rotation matches physics body
+        rotation: [0, 0, 0], // Fallback Euler angles
         color: c.color,
         status: c.status,
         createdAt: c.createdAtLocal,
-        // Impulse not really used in store yet, but can be added if needed
       };
+
+      // Apply saved rotation if available (Quaternion format)
+      if (c.finalRotation) {
+        // Convert quaternion to Euler angles for RigidBody
+        const quat = new THREE.Quaternion(
+          c.finalRotation.x,
+          c.finalRotation.y,
+          c.finalRotation.z,
+          c.finalRotation.w,
+        );
+        const euler = new THREE.Euler().setFromQuaternion(quat);
+        renderCube.rotation = [euler.x, euler.y, euler.z];
+
+        // Keep quaternion for reference
+        renderCube.quaternion = [
+          c.finalRotation.x,
+          c.finalRotation.y,
+          c.finalRotation.z,
+          c.finalRotation.w,
+        ];
+      }
+
+      return renderCube;
     });
   }, [cubes]);
 
@@ -561,6 +592,14 @@ const SceneContent = ({
   const simulatingRef = useRef(false);
   const placementTargetRef = useRef(0);
   const placementDistanceRef = useRef(0);
+
+  // Camera navigation detection
+  const isNavigatingCameraRef = useRef(false);
+
+  // Hover debounce/hysteresis
+  const hoverTimerRef = useRef<number | null>(null);
+  const pendingHoverIdRef = useRef<number | null>(null);
+
   const transitionRef = useRef<{
     active: boolean;
     progress: number;
@@ -623,7 +662,9 @@ const SceneContent = ({
 
   useEffect(() => {
     if (isPlacing) {
+      // Clear all highlights when starting to add a cube
       setHoveredCubeId(null);
+      setSelectedCubeId(null);
       dropInFlightRef.current = false;
       placingStartedAtRef.current = Date.now();
     }
@@ -641,6 +682,15 @@ const SceneContent = ({
       setHoveredCubeId(null);
     }
   }, [ownerCardOpen]);
+
+  // Clear hover timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current !== null) {
+        clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isPlacing) return;
@@ -705,6 +755,51 @@ const SceneContent = ({
     },
     [renderCubes],
   );
+
+  // Debounced hover handler with camera navigation check
+  const handleHoverChange = useCallback((sceneId: number | null) => {
+    // Immediate clear if null or navigation active
+    if (sceneId === null || isNavigatingCameraRef.current) {
+      if (hoverTimerRef.current !== null) {
+        clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = null;
+      }
+      pendingHoverIdRef.current = null;
+      setHoveredCubeId(null);
+      return;
+    }
+
+    // Debounce hover updates (50ms hysteresis to prevent flicker)
+    pendingHoverIdRef.current = sceneId;
+    if (hoverTimerRef.current !== null) {
+      clearTimeout(hoverTimerRef.current);
+    }
+    hoverTimerRef.current = window.setTimeout(() => {
+      if (
+        pendingHoverIdRef.current === sceneId &&
+        !isNavigatingCameraRef.current
+      ) {
+        setHoveredCubeId(sceneId);
+      }
+      hoverTimerRef.current = null;
+    }, 50);
+  }, []);
+
+  // Camera navigation handlers
+  const handleCameraNavigationStart = useCallback(() => {
+    isNavigatingCameraRef.current = true;
+    // Clear hover immediately when navigation starts
+    if (hoverTimerRef.current !== null) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    pendingHoverIdRef.current = null;
+    setHoveredCubeId(null);
+  }, []);
+
+  const handleCameraNavigationEnd = useCallback(() => {
+    isNavigatingCameraRef.current = false;
+  }, []);
 
   useEffect(() => {
     if (!controlsRef.current || !initialCameraSetRef.current) return;
@@ -977,11 +1072,18 @@ const SceneContent = ({
           dropInFlightRef.current = false;
           lastDropSettledAtRef.current = Date.now();
           const finalPos = api?.translation?.() ?? { x: 0, y: 0, z: 0 };
+          const finalRot = api?.rotation?.() ?? { x: 0, y: 0, z: 0, w: 1 };
           const localId = idMappingRef.current.getByValue(pendingId);
           if (localId) {
             onCubeSettled?.({
               localId,
               finalPosition: { x: finalPos.x, y: finalPos.y, z: finalPos.z },
+              finalRotation: {
+                x: finalRot.x,
+                y: finalRot.y,
+                z: finalRot.z,
+                w: finalRot.w,
+              },
             });
           }
         }
@@ -1209,7 +1311,7 @@ const SceneContent = ({
             profile={cubeProfiles?.[cube.localId]}
             isHovered={hoveredCubeId === cube.sceneId}
             isSelected={selectedCubeId === cube.sceneId}
-            onHover={setHoveredCubeId}
+            onHover={handleHoverChange}
             onClick={handleCubeClick}
             hoverEnabled={!isPlacing && !ownerCardOpen && !isSimulating}
             highlight={
@@ -1237,6 +1339,8 @@ const SceneContent = ({
         minPolarAngle={0.2}
         enableDamping
         dampingFactor={0.06}
+        onStart={handleCameraNavigationStart}
+        onEnd={handleCameraNavigationEnd}
       />
     </>
   );

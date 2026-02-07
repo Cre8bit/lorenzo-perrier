@@ -19,10 +19,16 @@ import {
   type CubeDataState,
   type CubeDataAction,
 } from "@/contexts/cubeReducerHandlers";
-import type { CubeDomain, CubeFirestoreView, Vec3 } from "@/types/CubeModel";
+import type {
+  CubeDomain,
+  CubeFirestoreView,
+  Vec3,
+  Quaternion,
+} from "@/types/CubeModel";
 
 describe("cubeReducerHandlers", () => {
   let initialState: CubeDataState;
+  const identityRotation: Quaternion = { x: 0, y: 0, z: 0, w: 1 };
 
   beforeEach(() => {
     initialState = {
@@ -50,6 +56,7 @@ describe("cubeReducerHandlers", () => {
       expect(cube?.status).toBe("draft");
       expect(cube?.color).toBe("hsl(200, 50%, 50%)");
       expect(cube?.dropPosition).toEqual({ x: 1, y: 2, z: 3 });
+      expect(cube?.finalRotation).toEqual(identityRotation);
       expect(cube?.createdAtLocal).toBeGreaterThan(0);
     });
 
@@ -71,6 +78,7 @@ describe("cubeReducerHandlers", () => {
         status: "synced",
         color: "hsl(100, 50%, 50%)",
         dropPosition: { x: 5, y: 6, z: 7 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now() - 1000,
       };
 
@@ -94,12 +102,13 @@ describe("cubeReducerHandlers", () => {
   });
 
   describe("handleSettleCube", () => {
-    it("should update finalPosition", () => {
+    it("should update finalPosition and rotation", () => {
       const cube: CubeDomain = {
         localId: "test-local-1",
         status: "draft",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 10, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -109,21 +118,25 @@ describe("cubeReducerHandlers", () => {
         activeFlowId: "test-local-1",
       };
 
+      const newRotation: Quaternion = { x: 0.1, y: 0.2, z: 0.3, w: 0.9 };
       const payload = {
         localId: "test-local-1",
         finalPosition: { x: 1, y: 0, z: 3 } as Vec3,
+        finalRotation: newRotation,
       };
 
       const result = handleSettleCube(stateWithCube, payload);
 
       const updatedCube = result.cubesByLocalId.get("test-local-1");
       expect(updatedCube?.finalPosition).toEqual({ x: 1, y: 0, z: 3 });
+      expect(updatedCube?.finalRotation).toEqual(newRotation);
     });
 
     it("should handle missing cube gracefully", () => {
       const payload = {
         localId: "non-existent",
         finalPosition: { x: 1, y: 0, z: 3 } as Vec3,
+        finalRotation: identityRotation,
       };
 
       const result = handleSettleCube(initialState, payload);
@@ -138,6 +151,7 @@ describe("cubeReducerHandlers", () => {
         status: "draft",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 10, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: 12345,
       };
 
@@ -149,6 +163,7 @@ describe("cubeReducerHandlers", () => {
       const payload = {
         localId: "test-local-1",
         finalPosition: { x: 1, y: 0, z: 3 } as Vec3,
+        finalRotation: identityRotation,
       };
 
       const result = handleSettleCube(stateWithCube, payload);
@@ -169,6 +184,7 @@ describe("cubeReducerHandlers", () => {
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
         finalPosition: { x: 1, y: 0, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -190,6 +206,7 @@ describe("cubeReducerHandlers", () => {
         status: "draft",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -198,6 +215,7 @@ describe("cubeReducerHandlers", () => {
         status: "synced",
         color: "hsl(100, 50%, 50%)",
         dropPosition: { x: 4, y: 5, z: 6 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -232,6 +250,7 @@ describe("cubeReducerHandlers", () => {
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
         finalPosition: { x: 1, y: 0, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -255,6 +274,7 @@ describe("cubeReducerHandlers", () => {
         status: "saving",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -275,6 +295,7 @@ describe("cubeReducerHandlers", () => {
         status: "saving",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -285,6 +306,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(100, 50%, 50%)",
           dropPosition: { x: 5, y: 6, z: 7 },
           finalPosition: { x: 5, y: 0, z: 7 },
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
       ];
@@ -310,6 +332,7 @@ describe("cubeReducerHandlers", () => {
         status: "saving",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -333,6 +356,7 @@ describe("cubeReducerHandlers", () => {
         status: "saving",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -354,6 +378,7 @@ describe("cubeReducerHandlers", () => {
         status: "saving",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -364,6 +389,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(100, 50%, 50%)",
           dropPosition: { x: 5, y: 6, z: 7 },
           finalPosition: { x: 5, y: 0, z: 7 },
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
       ];
@@ -388,6 +414,7 @@ describe("cubeReducerHandlers", () => {
         status: "draft",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -408,6 +435,7 @@ describe("cubeReducerHandlers", () => {
         status: "synced",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
+        finalRotation: identityRotation,
         remoteId: "remote-123",
         createdAtLocal: Date.now(),
       };
@@ -430,6 +458,7 @@ describe("cubeReducerHandlers", () => {
         status: "draft",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -440,6 +469,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(100, 50%, 50%)",
           dropPosition: { x: 5, y: 6, z: 7 },
           finalPosition: { x: 5, y: 0, z: 7 },
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
       ];
@@ -488,6 +518,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(100, 50%, 50%)",
           dropPosition: { x: 1, y: 2, z: 3 },
           finalPosition: { x: 1, y: 0, z: 3 },
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
       ];
@@ -511,6 +542,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(100, 50%, 50%)",
           dropPosition: { x: 1, y: 2, z: 3 },
           finalPosition: { x: 1, y: 0, z: 3 },
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
       ];
@@ -533,6 +565,7 @@ describe("cubeReducerHandlers", () => {
         color: "hsl(100, 50%, 50%)",
         dropPosition: { x: 1, y: 2, z: 3 },
         finalPosition: { x: 1, y: 0, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
         createdAtRemote: Date.now(),
         userId: "user-1",
@@ -551,6 +584,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(100, 50%, 50%)",
           dropPosition: { x: 1, y: 2, z: 3 },
           finalPosition: { x: 1, y: 0.1, z: 3 }, // Slightly different
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
         {
@@ -559,6 +593,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(200, 50%, 50%)",
           dropPosition: { x: 4, y: 5, z: 6 },
           finalPosition: { x: 4, y: 0, z: 6 },
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
       ];
@@ -588,6 +623,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(100, 50%, 50%)",
           dropPosition: { x: 1, y: 2, z: 3 },
           finalPosition: { x: 1, y: 0, z: 3 },
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
         {
@@ -596,6 +632,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(200, 50%, 50%)",
           dropPosition: { x: 4, y: 5, z: 6 },
           finalPosition: { x: 4, y: 0, z: 6 },
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
       ];
@@ -616,6 +653,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(100, 50%, 50%)",
           dropPosition: { x: 1, y: 2, z: 3 },
           finalPosition: { x: 1, y: 0, z: 3 },
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
       ];
@@ -632,6 +670,7 @@ describe("cubeReducerHandlers", () => {
         status: "draft",
         color: "hsl(50, 50%, 50%)",
         dropPosition: { x: 9, y: 9, z: 9 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -649,6 +688,7 @@ describe("cubeReducerHandlers", () => {
           color: "hsl(100, 50%, 50%)",
           dropPosition: { x: 1, y: 2, z: 3 },
           finalPosition: { x: 1, y: 0, z: 3 },
+          finalRotation: identityRotation,
           createdAt: Date.now(),
         },
       ];
@@ -684,6 +724,7 @@ describe("cubeReducerHandlers", () => {
         status: "draft",
         color: "hsl(200, 50%, 50%)",
         dropPosition: { x: 1, y: 10, z: 3 },
+        finalRotation: identityRotation,
         createdAtLocal: Date.now(),
       };
 
@@ -697,6 +738,7 @@ describe("cubeReducerHandlers", () => {
         payload: {
           localId: "test-1",
           finalPosition: { x: 1, y: 0, z: 3 },
+          finalRotation: identityRotation,
         },
       };
 
@@ -729,7 +771,16 @@ describe("cubeReducerHandlers", () => {
         },
         {
           type: "SETTLE_CUBE",
-          payload: { localId: "test-1", finalPosition: { x: 1, y: 0, z: 3 } },
+          payload: {
+            localId: "test-1",
+            finalPosition: { x: 1, y: 0, z: 3 },
+            finalRotation: {
+              x: 0,
+              y: 0,
+              z: 0,
+              w: 1,
+            },
+          },
         },
         {
           type: "SAVE_REQUEST",

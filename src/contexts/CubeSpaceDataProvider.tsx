@@ -10,7 +10,12 @@ import {
 import { CubeSpaceDataContext } from "@/contexts/CubeSpaceDataContext";
 import { ensureAnonymousAuth } from "@/lib/firebase";
 import { listenCubes, listenUsers } from "@/lib/cubespaceStorage";
-import type { UserDomain, CubeFirestoreView, Vec3 } from "@/types/CubeModel";
+import type {
+  UserDomain,
+  CubeFirestoreView,
+  Vec3,
+  Quaternion,
+} from "@/types/CubeModel";
 import { cubeDataReducer } from "@/contexts/cubeReducerHandlers";
 import type {
   CubeDataAction,
@@ -99,6 +104,7 @@ const FALLBACK_CUBES: CubeFirestoreView[] = [
     color: "hsl(192, 55%, 58%)",
     dropPosition: { x: 0, y: 10, z: 0 },
     finalPosition: { x: 0, y: 0, z: 0 },
+    finalRotation: { x: 0, y: 0, z: 0, w: 1 },
     createdAt: 1769555625311,
   },
 ];
@@ -130,7 +136,11 @@ export const CubeSpaceDataProvider: FC<{
   );
 
   const settleCube = useCallback(
-    (payload: { localId: string; finalPosition: Vec3 }) => {
+    (payload: {
+      localId: string;
+      finalPosition: Vec3;
+      finalRotation: Quaternion;
+    }) => {
       dispatch({ type: "SETTLE_CUBE", payload });
     },
     [],

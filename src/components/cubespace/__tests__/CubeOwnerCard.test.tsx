@@ -50,7 +50,7 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      expect(screen.getByText("This cube is yours.")).toBeInTheDocument();
+      expect(screen.getByText("Your cube is placed")).toBeInTheDocument();
     });
   });
 
@@ -60,8 +60,10 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      expect(screen.getByText("This cube is yours.")).toBeInTheDocument();
-      expect(screen.getByText("Add your name and photo?")).toBeInTheDocument();
+      expect(screen.getByText("Your cube is placed")).toBeInTheDocument();
+      expect(
+        screen.getByText("Personalize it with your name"),
+      ).toBeInTheDocument();
     });
 
     it("should show LinkedIn button when not connected", () => {
@@ -78,7 +80,7 @@ describe("CubeOwnerCard", () => {
       );
 
       expect(screen.getByText("Connect LinkedIn")).toBeInTheDocument();
-      expect(screen.getByText("Add name")).toBeInTheDocument();
+      expect(screen.getByText(/Add your name/)).toBeInTheDocument();
     });
   });
 
@@ -107,7 +109,7 @@ describe("CubeOwnerCard", () => {
       );
 
       // Check for verified indicator (small circle) by checking its styling or parent context
-      const verifiedElements = screen.queryAllByText("LinkedIn connected");
+      const verifiedElements = screen.queryAllByText("LinkedIn verified");
       expect(verifiedElements.length).toBeGreaterThan(0);
     });
 
@@ -137,10 +139,11 @@ describe("CubeOwnerCard", () => {
         />,
       );
 
-      expect(screen.getByText("JD")).toBeInTheDocument();
+      const initials = screen.getAllByText("JD");
+      expect(initials.length).toBeGreaterThan(0);
     });
 
-    it("should show LinkedIn connected label", () => {
+    it("should show LinkedIn verified label", () => {
       render(
         <CubeOwnerCard
           open={true}
@@ -150,8 +153,8 @@ describe("CubeOwnerCard", () => {
         />,
       );
 
-      // Verify the profile info section exists with LinkedIn connected indicator
-      const verifiedElements = screen.queryAllByText("LinkedIn connected");
+      // Verify the profile info section exists with LinkedIn verified indicator
+      const verifiedElements = screen.queryAllByText("LinkedIn verified");
       expect(verifiedElements.length).toBeGreaterThan(0);
     });
   });
@@ -178,7 +181,7 @@ describe("CubeOwnerCard", () => {
         />,
       );
 
-      const button = screen.getByText("Connecting...");
+      const button = screen.getByText("Connecting…");
       expect(button).toBeDisabled();
     });
 
@@ -210,7 +213,7 @@ describe("CubeOwnerCard", () => {
       );
 
       expect(
-        screen.getByText("Auth0 config is missing in this build."),
+        screen.getByText("Auth0 not configured in this build"),
       ).toBeInTheDocument();
     });
 
@@ -224,7 +227,7 @@ describe("CubeOwnerCard", () => {
         />,
       );
 
-      const connectedButtons = screen.queryAllByText("LinkedIn connected");
+      const connectedButtons = screen.queryAllByText("✓ LinkedIn connected");
       // Button should exist and be disabled
       const buttonElement = connectedButtons.find(
         (el) => el.tagName.toLowerCase() === "button",
@@ -241,14 +244,14 @@ describe("CubeOwnerCard", () => {
       );
 
       expect(
-        screen.queryByPlaceholderText("https://www.linkedin.com/in/..."),
+        screen.queryByPlaceholderText("linkedin.com/in/..."),
       ).not.toBeInTheDocument();
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       expect(
-        screen.getByPlaceholderText("https://www.linkedin.com/in/..."),
+        screen.getByPlaceholderText("linkedin.com/in/..."),
       ).toBeInTheDocument();
     });
 
@@ -257,14 +260,14 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
-      const backButton = screen.getByText("Back");
+      const backButton = screen.getByText(/Back/);
       await userEvent.click(backButton);
 
       expect(
-        screen.queryByPlaceholderText("https://www.linkedin.com/in/..."),
+        screen.queryByPlaceholderText("linkedin.com/in/..."),
       ).not.toBeInTheDocument();
     });
 
@@ -278,7 +281,7 @@ describe("CubeOwnerCard", () => {
         />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       const firstNameInput = screen.getByLabelText(
@@ -299,14 +302,14 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       const lastNameInput = screen.getByLabelText("Last name");
       await userEvent.clear(lastNameInput);
       await userEvent.type(lastNameInput, "Doe");
 
-      const submitButton = screen.getByText("Save name");
+      const submitButton = screen.getByText("Save");
       expect(submitButton).toBeDisabled();
     });
 
@@ -315,14 +318,14 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       const firstNameInput = screen.getByLabelText("First name");
       await userEvent.clear(firstNameInput);
       await userEvent.type(firstNameInput, "John");
 
-      const submitButton = screen.getByText("Save name");
+      const submitButton = screen.getByText("Save");
       expect(submitButton).toBeDisabled();
     });
 
@@ -331,7 +334,7 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       const firstNameInput = screen.getByLabelText("First name");
@@ -340,7 +343,7 @@ describe("CubeOwnerCard", () => {
       await userEvent.type(firstNameInput, "John");
       await userEvent.type(lastNameInput, "Doe");
 
-      const submitButton = screen.getByText("Save name");
+      const submitButton = screen.getByText("Save");
       expect(submitButton).not.toBeDisabled();
     });
 
@@ -349,7 +352,7 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       const firstNameInput = screen.getByLabelText("First name");
@@ -358,7 +361,7 @@ describe("CubeOwnerCard", () => {
       await userEvent.type(firstNameInput, "  John  ");
       await userEvent.type(lastNameInput, "  Doe  ");
 
-      const submitButton = screen.getByText("Save name");
+      const submitButton = screen.getByText("Save");
       await userEvent.click(submitButton);
 
       expect(mockCallbacks.onSaveName).toHaveBeenCalledWith({
@@ -375,7 +378,7 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       const firstNameInput = screen.getByLabelText("First name");
@@ -384,7 +387,7 @@ describe("CubeOwnerCard", () => {
       await userEvent.type(firstNameInput, "Jane");
       await userEvent.type(lastNameInput, "Smith");
 
-      const submitButton = screen.getByText("Save name");
+      const submitButton = screen.getByText("Save");
       await userEvent.click(submitButton);
 
       expect(mockCallbacks.onSaveName).toHaveBeenCalledWith({
@@ -399,20 +402,18 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       const firstNameInput = screen.getByLabelText("First name");
       const lastNameInput = screen.getByLabelText("Last name");
-      const linkedinInput = screen.getByPlaceholderText(
-        "https://www.linkedin.com/in/...",
-      );
+      const linkedinInput = screen.getByPlaceholderText("linkedin.com/in/...");
 
       await userEvent.type(firstNameInput, "Jane");
       await userEvent.type(lastNameInput, "Smith");
       await userEvent.type(linkedinInput, "https://www.linkedin.com/in/jane");
 
-      const submitButton = screen.getByText("Save name");
+      const submitButton = screen.getByText("Save");
       await userEvent.click(submitButton);
 
       expect(mockCallbacks.onSaveName).toHaveBeenCalledWith({
@@ -427,7 +428,7 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       const firstNameInput = screen.getByLabelText("First name");
@@ -436,7 +437,7 @@ describe("CubeOwnerCard", () => {
       await userEvent.type(firstNameInput, "Jane");
       await userEvent.type(lastNameInput, "Smith");
 
-      const submitButton = screen.getByText("Save name");
+      const submitButton = screen.getByText("Save");
       await userEvent.click(submitButton);
 
       expect(mockCallbacks.onSaveName).toHaveBeenCalledWith(
@@ -505,7 +506,7 @@ describe("CubeOwnerCard", () => {
         />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       const connectButton = screen.getByText("Connect LinkedIn");
 
       expect(addNameButton).toBeDisabled();
@@ -522,7 +523,7 @@ describe("CubeOwnerCard", () => {
         />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       rerender(
@@ -534,7 +535,7 @@ describe("CubeOwnerCard", () => {
         />,
       );
 
-      expect(screen.getByText("Saving...")).toBeInTheDocument();
+      expect(screen.getByText("Saving…")).toBeInTheDocument();
     });
   });
 
@@ -544,7 +545,7 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      const notNowButton = screen.getByText("Not now");
+      const notNowButton = screen.getByText("Skip for now");
       await userEvent.click(notNowButton);
 
       expect(mockCallbacks.onDismiss).toHaveBeenCalledOnce();
@@ -560,7 +561,7 @@ describe("CubeOwnerCard", () => {
         />,
       );
 
-      const doneButton = screen.getByText("Done");
+      const doneButton = screen.getByText(/Done/);
       await userEvent.click(doneButton);
 
       expect(mockCallbacks.onDismiss).toHaveBeenCalledOnce();
@@ -573,7 +574,7 @@ describe("CubeOwnerCard", () => {
         <CubeOwnerCard open={true} authConfigured={true} {...mockCallbacks} />,
       );
 
-      const addNameButton = screen.getByText("Add name");
+      const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
       // Close the card
@@ -588,7 +589,7 @@ describe("CubeOwnerCard", () => {
 
       // Form should be hidden again
       expect(
-        screen.queryByPlaceholderText("https://www.linkedin.com/in/..."),
+        screen.queryByPlaceholderText("linkedin.com/in/..."),
       ).not.toBeInTheDocument();
     });
 

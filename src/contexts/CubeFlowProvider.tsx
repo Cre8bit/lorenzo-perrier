@@ -93,6 +93,7 @@ export const CubeFlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
           color: draftCube.color,
           dropPosition: draftCube.dropPosition,
           finalPosition: draftCube.finalPosition!,
+          finalRotation: draftCube.finalRotation,
         });
 
         confirmSaveCube(draftId, remoteId); // Updates to 'synced'

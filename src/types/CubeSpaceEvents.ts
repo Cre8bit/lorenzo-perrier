@@ -8,7 +8,7 @@
  * - Prevents callback signature drift
  */
 
-import type { Vec3 } from "@/types/CubeModel";
+import type { Vec3, Quaternion } from "@/types/CubeModel";
 
 /**
  * Scene Events - Fired by CubeScene component
@@ -24,6 +24,7 @@ export type CubeDroppedEvent = {
 export type CubeSettledEvent = {
   localId: string;
   finalPosition: Vec3;
+  finalRotation?: Quaternion;
 };
 
 export type CubeFocusCompleteEvent = {
@@ -90,6 +91,7 @@ export type DropCubeAction = (payload: {
 export type SettleCubeAction = (payload: {
   localId: string;
   finalPosition: Vec3;
+  finalRotation?: Quaternion;
 }) => void;
 
 export type RequestSaveCubeAction = (localId: string) => void;

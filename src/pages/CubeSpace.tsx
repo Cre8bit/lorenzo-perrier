@@ -21,7 +21,7 @@ import { useAppContext } from "@/contexts/useAppContext";
 import { useCubeSpaceData } from "@/contexts/useCubeSpaceData";
 import { useCubeFlow } from "@/contexts/useCubeFlow";
 import { CubeFlowProvider } from "@/contexts/CubeFlowProvider";
-import type { Vec3 } from "@/types/CubeModel";
+import type { Quaternion, Vec3 } from "@/types/CubeModel";
 import { isAuth0Configured } from "@/lib/auth0";
 import { reportPerformance } from "@/components/ui/performance-overlay";
 
@@ -134,9 +134,13 @@ const CubeSpaceInner = ({ active = true }: Props) => {
     [dropCube, flowHandleCubeDropped],
   );
 
-  // 2. Settle: Update position and end placing mode for camera focus
+  // 2. Settle: Update position and rotation, end placing mode for camera focus
   const handleCubeSettled = useCallback(
-    (payload: { localId: string; finalPosition: Vec3 }) => {
+    (payload: {
+      localId: string;
+      finalPosition: Vec3;
+      finalRotation: Quaternion;
+    }) => {
       settleCube(payload);
       // End placing mode so camera can focus on the settled cube
       onSimulationComplete();
