@@ -29,8 +29,10 @@ import {
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase";
 
-const USERS_COLLECTION = import.meta.env.DEV ? "users_dev" : "users";
-const CUBES_COLLECTION = import.meta.env.DEV ? "cubes_dev" : "cubes";
+// const USERS_COLLECTION = import.meta.env.DEV ? "users_dev" : "users";
+// const CUBES_COLLECTION = import.meta.env.DEV ? "cubes_dev" : "cubes";
+const USERS_COLLECTION = "users_dev";
+const CUBES_COLLECTION = "cubes_dev";
 
 type SnapshotMeta = {
   fromCache: boolean;
