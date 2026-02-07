@@ -1363,5 +1363,4 @@ const CubeScene = (props: Props) => {
 
 export default CubeScene;
 
-const flagUrl = import.meta.env.BASE_URL + "flag.glb";
-useGLTF.preload(flagUrl);
+useGLTF.preload(`${import.meta.env.BASE_URL}flag.glb`);
