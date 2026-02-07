@@ -1,21 +1,37 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
-const chapters = [
-  { id: "cube-space", label: "CubeSpace" },
-  { id: "home", label: "Home" },
-  { id: "astrolab", label: "Astrolab" },
+type Chapter = {
+  id: string;
+  label: string;
+  route?: string; // Optional route for navigation
+};
+
+const chapters: Chapter[] = [
+  { id: "cube-space", label: "CubeSpace", route: "/cubespace" },
+  { id: "home", label: "Home", route: "/" },
 ];
 
 export const LiquidNavigation = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine initial active index based on current route
+  const getInitialIndex = () => {
+    const currentPath = location.pathname;
+    const index = chapters.findIndex((c) => c.route === currentPath);
+    return index >= 0 ? index : 1; // Default to "Home"
+  };
+
   const [isHovered, setIsHovered] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(1);
+  const [activeIndex, setActiveIndex] = useState(getInitialIndex);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
 
   const barRef = useRef<HTMLDivElement>(null);
   const dropletRef = useRef<HTMLDivElement>(null);
 
-  // NEW: refs + measured anchor positions (px)
+  // refs + measured anchor positions (px)
   const chapterRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [anchors, setAnchors] = useState<number[]>([]);
 
@@ -76,6 +92,15 @@ export const LiquidNavigation = () => {
     const handleMouseUp = () => {
       setIsDragging(false);
       setDragOffset(0);
+
+      // Navigate to the selected chapter's route if it exists
+      const selectedChapter = chapters[activeIndex];
+      if (
+        selectedChapter?.route &&
+        selectedChapter.route !== location.pathname
+      ) {
+        navigate(selectedChapter.route);
+      }
     };
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
@@ -85,7 +110,7 @@ export const LiquidNavigation = () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, anchors]);
+  }, [isDragging, anchors, activeIndex, location.pathname, navigate]);
 
   // NEW: droplet uses measured px anchor instead of percentage
   const dropletLeft = (anchors[activeIndex] ?? 0) + dragOffset;
@@ -148,28 +173,36 @@ export const LiquidNavigation = () => {
         />
 
         {/* Chapter markers */}
-        <div className="flex justify-between relative z-10">
+        <div className="grid grid-cols-2 items-center relative z-10">
           {chapters.map((chapter, index) => (
-            <button
-              key={chapter.id}
-              ref={(el) => (chapterRefs.current[index] = el)}
-              onClick={() => setActiveIndex(index)}
-              className="relative font-body text-sm tracking-wide transition-all duration-500"
-              style={{
-                color:
-                  index === activeIndex
-                    ? "hsl(210, 20%, 92%)"
-                    : isHovered
-                    ? "hsla(210, 20%, 92%, 0.4)"
-                    : "hsla(210, 20%, 92%, 0.15)",
-                textShadow:
-                  index === activeIndex && isHovered
-                    ? "0 0 20px hsla(185, 50%, 55%, 0.5)"
-                    : "none",
-              }}
-            >
-              {chapter.label}
-            </button>
+            <div key={chapter.id} className="flex justify-center">
+              <button
+                ref={(el) => {
+                  chapterRefs.current[index] = el;
+                }}
+                onClick={() => {
+                  setActiveIndex(index);
+                  if (chapter.route && chapter.route !== location.pathname) {
+                    navigate(chapter.route);
+                  }
+                }}
+                className="relative w-fit font-body text-sm tracking-wide transition-all duration-500"
+                style={{
+                  color:
+                    index === activeIndex
+                      ? "hsl(210, 20%, 92%)"
+                      : isHovered
+                        ? "hsla(210, 20%, 92%, 0.4)"
+                        : "hsla(210, 20%, 92%, 0.15)",
+                  textShadow:
+                    index === activeIndex && isHovered
+                      ? "0 0 20px hsla(185, 50%, 55%, 0.5)"
+                      : "none",
+                }}
+              >
+                {chapter.label}
+              </button>
+            </div>
           ))}
         </div>
 

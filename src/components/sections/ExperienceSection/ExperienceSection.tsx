@@ -397,7 +397,7 @@ const ExperienceSection = () => {
                               </button>
 
                               <div
-                                ref={(el) => contentRefs.current.set(i, el)}
+                                ref={(el: HTMLDivElement | null) => { contentRefs.current.set(i, el!); }}
                                 className="overflow-hidden transition-all duration-700"
                                 style={{
                                   maxHeight: isExpanded ? "2000px" : "0px",

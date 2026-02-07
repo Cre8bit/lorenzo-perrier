@@ -45,7 +45,14 @@ Sections use **scroll progress (0–1)** to orchestrate animations:
 
 - **Always verify performance** after changes using the overlay
 - **Always verify that the code compiles** and no errors of typescript compilation exist
-- npm run build
+- **Run tests** before committing: `npm run test`
+- `npm run build` to verify production build
+
+### Debug Overlays
+
+- **Performance Overlay**: `Cmd/Ctrl + Shift + P` - Canvas performance, FPS, memory
+- **CubeSpace Debug**: `Cmd/Ctrl + Shift + I` - Flow tracking, buffer status, metrics
+- Both overlays are DEV-only and persist state in localStorage
 
 ### Path Aliases
 
@@ -60,9 +67,18 @@ import { throttleRAF } from "@/utils/animation";
 ### Performance Debugging
 
 2. Identify components >16.67ms (red threshold)
-4. Use `reportPerformance(componentName, startTime)` to track new canvas components
+3. Use `reportPerformance(componentName, startTime)` to track new canvas components
 
 ## Critical Patterns
+
+### Testing
+
+- Tests use **Vitest** + React Testing Library
+- Run: `npm run test` (watch) or `npm run test:ui` (interactive)
+- Coverage: `npm run test:coverage`
+- **All new features require tests** (unit for pure logic, integration for providers)
+- Mock Firebase/Auth0 using `src/test/mocks/` patterns
+- Follow existing test structure in `__tests__/` directories
 
 ### Canvas Component Template
 
@@ -94,13 +110,48 @@ Use `useRef` for values updated every frame (scroll position, mouse coordinates)
 - ❌ Don't add `console.log` in scroll/RAF handlers – use the performance overlay
 - ❌ Avoid inline styles for animations – prefer CSS classes with Tailwind or CSS variables
 - ❌ Don't create new canvas contexts on every render – cache in refs
+- ❌ Never skip tests for new features – tests are required
+- ❌ Don't modify business logic when adding instrumentation
 
-## TypeScript Configuration
+## TypeScript Configuration & Standards
 
 **Permissive settings** for rapid prototyping ([tsconfig.json](tsconfig.json)):
 
 - `strictNullChecks: false`
 
-When adding types, prefer interfaces over types for extensibility.
+**Type Safety Requirements:**
 
-Make sure that all added new code compiles and has no typescript errors.
+- ❌ **Never use `any` type** – Always provide explicit types for variables, parameters, and returns
+- ✅ Use `unknown` when type cannot be determined, then narrow appropriately
+- ✅ Use `interface` over `type` for extensibility and object shapes
+- ✅ Use generic types `<T>` for reusable components and utilities
+- ✅ Define callback signatures precisely (don't rely on implicit inference)
+
+**Examples:**
+
+```typescript
+// ❌ Bad - using any
+const processData = (data: any) => { ... };
+
+// ✅ Good - explicit types
+interface CubeData {
+  remoteId: string;
+  color: string;
+  position: Vector3;
+}
+const processData = (data: CubeData) => { ... };
+
+// ❌ Bad - any callback
+const callback = (result: any) => { ... };
+
+// ✅ Good - typed callback
+interface ListenerMeta {
+  fromCache: boolean;
+  size: number;
+  empty: boolean;
+}
+type OnNext<T> = (data: T[], meta: ListenerMeta) => void;
+const callback: OnNext<CubeData> = (cubes, meta) => { ... };
+```
+
+`IMPORTANT: Make sure that all added new code compiles and has no typescript errors. Always provide proper types – never use any.`

@@ -3,7 +3,6 @@ description: Quality agent that creates a detailed code quality audit report wit
 name: Quality Agent
 tools: ['vscode/getProjectSetupInfo', 'vscode/installExtension', 'vscode/openSimpleBrowser', 'vscode/runCommand', 'vscode/vscodeAPI', 'execute/getTerminalOutput', 'execute/runTask', 'execute/createAndRunTask', 'execute/runInTerminal', 'read/problems', 'read/readFile', 'read/terminalSelection', 'read/terminalLastCommand', 'read/getTaskOutput', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'edit/editNotebook', 'search', 'web', 'agent', 'todo']
 model: Claude Sonnet 4.5 (copilot)
-infer: false
 target: vscode
 ---
 

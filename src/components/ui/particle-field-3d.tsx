@@ -387,13 +387,16 @@ const reactivityForce = (
 interface ParticleSimulationProps {
   activePresetIndex?: number; // -1 = default preset, 0-3 = philosophy presets
   baseQuality: QualitySettings;
+  mode?: "active" | "idle";
 }
 
 function ParticleSimulation({
   activePresetIndex = -1,
   baseQuality,
+  mode = "active",
 }: ParticleSimulationProps) {
-  const { viewport } = useThree();
+  const { viewport, invalidate } = useThree();
+  const isIdle = mode === "idle";
 
   const mouseRef = useRef({ x: 0, y: 0 });
   const isInHeroRef = useRef(true);
@@ -584,8 +587,45 @@ function ParticleSimulation({
     }
   }, [viewport.width, viewport.height, particles]);
 
+  // Idle mode: push initial scatter into GPU buffers once (static "sky" frame)
+  useEffect(() => {
+    if (!isIdle) return;
+    if (!didScatterRef.current) return;
+
+    const maxParticles = particles.length;
+    for (let i = 0; i < maxParticles; i++) {
+      const p = particles[i];
+      positions[i * 3 + 0] = p.x;
+      positions[i * 3 + 1] = p.y;
+      positions[i * 3 + 2] = 0;
+      opacities[i] = p.opacity;
+    }
+
+    geometry.setDrawRange(0, maxParticles);
+    (geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+    (geometry.attributes.aOpacity as THREE.BufferAttribute).needsUpdate = true;
+
+    // No animated twinkle in idle mode
+    material.uniforms.uTime.value = 0;
+
+    // Keep connection lines off for the idle "sky" background
+    lineGeometry.setDrawRange(0, 0);
+
+    invalidate();
+  }, [
+    geometry,
+    invalidate,
+    isIdle,
+    lineGeometry,
+    material,
+    opacities,
+    particles,
+    positions,
+  ]);
+
   // mouse
   useEffect(() => {
+    if (isIdle) return;
     let scheduled = false;
     const onMove = (e: MouseEvent) => {
       if (scheduled) return;
@@ -605,10 +645,11 @@ function ParticleSimulation({
 
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
-  }, [viewport.width, viewport.height]);
+  }, [isIdle, viewport.width, viewport.height]);
 
   // hero observer (optional; keep your behavior)
   useEffect(() => {
+    if (isIdle) return;
     const hero = document.querySelector("section.h-screen");
     if (!hero) return;
 
@@ -621,10 +662,11 @@ function ParticleSimulation({
 
     observer.observe(hero);
     return () => observer.disconnect();
-  }, []);
+  }, [isIdle]);
 
   // Preset change detection + transition triggering + re-scattering
   useEffect(() => {
+    if (isIdle) return;
     if (currentPreset.name !== prevPresetRef.current.name) {
       setIsTransitioning(true);
       transitionStartRef.current = performance.now();
@@ -705,7 +747,7 @@ function ParticleSimulation({
         }
       }
     }
-  }, [currentPreset, particles, viewport.width, viewport.height]);
+  }, [currentPreset, isIdle, particles, viewport.width, viewport.height]);
 
   // Update uPixelRatio uniform when viewport changes (tracks real DPR, not Canvas DPR)
   useEffect(() => {
@@ -733,6 +775,7 @@ function ParticleSimulation({
   }, [geometry, material, lineGeometry, lineMaterial]);
 
   useFrame((state) => {
+    if (isIdle) return;
     const frameStart = performance.now();
     if (document.hidden) return;
 
@@ -1131,53 +1174,68 @@ function ParticleSimulation({
 
 interface ParticleField3DCanvasProps {
   activePresetIndex?: number; // -1 = default, 0-3 = philosophy presets
+  onReady?: () => void;
+  mode?: "active" | "idle";
 }
 
 function ParticleField3DCanvas({
   activePresetIndex = -1,
+  onReady,
+  mode = "active",
 }: ParticleField3DCanvasProps) {
   const quality = useQualitySettingsState();
-  const { currentSection, setIsInitialized } = useAppContext();
+  const { currentSection } = useAppContext();
+  const readyFiredRef = useRef(false);
 
   // Get external overrides for maxParticles runtime control
   const external = getExternalQualitySettings();
   const effectiveMaxParticles = external?.maxParticles ?? quality.maxParticles;
 
   const isParticleFieldActive = currentSection !== "experience";
+  const frameloop = mode === "idle" ? "demand" : isParticleFieldActive ? "always" : "demand";
 
   return (
     <div className="fixed inset-0 w-screen h-[100lvh] pointer-events-none z-0">
-    <Canvas
-      className="absolute inset-0 pointer-events-none"
-      style={{ zIndex: 0 }}
-      dpr={quality.dpr}
-      gl={{
-        antialias: false,
-        alpha: true,
-        powerPreference: "high-performance",
-        stencil: false,
-        depth: false,
-      }}
-      camera={{ position: [0, 0, 5], near: 0.1, far: 100 }}
-      frameloop={isParticleFieldActive ? "always" : "demand"}
-      onCreated={() => {
-        setIsInitialized(true);
-      }}
-    >
-      <ParticleSimulation
-        key={effectiveMaxParticles} // Force remount when maxParticles changes
-        activePresetIndex={activePresetIndex}
-        baseQuality={{ ...quality, maxParticles: effectiveMaxParticles }}
-      />
-    </Canvas>
+      <Canvas
+        className="absolute inset-0 pointer-events-none"
+        style={{ zIndex: 0 }}
+        dpr={quality.dpr}
+        gl={{
+          antialias: false,
+          alpha: true,
+          powerPreference: "high-performance",
+          stencil: false,
+          depth: false,
+        }}
+        camera={{ position: [0, 0, 5], near: 0.1, far: 100 }}
+        frameloop={frameloop}
+        onCreated={() => {
+          if (readyFiredRef.current) return;
+          readyFiredRef.current = true;
+          onReady?.();
+        }}
+      >
+        <ParticleSimulation
+          key={effectiveMaxParticles} // Force remount when maxParticles changes
+          activePresetIndex={activePresetIndex}
+          baseQuality={{ ...quality, maxParticles: effectiveMaxParticles }}
+          mode={mode}
+        />
+      </Canvas>
     </div>
   );
 }
 
 export const ParticleField3D = ({
   activePresetIndex = -1,
+  onReady,
+  mode,
 }: ParticleField3DCanvasProps) => (
-  <ParticleField3DCanvas activePresetIndex={activePresetIndex} />
+  <ParticleField3DCanvas
+    activePresetIndex={activePresetIndex}
+    onReady={onReady}
+    mode={mode}
+  />
 );
 
 export default ParticleField3D;
