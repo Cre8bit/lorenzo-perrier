@@ -395,7 +395,7 @@ const FlagMarker = ({
   position: [number, number, number];
   rotation: [number, number, number];
 }) => {
-  const { scene } = useGLTF("/flag.glb");
+  const { scene } = useGLTF(`${import.meta.env.BASE_URL}flag.glb`);
   const flagScene = useMemo(() => scene.clone(true), [scene]);
   return (
     <group position={position} rotation={rotation} scale={[0.6, 0.6, 0.6]}>
