@@ -1363,4 +1363,4 @@ const CubeScene = (props: Props) => {
 
 export default CubeScene;
 
-useGLTF.preload("/flag.glb");
+useGLTF.preload("flag.glb");
