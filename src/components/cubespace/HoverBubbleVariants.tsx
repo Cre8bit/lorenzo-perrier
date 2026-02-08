@@ -90,111 +90,85 @@ export const HoverBubble = ({
           tabIndex={-1}
         >
           <div
-            className="overflow-hidden rounded-2xl"
+            className="relative flex flex-col items-center gap-2 rounded-xl px-4 py-3 min-w-[140px]"
             style={{
-              width: "min(220px, 70vw)",
               background:
-                "linear-gradient(165deg, hsl(220 20% 10% / 0.85), hsl(220 20% 6% / 0.75))",
-              backdropFilter: "blur(24px)",
-              border: "1px solid hsl(210 20% 92% / 0.06)",
+                "linear-gradient(145deg, hsl(220 20% 10% / 0.95), hsl(220 20% 6% / 0.90))",
+              backdropFilter: "blur(20px)",
+              border: "1px solid hsl(210 20% 92% / 0.1)",
               boxShadow:
-                "0 12px 48px hsl(220 20% 4% / 0.6), inset 0 1px 0 hsl(210 20% 92% / 0.04)",
+                "0 8px 32px hsl(220 20% 4% / 0.6), inset 0 1px 0 hsl(210 20% 92% / 0.05)",
             }}
           >
-            {/* Top accent line — matches CubeOwnerCard */}
-            <div
-              className="h-[2px] w-full"
-              style={{
-                background:
-                  "linear-gradient(90deg, transparent, hsl(185 50% 55% / 0.5), transparent)",
-              }}
-            />
-
-            <div className="px-4 py-3">
-              <div className="flex items-center gap-3">
-                {/* Avatar */}
-                <div className="relative shrink-0">
-                  <div
-                    className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, hsl(185 50% 55% / 0.2), hsl(185 40% 45% / 0.08))",
-                      border: "1px solid hsl(185 50% 55% / 0.25)",
-                    }}
-                  >
-                    {photoUrl ? (
-                      <img
-                        src={photoUrl}
-                        alt={name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span
-                        className="text-[10px] font-bold tracking-wider"
-                        style={{ color: "hsl(185 50% 70%)" }}
-                      >
-                        {displayInitials}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Verified badge */}
-                  {verified && (
-                    <div
-                      className="absolute -bottom-1 -right-1 flex items-center justify-center rounded-full p-[3px]"
-                      style={{
-                        background: "hsl(164 55% 48%)",
-                        boxShadow: "0 0 0 2px hsl(220 20% 8%)",
-                      }}
+            <div className="flex items-center gap-3 w-full">
+              {/* Profile Photo / Initials */}
+              <div className="relative">
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full overflow-hidden"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(185 50% 55% / 0.2), hsl(185 40% 45% / 0.1))",
+                    border: "1px solid hsl(185 50% 55% / 0.3)",
+                  }}
+                >
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="text-xs font-bold tracking-wider"
+                      style={{ color: "hsl(185 50% 70% / 0.9)" }}
                     >
-                      <Check size={7} className="text-white" strokeWidth={4} />
-                    </div>
+                      {displayInitials}
+                    </span>
                   )}
                 </div>
 
-                {/* Name */}
-                <div className="flex flex-col min-w-0">
-                  <span
-                    className="text-[13px] font-semibold leading-tight truncate"
-                    style={{ color: "hsl(210 20% 92% / 0.95)" }}
-                  >
-                    {name}
-                  </span>
-                  <span
-                    className="text-[10px] mt-0.5"
-                    style={{ color: "hsl(215 15% 55%)" }}
-                  >
-                    Cube contributor
-                  </span>
-                </div>
+                {/* Verified Badge */}
+                {verified && (
+                  <div className="absolute -bottom-1 -right-1 flex items-center justify-center rounded-full bg-emerald-500 p-[2px] shadow-sm ring-2 ring-[#0f1115]">
+                    <Check size={8} className="text-white" strokeWidth={4} />
+                  </div>
+                )}
               </div>
 
-              {/* LinkedIn row — integrated, not floating */}
+              {/* Text Content */}
+              <div className="flex flex-col text-left">
+                <span className="text-[10px] text-gray-400 font-medium leading-tight">
+                  Hi, I'm
+                </span>
+                <span
+                  className="text-sm font-semibold whitespace-nowrap"
+                  style={{
+                    color: "hsl(210 20% 92% / 0.95)",
+                  }}
+                >
+                  {name}!
+                </span>
+              </div>
+
+              {/* Small LinkedIn icon inside the card */}
               {linkedinUrl && (
                 <a
                   href={linkedinUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2.5 flex items-center gap-2 rounded-lg px-2.5 py-1.5 transition-all group/li cursor-pointer"
+                  className="ml-auto shrink-0 p-1 rounded-md transition-all cursor-pointer hover:scale-110"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                   style={{
-                    background: "hsl(210 60% 60% / 0.06)",
-                    border: "1px solid hsl(210 60% 70% / 0.1)",
+                    background: "hsl(210 20% 92% / 0.06)",
+                    border: "1px solid hsl(210 60% 70% / 0.12)",
                   }}
                 >
                   <Linkedin
-                    size={11}
-                    className="shrink-0 transition-colors"
-                    style={{ color: "hsl(210 60% 70% / 0.7)" }}
+                    size={10}
                     strokeWidth={1.5}
+                    style={{ color: "hsl(210 60% 70% / 0.6)" }}
                   />
-                  <span
-                    className="text-[10px] font-medium tracking-wide transition-colors"
-                    style={{ color: "hsl(210 60% 80% / 0.6)" }}
-                  >
-                    View profile
-                  </span>
                 </a>
               )}
             </div>
