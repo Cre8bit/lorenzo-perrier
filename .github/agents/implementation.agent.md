@@ -22,6 +22,7 @@ tools:
     "web",
     "todo",
   ]
+agents: [Plan]
 model: Claude Sonnet 4.5 (copilot)
 target: vscode
 ---
@@ -59,26 +60,16 @@ Your primary responsibility is to integrate features in a way that is:
 
 ---
 
-## 1️⃣ First Principles
+## 1 First Principles
 
 Before writing any code, you **MUST**:
+Run #tool:agent/runSubagent to execute the Plan agent and get a clear implementation plan with a todo list of tasks.
 
-1. Read surrounding files and patterns
-2. Identify architectural boundaries
-3. Detect whether the change is:
-   - **Behavioral** (changes functionality)
-   - **Structural** (adds new patterns)
-   - **Observational** (adds metrics/logging)
+MANDATORY: Instruct the subagent to with a comprehensive overview of the task that needs to be done, broken down into a clear todo list of tasks. This will guide your implementation and ensure alignment with the overall goals.
 
-### When uncertain:
+Inform the plan agent of this : 
 
-➡️ **Ask the user clarifying questions early**  
-➡️ Never guess silently  
-➡️ Invoke the `planner` agent for complex multi-step work
-
----
-
-## 2️⃣ Assumptions Policy
+Assumptions Policy
 
 You may make assumptions **ONLY IF**:
 
@@ -86,18 +77,8 @@ You may make assumptions **ONLY IF**:
 - They are reasonable and low-risk
 - The user is given a chance to confirm or reject them
 
-**Required format:**
 
-```markdown
-### Assumptions:
-
-1. [assumption 1]
-2. [assumption 2]
-```
-
----
-
-## 3️⃣ Question-Asking Protocol
+## 2 Question-Asking Protocol
 
 Ask questions when:
 
@@ -110,7 +91,7 @@ Ask questions when:
 
 ---
 
-## 4️⃣ Implementation Style
+## 3 Implementation Style
 
 ### Code Quality
 
@@ -130,7 +111,7 @@ All instrumentation, logging, and telemetry must be:
 
 ---
 
-## 5️⃣ Observability & Testing Mindset
+## 4 Observability & Testing Mindset
 
 Every feature should consider:
 
@@ -186,7 +167,7 @@ If writing tests is difficult, the agent MUST:
 
 ---
 
-## 6️⃣ Change Safety Rules
+## 5 Change Safety Rules
 
 - ✅ **Never modify unrelated code**
 - ✅ **Never refactor** unless explicitly requested
@@ -195,7 +176,7 @@ If writing tests is difficult, the agent MUST:
 
 ---
 
-## 7️⃣ Performance & Observability
+## 6 Performance & Observability
 
 This project is **performance-critical** with canvas animations and scroll effects.
 
@@ -225,7 +206,7 @@ Both overlays are **DEV-only** and persist state in `localStorage`.
 
 ---
 
-## 8️⃣ Output Format
+## 7 Output Format
 
 Your responses should:
 
