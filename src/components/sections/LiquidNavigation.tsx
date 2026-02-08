@@ -31,6 +31,11 @@ export const LiquidNavigation = () => {
   const barRef = useRef<HTMLDivElement>(null);
   const dropletRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const index = chapters.findIndex((c) => c.route === location.pathname);
+    setActiveIndex(index >= 0 ? index : 1);
+  }, [location.pathname]);
+
   // refs + measured anchor positions (px)
   const chapterRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [anchors, setAnchors] = useState<number[]>([]);

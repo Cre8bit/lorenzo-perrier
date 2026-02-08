@@ -290,8 +290,7 @@ const CubeRigid = ({
   highlight?: boolean;
 }) => {
   const bodyRef = useRef<RapierRigidBody | null>(null);
-  const displayName = profile?.fullName;
-  const showBubble = Boolean(displayName && (isHovered || isSelected));
+  const showBubble = Boolean(isHovered || isSelected);
 
   const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
     const t0 = performance.now();
@@ -370,9 +369,9 @@ const CubeRigid = ({
         {highlight && !isSelected && (
           <HighlightShell color="hsl(185, 60%, 62%)" mode="selected" />
         )}
-        {showBubble && displayName ? (
+        {showBubble && (
           <HoverBubble
-            name={displayName}
+            name={profile?.fullName}
             initials={
               profile?.firstName && profile?.lastName
                 ? `${profile.firstName[0]}${profile.lastName[0]}`
@@ -381,6 +380,7 @@ const CubeRigid = ({
             photoUrl={profile?.photoUrl}
             linkedinUrl={profile?.linkedinUrl}
             verified={profile?.verified}
+            cubeColor={cube.color}
             onMouseEnter={() => onHover?.(cube.sceneId)}
             onMouseLeave={() => onHover?.(null)}
             onClick={(e) => {
@@ -388,7 +388,7 @@ const CubeRigid = ({
               onClick?.(cube.sceneId);
             }}
           />
-        ) : null}
+        )}
       </group>
     </RigidBody>
   );

@@ -7,11 +7,12 @@ import { Check, Linkedin } from "lucide-react";
 const CUBE_SIZE = 0.8;
 
 type HoverBubbleProps = {
-  name: string;
+  name?: string; // Optional - undefined/empty means unnamed cube
   initials?: string;
   photoUrl?: string;
   linkedinUrl?: string;
   verified?: boolean;
+  cubeColor?: string;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   onClick?: (e: React.MouseEvent) => void;
@@ -60,8 +61,43 @@ function Bubble({
   photoUrl,
   linkedinUrl,
   verified,
+  cubeColor,
 }: Omit<HoverBubbleProps, "onMouseEnter" | "onMouseLeave" | "onClick">) {
-  const di = getInitials(name, initials);
+  const isUnnamed = !name || name.trim() === "";
+  const di = isUnnamed ? "?" : getInitials(name, initials);
+
+  function hslToHsla(hsl: string, alpha: number) {
+    // supports "hsl(185 50% 55%)" and "hsl(185, 50%, 55%)"
+    const m = hsl.match(/hsl\(\s*([\d.]+)[,\s]+([\d.]+)%[,\s]+([\d.]+)%\s*\)/i);
+    if (!m) return hsl; // fallback: return as-is
+    const [, h, s, l] = m;
+    return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
+  }
+
+  const getAvatarStyles = (color?: string) => {
+    if (!color) {
+      return {
+        background:
+          "linear-gradient(135deg, hsl(185 50% 55% / 0.2), hsl(185 40% 45% / 0.1))",
+        border: "1px solid hsl(185 50% 55% / 0.25)",
+        textColor: "hsl(185 50% 70%)",
+      };
+    }
+
+    const c25 = hslToHsla(color, 0.25);
+    const c12 = hslToHsla(color, 0.12);
+    const c35 = hslToHsla(color, 0.35);
+    const c95 = hslToHsla(color, 0.95);
+
+    return {
+      // ONE gradient, two stops — valid
+      background: `linear-gradient(135deg, ${c25}, ${c12})`,
+      border: `1px solid ${c35}`,
+      textColor: c95,
+    };
+  };
+
+  const avatarStyles = getAvatarStyles(cubeColor);
   return (
     <div
       className="group relative flex items-center gap-2 rounded-xl px-3 py-2"
@@ -79,9 +115,8 @@ function Bubble({
         <div
           className="flex h-7 w-7 items-center justify-center rounded-full overflow-hidden"
           style={{
-            background:
-              "linear-gradient(135deg, hsl(185 50% 55% / 0.2), hsl(185 40% 45% / 0.1))",
-            border: "1px solid hsl(185 50% 55% / 0.25)",
+            background: avatarStyles.background,
+            border: avatarStyles.border,
           }}
         >
           {photoUrl ? (
@@ -93,7 +128,7 @@ function Bubble({
           ) : (
             <span
               className="text-[9px] font-bold tracking-wider"
-              style={{ color: "hsl(185 50% 70%)" }}
+              style={{ color: avatarStyles.textColor }}
             >
               {di}
             </span>
@@ -114,18 +149,37 @@ function Bubble({
 
       {/* Name */}
       <div className="flex flex-col">
-        <span
-          className="text-[9px] font-medium leading-tight"
-          style={{ color: "hsl(215 15% 55%)" }}
-        >
-          Placed by
-        </span>
-        <span
-          className="text-[12px] font-semibold whitespace-nowrap leading-tight"
-          style={{ color: "hsl(210 20% 92% / 0.95)" }}
-        >
-          {name}
-        </span>
+        {isUnnamed ? (
+          <>
+            <span
+              className="text-[10px] font-medium leading-tight whitespace-nowrap"
+              style={{ color: "hsl(45 80% 65%)" }}
+            >
+              ✨ Click to personalize
+            </span>
+            <span
+              className="text-[11px] font-semibold leading-tight"
+              style={{ color: "hsl(185 50% 70%)" }}
+            >
+              Name your cube
+            </span>
+          </>
+        ) : (
+          <>
+            <span
+              className="text-[9px] font-medium leading-tight"
+              style={{ color: "hsl(215 15% 55%)" }}
+            >
+              Placed by
+            </span>
+            <span
+              className="text-[12px] font-semibold whitespace-nowrap leading-tight"
+              style={{ color: avatarStyles.textColor }}
+            >
+              {name}
+            </span>
+          </>
+        )}
       </div>
 
       {/* LinkedIn */}
