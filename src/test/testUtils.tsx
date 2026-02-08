@@ -31,6 +31,7 @@ export const createMockCubeDomain = (
   status: "draft",
   color: "hsl(200, 50%, 50%)",
   dropPosition: createMockVec3(),
+  finalRotation: { x: 0, y: 0, z: 0, w: 1 },
   createdAtLocal: Date.now(),
   ...overrides,
 });
@@ -54,6 +55,7 @@ export const createMockCubeFirestoreView = (
   color: "hsl(200, 50%, 50%)",
   dropPosition: createMockVec3(),
   finalPosition: createMockVec3(),
+  finalRotation: { x: 0, y: 0, z: 0, w: 1 },
   createdAt: Date.now(),
   ...overrides,
 });
