@@ -12,6 +12,7 @@ import type { CubeSceneStats } from "@/components/cubespace/CubeScene";
 import { CubeSpaceOverlay } from "@/components/cubespace/CubeSpaceOverlay";
 import { CubeOwnerCard } from "@/components/cubespace/CubeOwnerCard";
 import { CubeSpaceConstellationLoader } from "@/components/cubespace/CubeSpaceConstellationLoader";
+import type { BubbleVariant } from "@/components/cubespace/HoverBubbleVariants";
 import { getRandomColor } from "@/components/cubespace/cubeColors";
 import {
   buildFullName,
@@ -97,6 +98,7 @@ const CubeSpaceInner = ({ active = true }: Props) => {
 
   // --- Local UI State ---
   const [selectedColor, setSelectedColor] = useState(() => getRandomColor());
+  const [bubbleVariant, setBubbleVariant] = useState<BubbleVariant>("A");
   const [stats, setStats] = useState<CubeSceneStats>({
     cubeCount: 0,
     towerHeight: 0,
@@ -317,11 +319,12 @@ const CubeSpaceInner = ({ active = true }: Props) => {
                   cubeProfiles={cubeProfiles}
                   focusCubeId={draftId}
                   activeCubeId={draftId}
-                  ownerCardOpen={ownerCardOpen}
-                  onFocusComplete={handleFocusComplete}
-                  onActiveCubeScreenChange={handleActiveCubeScreenChange}
-                  onSceneReady={handleSceneReady}
-                />
+                   ownerCardOpen={ownerCardOpen}
+                    onFocusComplete={handleFocusComplete}
+                    onActiveCubeScreenChange={handleActiveCubeScreenChange}
+                    onSceneReady={handleSceneReady}
+                    bubbleVariant={bubbleVariant}
+                  />
               )}
             </Suspense>
             {showSceneLoader && (
@@ -400,6 +403,33 @@ const CubeSpaceInner = ({ active = true }: Props) => {
               </>
             )}
           </div>
+
+          {/* Bubble Variant Selector */}
+          {active && cubeSpaceReady && (
+            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full px-3 py-1.5 pointer-events-auto"
+              style={{
+                background: "hsl(220 20% 10% / 0.8)",
+                backdropFilter: "blur(16px)",
+                border: "1px solid hsl(210 20% 92% / 0.08)",
+              }}
+            >
+              <span className="text-[10px] font-medium mr-1" style={{ color: "hsl(215 15% 55%)" }}>Bubble:</span>
+              {(["A", "B", "C", "D", "E"] as BubbleVariant[]).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setBubbleVariant(v)}
+                  className="h-6 w-6 rounded-full text-[10px] font-bold transition-all"
+                  style={{
+                    background: bubbleVariant === v ? "hsl(185 50% 55% / 0.25)" : "transparent",
+                    border: bubbleVariant === v ? "1px solid hsl(185 50% 55% / 0.4)" : "1px solid hsl(210 20% 92% / 0.06)",
+                    color: bubbleVariant === v ? "hsl(185 50% 80%)" : "hsl(215 15% 55%)",
+                  }}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          )}
         </main>
       </PageWrapper>
     </div>
