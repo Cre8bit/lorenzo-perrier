@@ -25,7 +25,7 @@ import {
   reportFramePerformance,
   reportPerformance,
 } from "@/components/ui/performance-overlay";
-import { HoverBubble, type BubbleVariant } from "./HoverBubbleVariants";
+import { HoverBubble } from "./HoverBubble";
 
 const FLOOR_Y = 0;
 const CUBE_SIZE = 0.8;
@@ -84,7 +84,6 @@ type Props = {
   activeCubeId?: string | null;
   ownerCardOpen?: boolean;
   active?: boolean;
-  bubbleVariant?: BubbleVariant;
 };
 
 function clamp(v: number, min: number, max: number) {
@@ -279,7 +278,6 @@ const CubeRigid = ({
   onClick,
   hoverEnabled,
   highlight,
-  bubbleVariant,
 }: {
   cube: RenderCube;
   onRegister: (sceneId: number, api: RapierRigidBody | null) => void;
@@ -290,7 +288,6 @@ const CubeRigid = ({
   onClick?: (sceneId: number) => void;
   hoverEnabled?: boolean;
   highlight?: boolean;
-  bubbleVariant?: BubbleVariant;
 }) => {
   const bodyRef = useRef<RapierRigidBody | null>(null);
   const displayName = profile?.fullName;
@@ -384,7 +381,6 @@ const CubeRigid = ({
             photoUrl={profile?.photoUrl}
             linkedinUrl={profile?.linkedinUrl}
             verified={profile?.verified}
-            variant={bubbleVariant}
             onMouseEnter={() => onHover?.(cube.sceneId)}
             onMouseLeave={() => onHover?.(null)}
             onClick={(e) => {
@@ -481,7 +477,6 @@ const SceneContent = ({
   activeCubeId,
   ownerCardOpen,
   active = true,
-  bubbleVariant,
 }: Props) => {
   // --- ID Mapping ---
   // Map localId (stable string) <-> sceneId (stable number for physics/rendering)
@@ -1324,7 +1319,6 @@ const SceneContent = ({
               (ownerCardOpen && activeCubeId === cube.localId) ||
               selectedCubeId === cube.sceneId
             }
-            bubbleVariant={bubbleVariant}
           />
         ))}
         {flagPose && (

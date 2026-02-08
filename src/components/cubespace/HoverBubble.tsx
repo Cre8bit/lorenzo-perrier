@@ -64,7 +64,7 @@ function Bubble({
   const di = getInitials(name, initials);
   return (
     <div
-      className="flex items-center gap-2 rounded-xl px-3 py-2"
+      className="group relative flex items-center gap-2 rounded-xl px-3 py-2"
       style={{
         background:
           "linear-gradient(145deg, hsl(220 20% 10% / 0.95), hsl(220 20% 6% / 0.90))",
@@ -118,7 +118,7 @@ function Bubble({
           className="text-[9px] font-medium leading-tight"
           style={{ color: "hsl(215 15% 55%)" }}
         >
-          Hi, I'm
+          Placed by
         </span>
         <span
           className="text-[12px] font-semibold whitespace-nowrap leading-tight"
@@ -134,12 +134,18 @@ function Bubble({
           href={linkedinUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="shrink-0 ml-1 p-1 rounded-md transition-all cursor-pointer hover:brightness-150"
+          aria-label="Open LinkedIn profile"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          style={{ color: "hsl(210 60% 70% / 0.5)" }}
+          className="
+      absolute top-2 right-2
+      opacity-40
+      transition-opacity duration-150
+      hover:opacity-90
+    "
+          style={{ color: "hsl(210 60% 70%)" }}
         >
-          <Linkedin size={10} strokeWidth={1.5} />
+          <Linkedin size={10} strokeWidth={1.25} />
         </a>
       )}
     </div>
