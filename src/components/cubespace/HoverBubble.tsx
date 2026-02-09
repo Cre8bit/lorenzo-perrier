@@ -212,7 +212,6 @@ function Bubble({
 export const HoverBubble = ({
   onMouseEnter,
   onMouseLeave,
-  onClick,
   ...bubbleProps
 }: HoverBubbleProps) => {
   const { groupRef, isVisible } = useBillboard();
@@ -239,13 +238,6 @@ export const HoverBubble = ({
             e.stopPropagation();
             onMouseEnter?.();
           }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onClick?.(e);
-          }}
-          role="button"
-          tabIndex={-1}
         >
           <Bubble {...bubbleProps} />
           {/* Triangle pointer */}

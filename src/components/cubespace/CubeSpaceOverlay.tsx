@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { Ruler, Palette, Shuffle } from "lucide-react";
 import { CUBE_COLORS, getRandomColor } from "@/components/cubespace/cubeColors";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Props = {
   cubeCount: number;
@@ -31,6 +32,7 @@ export const CubeSpaceOverlay = ({
   selectedColor,
   onColorChange,
 }: Props) => {
+  const isMobile = useIsMobile();
   const heightLabel = useMemo(() => formatHeight(towerHeight), [towerHeight]);
   const maxScale = useMemo(
     () => Math.max(10, Math.ceil((towerHeight + 2) / 5) * 5),
@@ -44,7 +46,7 @@ export const CubeSpaceOverlay = ({
   return (
     <>
       {/* Title */}
-      <div className="fixed top-8 left-1/2 -translate-x-1/2 text-center pointer-events-none">
+      <div className="fixed top-16 sm:top-8 left-1/2 -translate-x-1/2 text-center pointer-events-none">
         <h1
           className="text-2xl md:text-3xl font-display tracking-tight"
           style={{
@@ -143,30 +145,61 @@ export const CubeSpaceOverlay = ({
         )}
       </div>
 
-      {/* Bottom-right stats (count + height) */}
-      <div
-        className="fixed bottom-28 right-8 pointer-events-none"
-        style={{
-          backdropFilter: "blur(12px)",
-          background: "hsl(var(--background) / 0.28)",
-          border: "1px solid hsl(var(--foreground) / 0.06)",
-          borderRadius: "12px",
-          padding: "10px 12px",
-          minWidth: 160,
-        }}
-      >
-        <div className="flex items-center justify-between text-xs text-muted-foreground/70">
-          <span>Cubes</span>
-          <span className="text-foreground/85 font-medium">{cubeCount}</span>
+      {/* Stats - Desktop: bottom-right | Mobile: centered above navbar */}
+      {isMobile ? (
+        <div
+          className="fixed bottom-32 left-1/2 -translate-x-1/2 pointer-events-none"
+          style={{
+            backdropFilter: "blur(12px)",
+            background: "hsl(var(--background) / 0.28)",
+            border: "1px solid hsl(var(--foreground) / 0.06)",
+            borderRadius: "12px",
+            padding: "6px 12px",
+          }}
+        >
+          <div className="flex items-center gap-4 text-[11px] text-muted-foreground/70">
+            <span className="flex items-center gap-1.5">
+              <span className="text-foreground/85 font-medium">
+                {cubeCount}
+              </span>
+              <span>cubes</span>
+            </span>
+            <span className="w-px h-3 bg-foreground/10" />
+            <span className="flex items-center gap-1.5">
+              <Ruler className="w-3 h-3" />
+              <span className="text-foreground/85 font-medium">
+                {heightLabel}
+              </span>
+            </span>
+          </div>
         </div>
-        <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground/70">
-          <span className="inline-flex items-center gap-1">
-            <Ruler className="w-3 h-3" />
-            Height
-          </span>
-          <span className="text-foreground/85 font-medium">{heightLabel}</span>
+      ) : (
+        <div
+          className="fixed bottom-28 right-8 pointer-events-none"
+          style={{
+            backdropFilter: "blur(12px)",
+            background: "hsl(var(--background) / 0.28)",
+            border: "1px solid hsl(var(--foreground) / 0.06)",
+            borderRadius: "12px",
+            padding: "10px 12px",
+            minWidth: 160,
+          }}
+        >
+          <div className="flex items-center justify-between text-xs text-muted-foreground/70">
+            <span>Cubes</span>
+            <span className="text-foreground/85 font-medium">{cubeCount}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground/70">
+            <span className="inline-flex items-center gap-1">
+              <Ruler className="w-3 h-3" />
+              Height
+            </span>
+            <span className="text-foreground/85 font-medium">
+              {heightLabel}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Vertical scale (left) */}
       <div className="fixed left-8 top-1/2 -translate-y-1/2 pointer-events-none hidden md:block">
