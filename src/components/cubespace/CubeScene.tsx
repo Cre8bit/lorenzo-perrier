@@ -5,14 +5,7 @@ import {
   useThree,
   type ThreeEvent,
 } from "@react-three/fiber";
-import {
-  OrbitControls,
-  Environment,
-  Grid,
-  Html,
-  useGLTF,
-  useTexture,
-} from "@react-three/drei";
+import { OrbitControls, Environment, Grid, useGLTF } from "@react-three/drei";
 import {
   Physics,
   RigidBody,
@@ -32,7 +25,7 @@ import {
   reportFramePerformance,
   reportPerformance,
 } from "@/components/ui/performance-overlay";
-import { HoverBubble } from "./HoverBubbleVariants";
+import { HoverBubble } from "./HoverBubble";
 
 const FLOOR_Y = 0;
 const CUBE_SIZE = 0.8;
@@ -297,8 +290,7 @@ const CubeRigid = ({
   highlight?: boolean;
 }) => {
   const bodyRef = useRef<RapierRigidBody | null>(null);
-  const displayName = profile?.fullName;
-  const showBubble = Boolean(displayName && (isHovered || isSelected));
+  const showBubble = Boolean(isHovered || isSelected);
 
   const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
     const t0 = performance.now();
@@ -306,6 +298,12 @@ const CubeRigid = ({
     e.stopPropagation();
     onHover?.(cube.sceneId);
     reportPerformance("CubeRigid:hover", performance.now() - t0);
+  };
+
+  const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
+    if (!hoverEnabled) return;
+    e.stopPropagation();
+    onHover?.(cube.sceneId);
   };
 
   const handlePointerOut = (e: ThreeEvent<PointerEvent>) => {
@@ -350,6 +348,7 @@ const CubeRigid = ({
           castShadow
           receiveShadow
           onPointerOver={handlePointerOver}
+          onPointerMove={handlePointerMove}
           onPointerOut={handlePointerOut}
           onClick={handleClick}
         >
@@ -360,29 +359,44 @@ const CubeRigid = ({
             metalness={0.08}
           />
         </mesh>
-        {/* Visual highlighting - selected takes precedence over hover */}
-        {isSelected ? (
-          <HighlightShell color="hsl(185, 60%, 62%)" maxOpacity={0.35} />
-        ) : isHovered && hoverEnabled ? (
-          <HighlightShell color="hsl(0, 0%, 95%)" maxOpacity={0.12} />
-        ) : null}
+
+        {/* Unified persistent highlight shell for smooth transitions */}
+        <HighlightShell
+          mode={
+            isSelected
+              ? "selected"
+              : isHovered && hoverEnabled
+                ? "hover"
+                : "none"
+          }
+          color={isSelected ? "hsl(185, 60%, 62%)" : "hsl(0, 0%, 95%)"}
+        />
+
         {/* Additional highlight for active cube in owner card */}
         {highlight && !isSelected && (
-          <HighlightShell color="hsl(185, 60%, 62%)" maxOpacity={0.28} />
+          <HighlightShell color="hsl(185, 60%, 62%)" mode="selected" />
         )}
-        {profile?.photoUrl && (
-          <PhotoBadge url={profile.photoUrl} verified={profile.verified} />
-        )}
-        {showBubble && displayName ? (
+        {showBubble && (
           <HoverBubble
-            name={displayName}
+            name={profile?.fullName}
             initials={
               profile?.firstName && profile?.lastName
                 ? `${profile.firstName[0]}${profile.lastName[0]}`
                 : undefined
             }
+            photoUrl={profile?.photoUrl}
+            linkedinUrl={profile?.linkedinUrl}
+            verified={profile?.verified}
+            cubeColor={cube.color}
+            profession={profile?.profession}
+            onMouseEnter={() => onHover?.(cube.sceneId)}
+            onMouseLeave={() => onHover?.(null)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick?.(cube.sceneId);
+            }}
           />
-        ) : null}
+        )}
       </group>
     </RigidBody>
   );
@@ -404,54 +418,39 @@ const FlagMarker = ({
   );
 };
 
-const PhotoBadge = ({ url, verified }: { url: string; verified?: boolean }) => {
-  const texture = useTexture(url);
-  useEffect(() => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.needsUpdate = true;
-  }, [texture]);
-
-  return (
-    <group position={[0, 0, CUBE_SIZE / 2 + 0.01]}>
-      <mesh>
-        <planeGeometry args={[0.42, 0.42]} />
-        <meshBasicMaterial
-          map={texture}
-          transparent
-          opacity={0.98}
-          toneMapped={false}
-        />
-      </mesh>
-      {verified && (
-        <mesh position={[0.17, 0.17, 0.01]}>
-          <circleGeometry args={[0.06, 16]} />
-          <meshBasicMaterial
-            color="hsl(164, 55%, 58%)"
-            transparent
-            opacity={0.7}
-          />
-        </mesh>
-      )}
-    </group>
-  );
-};
-
 const HighlightShell = ({
-  color = "hsl(185, 60%, 62%)",
-  maxOpacity = 0.28,
+  color,
+  mode = "none",
 }: {
-  color?: string;
-  maxOpacity?: number;
+  color: string;
+  mode?: "hover" | "selected" | "none";
 }) => {
   const materialRef = useRef<THREE.MeshBasicMaterial | null>(null);
   const opacityRef = useRef(0);
 
   useFrame((_, delta) => {
-    const next = Math.min(maxOpacity, opacityRef.current + delta * 1.2);
-    if (next === opacityRef.current) return;
-    opacityRef.current = next;
+    let targetOpacity = 0;
+    if (mode === "selected") targetOpacity = 0.35;
+    else if (mode === "hover") targetOpacity = 0.12;
+
+    const lerpSpeed = 8;
+    opacityRef.current = THREE.MathUtils.lerp(
+      opacityRef.current,
+      targetOpacity,
+      delta * lerpSpeed,
+    );
+
     if (materialRef.current) {
-      materialRef.current.opacity = next;
+      materialRef.current.opacity = opacityRef.current;
+      materialRef.current.visible = opacityRef.current > 0.005;
+
+      // Smoothly transition color if target mode is active
+      if (mode !== "none") {
+        materialRef.current.color.lerp(
+          new THREE.Color(color),
+          delta * lerpSpeed,
+        );
+      }
     }
   });
 
@@ -758,8 +757,8 @@ const SceneContent = ({
 
   // Debounced hover handler with camera navigation check
   const handleHoverChange = useCallback((sceneId: number | null) => {
-    // Immediate clear if null or navigation active
-    if (sceneId === null || isNavigatingCameraRef.current) {
+    // 1. Navigation overrides everything - clear immediately
+    if (isNavigatingCameraRef.current) {
       if (hoverTimerRef.current !== null) {
         clearTimeout(hoverTimerRef.current);
         hoverTimerRef.current = null;
@@ -769,20 +768,30 @@ const SceneContent = ({
       return;
     }
 
-    // Debounce hover updates (50ms hysteresis to prevent flicker)
-    pendingHoverIdRef.current = sceneId;
+    if (
+      pendingHoverIdRef.current === sceneId &&
+      hoverTimerRef.current !== null
+    ) {
+      return;
+    }
+
     if (hoverTimerRef.current !== null) {
       clearTimeout(hoverTimerRef.current);
     }
+
+    pendingHoverIdRef.current = sceneId;
+
+    // - Leaving (null): 250ms grace period to allow moving to bubble and handle fast movement
+    // - Entering (id): 30ms debounce to prevent flicker while allowing quick response
+    const delay = sceneId === null ? 250 : 30;
+
     hoverTimerRef.current = window.setTimeout(() => {
-      if (
-        pendingHoverIdRef.current === sceneId &&
-        !isNavigatingCameraRef.current
-      ) {
-        setHoveredCubeId(sceneId);
+      // Final check for navigation
+      if (!isNavigatingCameraRef.current) {
+        setHoveredCubeId(pendingHoverIdRef.current);
       }
       hoverTimerRef.current = null;
-    }, 50);
+    }, delay);
   }, []);
 
   // Camera navigation handlers

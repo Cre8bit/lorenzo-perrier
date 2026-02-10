@@ -23,7 +23,6 @@ import { useCubeFlow } from "@/contexts/useCubeFlow";
 import { CubeFlowProvider } from "@/contexts/CubeFlowProvider";
 import type { Quaternion, Vec3 } from "@/types/CubeModel";
 import { isAuth0Configured } from "@/lib/auth0";
-import { reportPerformance } from "@/components/ui/performance-overlay";
 
 // Lazy load the heavy Three.js scene
 const CubeScene = lazy(() => import("@/components/cubespace/CubeScene"));
@@ -189,7 +188,6 @@ const CubeSpaceInner = ({ active = true }: Props) => {
   );
 
   const cubeProfiles = useMemo(() => {
-    const t0 = performance.now();
     const profiles: CubeProfileMap = {};
     const userMap = new Map(storedUsers.map((user) => [user.id, user]));
 
@@ -204,10 +202,10 @@ const CubeSpaceInner = ({ active = true }: Props) => {
           linkedinUrl: user.linkedinUrl,
           verified: user.verified,
           photoUrl: user.photoUrl,
+          profession: user.profession,
         };
       }
     }
-    reportPerformance("CubeSpace:profiles", performance.now() - t0);
     return profiles;
   }, [cubesList, storedUsers]);
 
@@ -229,11 +227,17 @@ const CubeSpaceInner = ({ active = true }: Props) => {
 
   // Bridge for OwnerCard onSaveName
   const handleSaveName = useCallback(
-    (data: { firstName: string; lastName: string; linkedinUrl?: string }) => {
+    (data: {
+      firstName: string;
+      lastName: string;
+      linkedinUrl?: string;
+      profession?: string;
+    }) => {
       onSaveConfirm({
         firstName: data.firstName,
         lastName: data.lastName,
         linkedinUrl: data.linkedinUrl,
+        profession: data.profession,
         verified: false,
       });
     },

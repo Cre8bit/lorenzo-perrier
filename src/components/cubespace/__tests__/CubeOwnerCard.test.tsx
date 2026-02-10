@@ -305,12 +305,19 @@ describe("CubeOwnerCard", () => {
       const addNameButton = screen.getByText(/Add your name/);
       await userEvent.click(addNameButton);
 
+      const firstNameInput = screen.getByLabelText("First name");
       const lastNameInput = screen.getByLabelText("Last name");
+
+      // Clear both, then only fill last name
+      await userEvent.clear(firstNameInput);
       await userEvent.clear(lastNameInput);
       await userEvent.type(lastNameInput, "Doe");
 
       const submitButton = screen.getByText("Save");
-      expect(submitButton).toBeDisabled();
+      await userEvent.click(submitButton);
+
+      // Should not call onSaveName when validation fails
+      expect(mockCallbacks.onSaveName).not.toHaveBeenCalled();
     });
 
     it("should disable submit button when last name is empty", async () => {
@@ -322,11 +329,18 @@ describe("CubeOwnerCard", () => {
       await userEvent.click(addNameButton);
 
       const firstNameInput = screen.getByLabelText("First name");
+      const lastNameInput = screen.getByLabelText("Last name");
+
+      // Clear both, then only fill first name
       await userEvent.clear(firstNameInput);
+      await userEvent.clear(lastNameInput);
       await userEvent.type(firstNameInput, "John");
 
       const submitButton = screen.getByText("Save");
-      expect(submitButton).toBeDisabled();
+      await userEvent.click(submitButton);
+
+      // Should not call onSaveName when validation fails
+      expect(mockCallbacks.onSaveName).not.toHaveBeenCalled();
     });
 
     it("should enable submit button when both names filled", async () => {

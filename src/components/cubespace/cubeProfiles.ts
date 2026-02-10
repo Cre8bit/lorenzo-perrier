@@ -5,6 +5,7 @@ export type CubeProfile = {
   photoUrl?: string;
   linkedinUrl?: string;
   verified?: boolean;
+  profession?: string;
 };
 
 export type CubeProfileMap = Record<string, CubeProfile>;
