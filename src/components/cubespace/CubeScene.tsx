@@ -300,6 +300,12 @@ const CubeRigid = ({
     reportPerformance("CubeRigid:hover", performance.now() - t0);
   };
 
+  const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
+    if (!hoverEnabled) return;
+    e.stopPropagation();
+    onHover?.(cube.sceneId);
+  };
+
   const handlePointerOut = (e: ThreeEvent<PointerEvent>) => {
     const t0 = performance.now();
     if (!hoverEnabled) return;
@@ -342,6 +348,7 @@ const CubeRigid = ({
           castShadow
           receiveShadow
           onPointerOver={handlePointerOver}
+          onPointerMove={handlePointerMove}
           onPointerOut={handlePointerOut}
           onClick={handleClick}
         >
@@ -381,6 +388,7 @@ const CubeRigid = ({
             linkedinUrl={profile?.linkedinUrl}
             verified={profile?.verified}
             cubeColor={cube.color}
+            profession={profile?.profession}
             onMouseEnter={() => onHover?.(cube.sceneId)}
             onMouseLeave={() => onHover?.(null)}
             onClick={(e) => {
@@ -773,9 +781,9 @@ const SceneContent = ({
 
     pendingHoverIdRef.current = sceneId;
 
-    // - Leaving (null): 150ms grace period to allow moving to bubble
-    // - Entering (id): 40ms debounce to prevent flicker
-    const delay = sceneId === null ? 150 : 40;
+    // - Leaving (null): 250ms grace period to allow moving to bubble and handle fast movement
+    // - Entering (id): 30ms debounce to prevent flicker while allowing quick response
+    const delay = sceneId === null ? 250 : 30;
 
     hoverTimerRef.current = window.setTimeout(() => {
       // Final check for navigation

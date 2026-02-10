@@ -14,7 +14,46 @@ type Props = {
     firstName: string;
     lastName: string;
     linkedinUrl?: string;
+    profession?: string;
   }) => void;
+};
+
+const VALIDATION = {
+  firstName: { min: 2, max: 50 },
+  lastName: { min: 1, max: 50 },
+  linkedinUrl: { max: 200 },
+  profession: { min: 1, max: 100 },
+} as const;
+
+const validateLinkedInUrl = (value: string): string | undefined => {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  try {
+    const url = new URL(
+      trimmed.startsWith("http") ? trimmed : `https://${trimmed}`,
+    );
+
+    const hostname = url.hostname.toLowerCase();
+
+    const isLinkedInDomain =
+      hostname === "linkedin.com" || hostname.endsWith(".linkedin.com");
+
+    if (!isLinkedInDomain) {
+      return "Must be a LinkedIn URL";
+    }
+
+    const isProfilePath =
+      url.pathname.startsWith("/in/") || url.pathname.startsWith("/pub/");
+
+    if (!isProfilePath) {
+      return "Must be a LinkedIn profile URL";
+    }
+
+    return undefined;
+  } catch {
+    return "Invalid URL format";
+  }
 };
 
 /* ─── Shared hook for form state ──────────────────────────────── */
@@ -23,6 +62,13 @@ function useOwnerForm(open: boolean, profile?: CubeProfile | null) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [profession, setProfession] = useState("");
+  const [validationErrors, setValidationErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
+    linkedinUrl?: string;
+    profession?: string;
+  }>({});
 
   useEffect(() => {
     if (!open) return;
@@ -30,9 +76,67 @@ function useOwnerForm(open: boolean, profile?: CubeProfile | null) {
     setFirstName(profile?.firstName ?? "");
     setLastName(profile?.lastName ?? "");
     setLinkedinUrl(profile?.linkedinUrl ?? "");
+    setProfession(profile?.profession ?? "");
+    setValidationErrors({});
   }, [open, profile]);
 
-  const formValid = firstName.trim().length > 0 && lastName.trim().length > 0;
+  const validateField = (
+    field: "firstName" | "lastName" | "linkedinUrl" | "profession",
+    value: string,
+  ): string | undefined => {
+    const trimmed = value.trim();
+    const rules = VALIDATION[field];
+
+    // LinkedIn URL has special validation
+    if (field === "linkedinUrl") {
+      return validateLinkedInUrl(value);
+    }
+
+    // Profession is optional
+    if (field === "profession") {
+      if (trimmed.length === 0) return undefined; // Optional field
+      if ("min" in rules && trimmed.length < rules.min) {
+        return `Minimum ${rules.min} character${rules.min > 1 ? "s" : ""}`;
+      }
+      if (trimmed.length > rules.max) {
+        return `Maximum ${rules.max} characters`;
+      }
+      return undefined;
+    }
+
+    // First and last name validation
+    if (trimmed.length === 0) {
+      return `${field === "firstName" ? "First" : "Last"} name is required`;
+    }
+    if ("min" in rules && trimmed.length < rules.min) {
+      return `Minimum ${rules.min} character${rules.min > 1 ? "s" : ""}`;
+    }
+
+    if (trimmed.length > rules.max) {
+      return `Maximum ${rules.max} characters`;
+    }
+
+    return undefined;
+  };
+
+  const validateAllFields = () => {
+    const errors = {
+      firstName: validateField("firstName", firstName),
+      lastName: validateField("lastName", lastName),
+      linkedinUrl: validateField("linkedinUrl", linkedinUrl),
+      profession: validateField("profession", profession),
+    };
+    setValidationErrors(errors);
+    return !errors.firstName && !errors.lastName && !errors.linkedinUrl && !errors.profession;
+  };
+
+  const formValid =
+    firstName.trim().length >= VALIDATION.firstName.min &&
+    firstName.trim().length <= VALIDATION.firstName.max &&
+    lastName.trim().length >= VALIDATION.lastName.min &&
+    lastName.trim().length <= VALIDATION.lastName.max &&
+    linkedinUrl.trim().length <= VALIDATION.linkedinUrl.max &&
+    profession.trim().length <= VALIDATION.profession.max;
 
   const initials =
     profile?.firstName && profile?.lastName
@@ -51,7 +155,11 @@ function useOwnerForm(open: boolean, profile?: CubeProfile | null) {
     setLastName,
     linkedinUrl,
     setLinkedinUrl,
+    profession,
+    setProfession,
     formValid,
+    validationErrors,
+    validateAllFields,
     initials,
     hasProfile,
     isLinkedInConnected,
@@ -78,11 +186,12 @@ export const CubeOwnerCard = ({
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!form.formValid) return;
+    if (!form.validateAllFields()) return;
     onSaveName?.({
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       linkedinUrl: form.linkedinUrl.trim() || undefined,
+      profession: form.profession.trim() || undefined,
     });
   };
 
@@ -195,15 +304,19 @@ export const CubeOwnerCard = ({
               {[
                 {
                   label: "First name",
+                  field: "firstName" as const,
                   value: form.firstName,
                   set: form.setFirstName,
+                  max: VALIDATION.firstName.max,
                 },
                 {
                   label: "Last name",
+                  field: "lastName" as const,
                   value: form.lastName,
                   set: form.setLastName,
+                  max: VALIDATION.lastName.max,
                 },
-              ].map(({ label, value, set }) => (
+              ].map(({ label, field, value, set, max }) => (
                 <label key={label} className="flex flex-col gap-1">
                   <span
                     className="text-[10px] font-medium tracking-wide"
@@ -216,14 +329,27 @@ export const CubeOwnerCard = ({
                     onChange={(e) => set(e.target.value)}
                     disabled={saving}
                     required
+                    maxLength={max}
                     className="h-8 rounded-lg bg-transparent px-2.5 text-[12px] outline-none transition focus:ring-1"
                     style={{
-                      border: "1px solid hsl(210 20% 92% / 0.08)",
+                      border: form.validationErrors[field]
+                        ? "1px solid hsl(0 60% 50% / 0.4)"
+                        : "1px solid hsl(210 20% 92% / 0.08)",
                       color: "hsl(210 20% 92% / 0.9)",
                       // @ts-expect-error CSS custom property
-                      "--tw-ring-color": "hsl(185 50% 55% / 0.3)",
+                      "--tw-ring-color": form.validationErrors[field]
+                        ? "hsl(0 60% 50% / 0.4)"
+                        : "hsl(185 50% 55% / 0.3)",
                     }}
                   />
+                  {form.validationErrors[field] && (
+                    <span
+                      className="text-[10px]"
+                      style={{ color: "hsl(0 60% 65%)" }}
+                    >
+                      {form.validationErrors[field]}
+                    </span>
+                  )}
                 </label>
               ))}
             </div>
@@ -231,8 +357,41 @@ export const CubeOwnerCard = ({
               <span
                 className="text-[10px] font-medium tracking-wide"
                 style={{ color: "hsl(215 15% 55%)" }}
-              >
-                LinkedIn{" "}
+              >                Profession{" "}
+                <span style={{ color: "hsl(215 15% 40%)" }}>(optional)</span>
+              </span>
+              <input
+                value={form.profession}
+                onChange={(e) => form.setProfession(e.target.value)}
+                disabled={saving}
+                placeholder="Software Engineer, Designer..."
+                maxLength={VALIDATION.profession.max}
+                className="h-8 rounded-lg bg-transparent px-2.5 text-[12px] outline-none transition focus:ring-1"
+                style={{
+                  border: form.validationErrors.profession
+                    ? "1px solid hsl(0 60% 50% / 0.4)"
+                    : "1px solid hsl(210 20% 92% / 0.08)",
+                  color: "hsl(210 20% 92% / 0.9)",
+                  // @ts-expect-error CSS custom property
+                  "--tw-ring-color": form.validationErrors.profession
+                    ? "hsl(0 60% 50% / 0.4)"
+                    : "hsl(185 50% 55% / 0.3)",
+                }}
+              />
+              {form.validationErrors.profession && (
+                <span
+                  className="text-[10px]"
+                  style={{ color: "hsl(0 60% 65%)" }}
+                >
+                  {form.validationErrors.profession}
+                </span>
+              )}
+            </label>
+            <label className="flex flex-col gap-1">
+              <span
+                className="text-[10px] font-medium tracking-wide"
+                style={{ color: "hsl(215 15% 55%)" }}
+              >                LinkedIn{" "}
                 <span style={{ color: "hsl(215 15% 40%)" }}>(optional)</span>
               </span>
               <input
@@ -240,14 +399,27 @@ export const CubeOwnerCard = ({
                 onChange={(e) => form.setLinkedinUrl(e.target.value)}
                 disabled={saving}
                 placeholder="linkedin.com/in/..."
+                maxLength={VALIDATION.linkedinUrl.max}
                 className="h-8 rounded-lg bg-transparent px-2.5 text-[12px] outline-none transition focus:ring-1"
                 style={{
-                  border: "1px solid hsl(210 20% 92% / 0.08)",
+                  border: form.validationErrors.linkedinUrl
+                    ? "1px solid hsl(0 60% 50% / 0.4)"
+                    : "1px solid hsl(210 20% 92% / 0.08)",
                   color: "hsl(210 20% 92% / 0.9)",
                   // @ts-expect-error CSS custom property
-                  "--tw-ring-color": "hsl(185 50% 55% / 0.3)",
+                  "--tw-ring-color": form.validationErrors.linkedinUrl
+                    ? "hsl(0 60% 50% / 0.4)"
+                    : "hsl(185 50% 55% / 0.3)",
                 }}
               />
+              {form.validationErrors.linkedinUrl && (
+                <span
+                  className="text-[10px]"
+                  style={{ color: "hsl(0 60% 65%)" }}
+                >
+                  {form.validationErrors.linkedinUrl}
+                </span>
+              )}
             </label>
             <div className="flex items-center justify-between pt-1">
               <button
@@ -261,7 +433,7 @@ export const CubeOwnerCard = ({
               </button>
               <button
                 type="submit"
-                disabled={!form.formValid || saving}
+                disabled={saving}
                 className="rounded-lg px-4 py-1.5 text-[11px] font-semibold transition disabled:opacity-40"
                 style={{
                   background:

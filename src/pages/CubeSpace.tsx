@@ -202,6 +202,7 @@ const CubeSpaceInner = ({ active = true }: Props) => {
           linkedinUrl: user.linkedinUrl,
           verified: user.verified,
           photoUrl: user.photoUrl,
+          profession: user.profession,
         };
       }
     }
@@ -226,11 +227,17 @@ const CubeSpaceInner = ({ active = true }: Props) => {
 
   // Bridge for OwnerCard onSaveName
   const handleSaveName = useCallback(
-    (data: { firstName: string; lastName: string; linkedinUrl?: string }) => {
+    (data: {
+      firstName: string;
+      lastName: string;
+      linkedinUrl?: string;
+      profession?: string;
+    }) => {
       onSaveConfirm({
         firstName: data.firstName,
         lastName: data.lastName,
         linkedinUrl: data.linkedinUrl,
+        profession: data.profession,
         verified: false,
       });
     },

@@ -13,6 +13,7 @@ type HoverBubbleProps = {
   linkedinUrl?: string;
   verified?: boolean;
   cubeColor?: string;
+  profession?: string;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   onClick?: (e: React.MouseEvent) => void;
@@ -62,6 +63,7 @@ function Bubble({
   linkedinUrl,
   verified,
   cubeColor,
+  profession,
 }: Omit<HoverBubbleProps, "onMouseEnter" | "onMouseLeave" | "onClick">) {
   const isUnnamed = !name || name.trim() === "";
   const di = isUnnamed ? "?" : getInitials(name, initials);
@@ -178,6 +180,14 @@ function Bubble({
             >
               {name}
             </span>
+            {profession && (
+              <span
+                className="text-[10px] font-light leading-tight whitespace-nowrap"
+                style={{ color: "hsl(215 15% 65% / 0.8)" }}
+              >
+                {profession}
+              </span>
+            )}
           </>
         )}
       </div>
