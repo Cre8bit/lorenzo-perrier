@@ -11,9 +11,11 @@ type Props = {
   onTogglePlacing: () => void;
   canAddCube: boolean;
   hasDraft: boolean;
+  ownerCardOpen?: boolean;
 
   selectedColor: string;
   onColorChange: (color: string) => void;
+  onClaimDraft?: () => void;
 };
 
 function formatHeight(h: number) {
@@ -29,8 +31,10 @@ export const CubeSpaceOverlay = ({
   onTogglePlacing,
   canAddCube,
   hasDraft,
+  ownerCardOpen = false,
   selectedColor,
   onColorChange,
+  onClaimDraft,
 }: Props) => {
   const isMobile = useIsMobile();
   const heightLabel = useMemo(() => formatHeight(towerHeight), [towerHeight]);
@@ -60,12 +64,21 @@ export const CubeSpaceOverlay = ({
         </h1>
         {isPlacing ? (
           <p className="mt-3 text-xs text-primary/80 tracking-wide">
-            Click anywhere on the glowing plane to place your cube.
+            {isMobile
+              ? "Tap anywhere on the glowing plane to place your cube."
+              : "Click anywhere on the glowing plane to place your cube."}
           </p>
         ) : hasDraft ? (
-          <p className="mt-3 text-xs text-primary/70 tracking-wide animate-pulse">
+          <button
+            onClick={onClaimDraft}
+            disabled={ownerCardOpen}
+            className="mt-3 text-xs text-primary/70 tracking-wide animate-pulse transition
+             hover:animate-none hover:text-primary
+             pointer-events-auto
+             disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
+          >
             Claim your cube by adding your name...
-          </p>
+          </button>
         ) : canAddCube ? (
           <>
             <p className="mt-2 text-xs text-muted-foreground/60 tracking-wide">
@@ -94,56 +107,122 @@ export const CubeSpaceOverlay = ({
         )}
       </div>
 
-      {/* Right controls */}
-      <div className="fixed right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 pointer-events-auto">
-        {isPlacing && (
-          <div
-            className="relative px-4 py-3 rounded-xl flex flex-col gap-2"
-            style={{
-              backdropFilter: "blur(16px)",
-              background: "hsl(var(--background) / 0.28)",
-              border: "1px solid hsl(var(--foreground) / 0.06)",
-              boxShadow: "0 12px 30px hsl(0 0% 0% / 0.2)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground/80">
-                <Palette className="w-3.5 h-3.5" />
-                <span>Cube color</span>
-              </div>
-              <button
-                onClick={() => onColorChange(getRandomColor())}
-                className="text-[11px] text-muted-foreground/70 hover:text-muted-foreground transition-colors"
-              >
-                <span className="inline-flex items-center gap-1">
-                  <Shuffle className="w-3 h-3" />
-                  Random
-                </span>
-              </button>
-            </div>
-            <div className="grid grid-cols-6 gap-2">
-              {CUBE_COLORS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => onColorChange(color)}
-                  className="h-6 w-6 rounded-full border transition-all"
+      {/* Color controls - Desktop: right side panel | Mobile: compact side button */}
+      {isPlacing && !hasDraft && (
+        <>
+          {isMobile ? (
+            <div className="fixed right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 pointer-events-auto">
+              {/* Compact color selector for mobile */}
+              <div className="flex flex-col gap-2">
+                {/* Current color indicator with random button */}
+                <div
+                  className="relative rounded-xl overflow-hidden"
                   style={{
-                    background: color,
-                    borderColor:
-                      selectedColor === color
-                        ? "hsl(var(--primary) / 0.8)"
-                        : "transparent",
-                    boxShadow:
-                      selectedColor === color
-                        ? "0 0 0 2px hsl(var(--primary) / 0.25)"
-                        : "0 0 0 1px hsl(0 0% 0% / 0.2)",
+                    backdropFilter: "blur(16px)",
+                    background: "hsl(var(--background) / 0.35)",
+                    border: "1px solid hsl(var(--foreground) / 0.08)",
+                    boxShadow: "0 8px 20px hsl(0 0% 0% / 0.3)",
                   }}
-                />
-              ))}
+                >
+                  <button
+                    onClick={() => onColorChange(getRandomColor())}
+                    className="p-2 flex items-center gap-1.5"
+                  >
+                    <div
+                      className="h-8 w-8 rounded-lg border-2"
+                      style={{
+                        background: selectedColor,
+                        borderColor: "hsl(var(--primary) / 0.6)",
+                        boxShadow: `0 0 12px ${selectedColor}40`,
+                      }}
+                    />
+                    <Shuffle className="w-3.5 h-3.5 text-muted-foreground/70" />
+                  </button>
+                </div>
+                {/* Compact color grid */}
+                <div
+                  className="p-2 rounded-xl grid grid-cols-2 gap-1.5"
+                  style={{
+                    backdropFilter: "blur(16px)",
+                    background: "hsl(var(--background) / 0.35)",
+                    border: "1px solid hsl(var(--foreground) / 0.08)",
+                    boxShadow: "0 8px 20px hsl(0 0% 0% / 0.3)",
+                  }}
+                >
+                  {CUBE_COLORS.slice(0, 8).map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => onColorChange(color)}
+                      className="h-7 w-7 rounded-lg border transition-all"
+                      style={{
+                        background: color,
+                        borderColor:
+                          selectedColor === color
+                            ? "hsl(var(--primary) / 0.9)"
+                            : "transparent",
+                        boxShadow:
+                          selectedColor === color
+                            ? `0 0 0 2px hsl(var(--primary) / 0.4), 0 0 8px ${color}60`
+                            : "0 0 0 1px hsl(0 0% 0% / 0.25)",
+                        transform:
+                          selectedColor === color ? "scale(1.1)" : "scale(1)",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="fixed right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 pointer-events-auto">
+              <div
+                className="relative px-4 py-3 rounded-xl flex flex-col gap-2"
+                style={{
+                  backdropFilter: "blur(16px)",
+                  background: "hsl(var(--background) / 0.28)",
+                  border: "1px solid hsl(var(--foreground) / 0.06)",
+                  boxShadow: "0 12px 30px hsl(0 0% 0% / 0.2)",
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground/80">
+                    <Palette className="w-3.5 h-3.5" />
+                    <span>Cube color</span>
+                  </div>
+                  <button
+                    onClick={() => onColorChange(getRandomColor())}
+                    className="text-[11px] text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      <Shuffle className="w-3 h-3" />
+                      Random
+                    </span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  {CUBE_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => onColorChange(color)}
+                      className="h-6 w-6 rounded-full border transition-all"
+                      style={{
+                        background: color,
+                        borderColor:
+                          selectedColor === color
+                            ? "hsl(var(--primary) / 0.8)"
+                            : "transparent",
+                        boxShadow:
+                          selectedColor === color
+                            ? "0 0 0 2px hsl(var(--primary) / 0.25)"
+                            : "0 0 0 1px hsl(0 0% 0% / 0.2)",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Stats - Desktop: bottom-right | Mobile: centered above navbar */}
       {isMobile ? (

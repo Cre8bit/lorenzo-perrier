@@ -169,7 +169,7 @@ function Bubble({
         ) : (
           <>
             <span
-              className="text-[9px] font-medium leading-tight"
+              className="text-[9px] font-medium leading-tight whitespace-nowrap"
               style={{ color: "hsl(215 15% 55%)" }}
             >
               Placed by

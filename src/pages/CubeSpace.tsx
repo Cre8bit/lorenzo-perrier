@@ -23,6 +23,7 @@ import { useCubeFlow } from "@/contexts/useCubeFlow";
 import { CubeFlowProvider } from "@/contexts/CubeFlowProvider";
 import type { Quaternion, Vec3 } from "@/types/CubeModel";
 import { isAuth0Configured } from "@/lib/auth0";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Lazy load the heavy Three.js scene
 const CubeScene = lazy(() => import("@/components/cubespace/CubeScene"));
@@ -64,6 +65,7 @@ function useOwnerPanelRect(open: boolean) {
 const CubeSpaceInner = ({ active = true }: Props) => {
   const { setCurrentSection, setIsCubeSpaceReady, setIsCubeSpaceSceneReady } =
     useAppContext();
+  const isMobile = useIsMobile();
 
   // --- Data Context ---
   const {
@@ -108,6 +110,9 @@ const CubeSpaceInner = ({ active = true }: Props) => {
     y: number;
     visible: boolean;
   } | null>(null);
+  const [focusTrigger, setFocusTrigger] = useState(0);
+  const [lastPlacedCubeId, setLastPlacedCubeId] = useState<string | null>(null);
+  const [isFocusing, setIsFocusing] = useState(false);
 
   // --- Event Handlers ---
 
@@ -126,6 +131,10 @@ const CubeSpaceInner = ({ active = true }: Props) => {
         color: payload.color,
         dropPosition: payload.dropPosition,
       });
+
+      // Track this as the last placed cube (stays selected even after save)
+      setLastPlacedCubeId(newLocalId);
+      setIsFocusing(true);
 
       // Notify flow that cube was dropped (sets draftId, turns off placing mode)
       flowHandleCubeDropped(newLocalId);
@@ -150,6 +159,10 @@ const CubeSpaceInner = ({ active = true }: Props) => {
   // 3. Focus Complete: Ready for Owner Input
   const handleFocusComplete = useCallback(
     (payload: { localId: string }) => {
+      // Mark focus as complete
+      setIsFocusing(false);
+      // Ensure the focused cube remains selected
+      setLastPlacedCubeId(payload.localId);
       // Notify flow that cube is focused (opens owner card if it's the draft)
       flowHandleCubeFocused(payload.localId);
     },
@@ -240,8 +253,13 @@ const CubeSpaceInner = ({ active = true }: Props) => {
         profession: data.profession,
         verified: false,
       });
+      // After save, re-focus on the saved cube
+      if (draftId) {
+        setLastPlacedCubeId(draftId);
+        setFocusTrigger((prev) => prev + 1);
+      }
     },
-    [onSaveConfirm],
+    [onSaveConfirm, draftId],
   );
 
   // Bridge for OwnerCard onConnectLinkedIn
@@ -262,8 +280,26 @@ const CubeSpaceInner = ({ active = true }: Props) => {
         verified: true,
         photoUrl: photoUrl ?? undefined,
       });
+      // After LinkedIn save, re-focus on the saved cube
+      if (draftId) {
+        setLastPlacedCubeId(draftId);
+        setFocusTrigger((prev) => prev + 1);
+      }
     }
-  }, [onConnectLinkedIn, onSaveConfirm]);
+  }, [onConnectLinkedIn, onSaveConfirm, draftId]);
+
+  // Handler for claiming draft cube from the overlay text click
+  const handleClaimDraft = useCallback(() => {
+    if (draftId && !ownerCardOpen) {
+      // Ensure draft cube is set as the focused cube
+      setLastPlacedCubeId(draftId);
+      // Clear any hover state and start focusing
+      setIsFocusing(true);
+      // Trigger camera refocus by incrementing trigger counter
+      setFocusTrigger((prev) => prev + 1);
+      // Owner card will open after focus completes (via handleFocusComplete)
+    }
+  }, [draftId, ownerCardOpen]);
 
   const showSceneLoader = active && !cubeSpaceReady;
   const sceneLoaderMessage = sceneReady
@@ -322,12 +358,14 @@ const CubeSpaceInner = ({ active = true }: Props) => {
                   onCubeSettled={handleCubeSettled}
                   cubes={cubesList}
                   cubeProfiles={cubeProfiles}
-                  focusCubeId={draftId}
-                  activeCubeId={draftId}
+                  focusCubeId={lastPlacedCubeId}
+                  activeCubeId={lastPlacedCubeId}
                   ownerCardOpen={ownerCardOpen}
+                  clearHoverTrigger={focusTrigger}
                   onFocusComplete={handleFocusComplete}
                   onActiveCubeScreenChange={handleActiveCubeScreenChange}
                   onSceneReady={handleSceneReady}
+                  focusTrigger={focusTrigger}
                 />
               )}
             </Suspense>
@@ -350,34 +388,46 @@ const CubeSpaceInner = ({ active = true }: Props) => {
                 onTogglePlacing={togglePlacing}
                 canAddCube={!draftId && !hasSavedCube}
                 hasDraft={!!draftId}
+                ownerCardOpen={ownerCardOpen}
                 selectedColor={selectedColor}
                 onColorChange={setSelectedColor}
+                onClaimDraft={handleClaimDraft}
               />
             )}
 
-            {active && cubeSpaceReady && ownerCardOpen && (
+            {active && cubeSpaceReady && ownerCardOpen && !isFocusing && (
               <>
-                <svg className="fixed inset-0 h-full w-full pointer-events-none">
-                  {activeCubeScreen?.visible && ownerPanelRect && (
-                    <>
-                      <line
-                        x1={activeCubeScreen.x}
-                        y1={activeCubeScreen.y}
-                        x2={ownerPanelRect.left}
-                        y2={ownerPanelRect.top + ownerPanelRect.height / 2}
-                        stroke="hsla(180, 60%, 75%, 0.65)"
-                        strokeWidth="1"
-                      />
-                      <circle
-                        cx={activeCubeScreen.x}
-                        cy={activeCubeScreen.y}
-                        r={3}
-                        fill="hsla(180, 60%, 80%, 0.9)"
-                      />
-                    </>
-                  )}
-                </svg>
-                <div className="fixed right-8 top-1/2 -translate-y-1/2 pointer-events-auto">
+                {/* Tethered line - Desktop only */}
+                {!isMobile && (
+                  <svg className="fixed inset-0 h-full w-full pointer-events-none">
+                    {activeCubeScreen?.visible && ownerPanelRect && (
+                      <>
+                        <line
+                          x1={activeCubeScreen.x}
+                          y1={activeCubeScreen.y}
+                          x2={ownerPanelRect.left}
+                          y2={ownerPanelRect.top + ownerPanelRect.height / 2}
+                          stroke="hsla(180, 60%, 75%, 0.65)"
+                          strokeWidth="1"
+                        />
+                        <circle
+                          cx={activeCubeScreen.x}
+                          cy={activeCubeScreen.y}
+                          r={3}
+                          fill="hsla(180, 60%, 80%, 0.9)"
+                        />
+                      </>
+                    )}
+                  </svg>
+                )}
+                {/* Owner card - Desktop: right side | Mobile: centered */}
+                <div
+                  className={
+                    isMobile
+                      ? "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto px-4"
+                      : "fixed right-8 top-1/2 -translate-y-1/2 pointer-events-auto"
+                  }
+                >
                   <div
                     ref={ownerPanelRef}
                     className="rounded-2xl border shadow-2xl"
