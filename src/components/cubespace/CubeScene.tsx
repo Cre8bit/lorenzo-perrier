@@ -84,6 +84,8 @@ type Props = {
   activeCubeId?: string | null;
   ownerCardOpen?: boolean;
   active?: boolean;
+  focusTrigger?: number; // Increment to re-trigger focus
+  clearHoverTrigger?: number; // Increment to clear hover state
 };
 
 function clamp(v: number, min: number, max: number) {
@@ -135,8 +137,12 @@ const DropPlane = ({
   const ghostRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
   const zoneRef = useRef<THREE.Mesh>(null);
-  const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
+  const pointerDownRef = useRef<{ x: number; y: number; time: number } | null>(
+    null,
+  );
   const pointerMovedRef = useRef(false);
+  const multiTouchActiveRef = useRef(false);
+  const activeTouchCountRef = useRef(0);
 
   const [hoverPos, setHoverPos] = useState<THREE.Vector3 | null>(null);
 
@@ -174,7 +180,10 @@ const DropPlane = ({
     if (pointerDownRef.current) {
       const dx = e.clientX - pointerDownRef.current.x;
       const dy = e.clientY - pointerDownRef.current.y;
-      if (dx * dx + dy * dy > 36) {
+      // Mobile: Higher threshold (15px) to account for touch imprecision
+      // Desktop: Lower threshold (6px) for precise mouse movements
+      const threshold = e.pointerType === "touch" ? 225 : 36; // 15px vs 6px squared
+      if (dx * dx + dy * dy > threshold) {
         pointerMovedRef.current = true;
       }
     }
@@ -182,26 +191,77 @@ const DropPlane = ({
   };
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
-    pointerDownRef.current = { x: e.clientX, y: e.clientY };
+    // Track touch count for multi-touch detection
+    if (e.pointerType === "touch") {
+      activeTouchCountRef.current++;
+      if (activeTouchCountRef.current > 1) {
+        multiTouchActiveRef.current = true;
+      }
+    }
+
+    pointerDownRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: Date.now(),
+    };
     pointerMovedRef.current = false;
   };
 
   const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
     const t0 = performance.now();
+
+    // Track touch count
+    if (e.pointerType === "touch" && activeTouchCountRef.current > 0) {
+      activeTouchCountRef.current--;
+      // Reset multi-touch flag only when all touches are released
+      if (activeTouchCountRef.current === 0) {
+        // Add a small delay before resetting to catch rapid successive touches
+        setTimeout(() => {
+          if (activeTouchCountRef.current === 0) {
+            multiTouchActiveRef.current = false;
+          }
+        }, 100);
+      }
+    }
+
     if (!hoverPos) return;
     const now = Date.now();
     const recentlyEnabled = now - guard.placingStartedAtRef.current < 350;
     const recentlyWheeled = now - guard.lastWheelAtRef.current < 300;
+
+    // Prevent drop if recently enabled or recently wheeled
     if (recentlyEnabled || recentlyWheeled) {
       pointerDownRef.current = null;
       pointerMovedRef.current = false;
       return;
     }
+
+    // Prevent drop if multi-touch was active (pinch-to-zoom, pan gestures)
+    if (multiTouchActiveRef.current) {
+      pointerDownRef.current = null;
+      pointerMovedRef.current = false;
+      return;
+    }
+
+    // Prevent drop if pointer moved (drag/pan)
     if (pointerMovedRef.current) {
       pointerDownRef.current = null;
       pointerMovedRef.current = false;
       return;
     }
+
+    // On mobile touch: Require a minimum hold time to prevent accidental taps
+    // This helps distinguish intentional drops from quick touches during gestures
+    if (e.pointerType === "touch" && pointerDownRef.current) {
+      const holdTime = now - pointerDownRef.current.time;
+      if (holdTime < 80) {
+        // Minimum 80ms hold for intentional tap
+        pointerDownRef.current = null;
+        pointerMovedRef.current = false;
+        return;
+      }
+    }
+
     e.stopPropagation();
     onPlace(new THREE.Vector3(hoverPos.x, y, hoverPos.z));
     pointerDownRef.current = null;
@@ -485,6 +545,8 @@ const SceneContent = ({
   activeCubeId,
   ownerCardOpen,
   active = true,
+  focusTrigger = 0,
+  clearHoverTrigger = 0,
 }: Props) => {
   // --- ID Mapping ---
   // Map localId (stable string) <-> sceneId (stable number for physics/rendering)
@@ -870,7 +932,14 @@ const SceneContent = ({
       focusId: focusSceneId,
     });
     pendingFocusRef.current = null;
-  }, [beginTransition, focusCubeId, isPlacing, resolveCubePosition]);
+  }, [beginTransition, focusCubeId, isPlacing, resolveCubePosition, focusTrigger]);
+
+  // Clear hover state when clearHoverTrigger changes (e.g., when clicking "Claim your cube")
+  useEffect(() => {
+    if (clearHoverTrigger > 0) {
+      setHoveredCubeId(null);
+    }
+  }, [clearHoverTrigger]);
 
   useEffect(() => {
     onStatsChange?.({ cubeCount: renderCubes.length, towerHeight });
@@ -935,7 +1004,8 @@ const SceneContent = ({
     });
 
     if (!initialCameraSetRef.current && controlsRef.current) {
-      const nextDistance = desiredDistanceRef.current || 10;
+      const isMobile = window.innerWidth < 768;
+      const nextDistance = desiredDistanceRef.current || (isMobile ? 14 : 10);
       // Force initial focus to center (0,0,0) as requested
       const target = new THREE.Vector3(0, 0, 0);
 
@@ -967,7 +1037,16 @@ const SceneContent = ({
 
     if (!hasActive) {
       const nextHeight = bodyMapRef.current.size > 0 ? maxSettledTop : 0;
-      const nextDistance = clamp(8 + nextHeight * 0.75, 8, 42);
+      // Mobile detection - adjust distance based on viewport width
+      const isMobile = window.innerWidth < 768;
+      const baseDistance = isMobile ? 12 : 8; // Start further back on mobile
+      const heightMultiplier = isMobile ? 1.0 : 0.75; // Slower growth on mobile
+      const maxClamp = isMobile ? 60 : 42; // Allow more zoom out on mobile
+      const nextDistance = clamp(
+        baseDistance + nextHeight * heightMultiplier,
+        baseDistance,
+        maxClamp,
+      );
       setTowerHeight(nextHeight);
       desiredDistanceRef.current = nextDistance;
       lastHighestSettledIdRef.current = highestSettledId;
@@ -1249,16 +1328,24 @@ const SceneContent = ({
     [onCubeDropped, selectedColor],
   );
   const focusActive = focusCubeId != null;
+  const isMobile = window.innerWidth < 768;
+  
+  // Mobile: wider zoom range, further min distance to prevent too close
+  const baseMinFactor = isMobile ? 0.5 : 0.35;
+  const focusMinFactor = isMobile ? 0.85 : 0.75;
+  const focusMaxFactor = isMobile ? 3.0 : 2.4;
+  const globalMaxDistance = isMobile ? 180 : 140;
+  
   const minDistance = isPlacing
     ? clamp(placementDistance * 0.72, 12, 120)
     : focusActive
-      ? focusDistance * 0.75
-      : Math.max(6, (baseTargetRef.current.distance || 14) * 0.35);
+      ? focusDistance * focusMinFactor
+      : Math.max(6, (baseTargetRef.current.distance || 14) * baseMinFactor);
   const maxDistance = isPlacing
     ? clamp(placementDistance * 1.28, minDistance + 2, 160)
     : focusActive
-      ? focusDistance * 2.4
-      : 140;
+      ? focusDistance * focusMaxFactor
+      : globalMaxDistance;
 
   return (
     <>
