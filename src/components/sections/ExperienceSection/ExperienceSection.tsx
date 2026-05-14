@@ -209,7 +209,8 @@ const ExperienceSection = () => {
               </h2>
 
               <p className="mt-1 text-xs text-muted-foreground ml-11">
-                Hover nodes to reveal skills, each color represents an experience.
+                Hover nodes to reveal skills, each color represents an
+                experience.
               </p>
             </div>
 
@@ -301,7 +302,7 @@ const ExperienceSection = () => {
                                 )}
                                 {exp.logo && (
                                   <img
-                                    src={exp.logo}
+                                    src={`${import.meta.env.BASE_URL}${exp.logo}`}
                                     alt=""
                                     className="inline-block w-4 h-4 ml-2 opacity-50"
                                   />
@@ -397,7 +398,9 @@ const ExperienceSection = () => {
                               </button>
 
                               <div
-                                ref={(el: HTMLDivElement | null) => { contentRefs.current.set(i, el!); }}
+                                ref={(el: HTMLDivElement | null) => {
+                                  contentRefs.current.set(i, el!);
+                                }}
                                 className="overflow-hidden transition-all duration-700"
                                 style={{
                                   maxHeight: isExpanded ? "2000px" : "0px",

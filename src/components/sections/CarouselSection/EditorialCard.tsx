@@ -164,7 +164,7 @@ export const EditorialCard: React.FC<EditorialCardProps> = ({
                       }}
                     >
                       <img
-                        src={context.logoUrl}
+                        src={`${import.meta.env.BASE_URL}${context.logoUrl}`}
                         alt=""
                         className="w-full h-full object-contain"
                         draggable={false}
