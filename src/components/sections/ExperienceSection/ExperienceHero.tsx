@@ -115,7 +115,7 @@ const ExperienceHero = ({ showSticky, heroSentinelRef }: HeroSectionProps) => (
       <div className="flex flex-col md:flex-row gap-8 items-start">
         {/* Image */}
         <img
-          src="Lorenzo_in_vietnam.jpg"
+          src={`${import.meta.env.BASE_URL}Lorenzo_in_vietnam.jpg`}
           alt={profile.name.first}
           className="w-40 h-40 rounded-2xl object-cover border border-primary/20 shadow-xl"
         />
