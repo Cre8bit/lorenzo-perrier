@@ -95,6 +95,8 @@ export const AnimatedSubtitle = () => {
   const [textVisible, setTextVisible] = useState(true);
   const [transitionKey, setTransitionKey] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const innerTimeout1Ref = useRef<NodeJS.Timeout | null>(null);
+  const innerTimeout2Ref = useRef<NodeJS.Timeout | null>(null);
 
   // Only show/animate the constellation in the HERO section
   const isHero = currentSection === "hero";
@@ -108,6 +110,14 @@ export const AnimatedSubtitle = () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = undefined;
+      }
+      if (innerTimeout1Ref.current) {
+        clearTimeout(innerTimeout1Ref.current);
+        innerTimeout1Ref.current = null;
+      }
+      if (innerTimeout2Ref.current) {
+        clearTimeout(innerTimeout2Ref.current);
+        innerTimeout2Ref.current = null;
       }
       return;
     }
@@ -125,7 +135,7 @@ export const AnimatedSubtitle = () => {
         setTextVisible(false);
 
         // swap index mid-transition (after fade out)
-        setTimeout(() => {
+        innerTimeout1Ref.current = setTimeout(() => {
           let nextIndex: number;
 
           const available = Array.from(
@@ -147,10 +157,14 @@ export const AnimatedSubtitle = () => {
 
           // fade in text
           setTextVisible(true);
+          innerTimeout1Ref.current = null;
         }, 350);
 
         // stop constellation a bit later
-        setTimeout(() => setIsTransitioning(false), 1100);
+        innerTimeout2Ref.current = setTimeout(() => {
+          setIsTransitioning(false);
+          innerTimeout2Ref.current = null;
+        }, 1100);
 
         scheduleNext();
       }, interval);
@@ -158,7 +172,11 @@ export const AnimatedSubtitle = () => {
 
     scheduleNext();
     reportPerformance("AnimatedSubtitle:effect", performance.now() - t0);
-    return () => timeoutRef.current && clearTimeout(timeoutRef.current);
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (innerTimeout1Ref.current) clearTimeout(innerTimeout1Ref.current);
+      if (innerTimeout2Ref.current) clearTimeout(innerTimeout2Ref.current);
+    };
   }, [currentIndex, usedIndices, isHero]); // Added isHero to deps
 
   const currentSubtitle = SUBTITLES[currentIndex];
