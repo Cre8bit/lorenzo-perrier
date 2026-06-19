@@ -984,6 +984,16 @@ export const SkillsGraph = ({
   // ------------- hover picking (kept simple; called only on RAF) -------------
   const hoverRaf = useRef<number | null>(null);
 
+  // Clear retract timeout on unmount to prevent post-unmount state updates
+  useEffect(() => {
+    return () => {
+      if (retractTimeoutRef.current) {
+        clearTimeout(retractTimeoutRef.current);
+        retractTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   const pickNode = (x: number, y: number) => {
     const nodes = nodesRef.current;
     let closest: SkillNode | null = null;

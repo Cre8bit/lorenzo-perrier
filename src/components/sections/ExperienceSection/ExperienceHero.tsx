@@ -21,6 +21,7 @@ const AnimatedKPI = ({
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
+  const visibilityTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Parse label to extract number and suffix (e.g., "$30M+" -> 30, "M+")
   // Handles prefixes like $ and extracts the first number sequence
@@ -34,7 +35,10 @@ const AnimatedKPI = ({
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated.current) {
           hasAnimated.current = true;
-          setTimeout(() => setIsVisible(true), delay);
+          visibilityTimerRef.current = setTimeout(() => {
+            setIsVisible(true);
+            visibilityTimerRef.current = null;
+          }, delay);
         }
       },
       { threshold: 0.3 },
@@ -44,7 +48,10 @@ const AnimatedKPI = ({
       observer.observe(ref.current);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
+    };
   }, [delay]);
 
   useEffect(() => {
@@ -52,6 +59,7 @@ const AnimatedKPI = ({
 
     const duration = 3000;
     const startTime = performance.now();
+    let rafId: number;
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -62,11 +70,12 @@ const AnimatedKPI = ({
       setCount(Math.round(easeOutExpo * targetValue));
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       }
     };
 
-    requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
   }, [isVisible, targetValue]);
 
   return (
