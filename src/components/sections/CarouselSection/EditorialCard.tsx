@@ -20,6 +20,53 @@ function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
 }
 
+function CornerMark({
+  position,
+  color,
+  opacity,
+}: {
+  position: "tl" | "br";
+  color: string;
+  opacity: number;
+}) {
+  const isTL = position === "tl";
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute"
+      style={{
+        [isTL ? "top" : "bottom"]: 10,
+        [isTL ? "left" : "right"]: 10,
+        width: 14,
+        height: 14,
+        opacity: 0.15 + 0.7 * opacity,
+        transition: "opacity 520ms cubic-bezier(0.22, 1, 0.36, 1)",
+      }}
+    >
+      <span
+        className="absolute"
+        style={{
+          [isTL ? "top" : "bottom"]: 0,
+          [isTL ? "left" : "right"]: 0,
+          width: 14,
+          height: 1,
+          background: color,
+        }}
+      />
+      <span
+        className="absolute"
+        style={{
+          [isTL ? "top" : "bottom"]: 0,
+          [isTL ? "left" : "right"]: 0,
+          width: 1,
+          height: 14,
+          background: color,
+        }}
+      />
+    </div>
+  );
+}
+
 function useCardStyles(tint: CarouselTint, strength: number) {
   const smoothEase = "cubic-bezier(0.22, 1, 0.36, 1)";
   const overlayTransitionDuration = "520ms";
@@ -149,6 +196,28 @@ export const EditorialCard: React.FC<EditorialCardProps> = ({
                 )} 0%, ${withHslAlpha(tint.bg, 0.18)} 100%)`,
                 mixBlendMode: "multiply",
               }}
+            />
+
+            {/* Top edge highlight — increases on active */}
+            <div
+              className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+              style={{
+                background: `linear-gradient(90deg, transparent 0%, ${withHslAlpha(tint.border, 0.5 * strength + 0.15)} 50%, transparent 100%)`,
+                opacity: 0.6 + 0.4 * strength,
+                transition: styles.transitionOpacity,
+              }}
+            />
+
+            {/* Decorative corner marks — visible when active */}
+            <CornerMark
+              position="tl"
+              color={withHslAlpha(tint.border, 0.55)}
+              opacity={strength}
+            />
+            <CornerMark
+              position="br"
+              color={withHslAlpha(tint.border, 0.55)}
+              opacity={strength}
             />
 
             <div className="relative z-10 h-full flex flex-col p-6">

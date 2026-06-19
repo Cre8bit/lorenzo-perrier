@@ -1,7 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useAppContext } from "@/contexts/useAppContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+// Distance of the indicator from the bottom of the viewport (matches the
+// inline `bottom` style below) and its approximate rendered height. Used to
+// detect whether the indicator would collide with the hero availability chip.
+const INDICATOR_BOTTOM_OFFSET = 140;
+const INDICATOR_HEIGHT = 84;
+const COLLISION_MARGIN = 24;
 
 export const ScrollIndicator = () => {
   const isMobile = useIsMobile();
@@ -9,6 +16,26 @@ export const ScrollIndicator = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [_, setHasScrolled] = useState(false);
   const [readyToShow, setReadyToShow] = useState(false);
+  const [hasRoom, setHasRoom] = useState(true);
+
+  // Returns false when the hero availability chip would overlap the indicator
+  // (typically on shorter / laptop viewports where centered content sits low).
+  const checkRoom = useCallback(() => {
+    const chip = document.querySelector<HTMLElement>("[data-hero-chip]");
+    if (!chip) return true;
+    const indicatorTop =
+      window.innerHeight - INDICATOR_BOTTOM_OFFSET - INDICATOR_HEIGHT;
+    const chipRect = chip.getBoundingClientRect();
+    return chipRect.bottom + COLLISION_MARGIN <= indicatorTop;
+  }, []);
+
+  // Keep the collision check fresh on resize.
+  useEffect(() => {
+    const update = () => setHasRoom(checkRoom());
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [checkRoom]);
 
   // 1) Mark component as "ready" after 10s on the landing page
   const readyTimerRef = useRef<number | null>(null);
@@ -52,6 +79,7 @@ export const ScrollIndicator = () => {
     const handleScroll = () => {
       const scrolled = window.scrollY > 100;
       setHasScrolled(scrolled);
+      setHasRoom(checkRoom());
 
       if (scrolled) {
         // user left the top: hide indicator and reset readiness so it requires 10s again
@@ -77,7 +105,7 @@ export const ScrollIndicator = () => {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [readyToShow, currentSection]);
+  }, [readyToShow, currentSection, checkRoom]);
 
   const handleClick = () => {
     // Scroll down by one full viewport height
@@ -95,7 +123,7 @@ export const ScrollIndicator = () => {
     }
   };
 
-  if (!isVisible || isMobile) {
+  if (!isVisible || isMobile || !hasRoom) {
     return null;
   }
 

@@ -425,12 +425,31 @@ export const PhilosophyReveal = () => {
                 onMouseLeave={() => setHoveredIndex(null)}
               >
                 <div className="flex flex-col items-center text-center max-w-2xl relative">
+                  {/* Index counter — editorial detail */}
+                  <span
+                    className={`mb-3 text-[10px] font-body tracking-[0.4em] uppercase transition-all duration-500 ${
+                      isHovered ? "text-primary/70" : "text-primary/40"
+                    }`}
+                  >
+                    {String(index + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
+                  </span>
+
                   <h3
                     className={`text-base md:text-lg uppercase tracking-[0.15em] font-medium mb-4 relative z-10 transition-all duration-500 ${
                       isHovered ? "text-foreground" : "text-foreground/70"
                     }`}
                   >
-                    {item.title}
+                    <span className="relative">
+                      {item.title}
+                      <span
+                        className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-px transition-all duration-500"
+                        style={{
+                          width: isHovered ? "60%" : "30%",
+                          background:
+                            "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.7), transparent)",
+                        }}
+                      />
+                    </span>
                   </h3>
 
                   <blockquote
