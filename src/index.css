@@ -296,6 +296,23 @@
   }
 }
 
+/* Bright "live" status beacon — a glowing flicker for the availability dot */
+@keyframes status-flicker {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow:
+      0 0 6px 1px hsl(var(--primary) / 0.9),
+      0 0 12px 3px hsl(var(--primary) / 0.45);
+  }
+  50% {
+    opacity: 0.82;
+    box-shadow:
+      0 0 10px 2px hsl(var(--primary)),
+      0 0 20px 5px hsl(var(--primary) / 0.6);
+  }
+}
+
 .animate-glass-reveal {
   animation: glass-reveal 0.8s var(--ease-smooth) forwards;
 }
@@ -306,6 +323,10 @@
 
 .animate-scroll-bounce {
   animation: scroll-bounce 1.5s ease-in-out infinite;
+}
+
+.animate-status-flicker {
+  animation: status-flicker 2.4s ease-in-out infinite;
 }
 .ambient-root {
   --mx: 0;

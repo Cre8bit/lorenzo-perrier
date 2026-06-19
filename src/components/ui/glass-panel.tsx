@@ -15,12 +15,16 @@ export const GlassPanel = ({
   const [isHovered, setIsHovered] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
+  const visibilityTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), delay);
+          visibilityTimerRef.current = setTimeout(() => {
+            setIsVisible(true);
+            visibilityTimerRef.current = null;
+          }, delay);
         }
       },
       { threshold: 0.2 }
@@ -30,7 +34,10 @@ export const GlassPanel = ({
       observer.observe(panelRef.current);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
+    };
   }, [delay]);
 
   const handleMouseMove = (e: React.MouseEvent) => {

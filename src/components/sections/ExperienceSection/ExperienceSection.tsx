@@ -204,7 +204,8 @@ const ExperienceSection = () => {
           <section className="mb-20">
             <div className="mb-6">
               <h2 className="text-sm font-medium text-foreground tracking-wider uppercase flex items-center gap-3">
-                <span className="w-8 h-px bg-primary" />
+                <span className="w-8 h-px bg-gradient-to-r from-transparent to-primary" />
+                <span className="block h-1.5 w-1.5 rotate-45 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)]" />
                 Skill Graph
               </h2>
 
@@ -230,7 +231,8 @@ const ExperienceSection = () => {
             {/* Experience */}
             <section>
               <h2 className="text-sm font-medium text-foreground tracking-wider uppercase mb-8 flex items-center gap-3">
-                <span className="w-8 h-px bg-primary" />
+                <span className="w-8 h-px bg-gradient-to-r from-transparent to-primary" />
+                <span className="block h-1.5 w-1.5 rotate-45 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)]" />
                 Experience
               </h2>
 
@@ -259,7 +261,17 @@ const ExperienceSection = () => {
                         className={`hidden md:block absolute top-8 w-12 h-px bg-gradient-to-${isEven ? "r" : "l"} from-primary/30 to-transparent ${isEven ? "right-full" : "left-full"}`}
                       />
 
-                      <article className="group relative rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-4 transition-all duration-500 hover:border-primary/10 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]">
+                      <article className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-4 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)]">
+                        {/* Top edge highlight on hover */}
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute top-0 left-0 right-0 h-px transition-opacity duration-500"
+                          style={{
+                            opacity: isHovered ? 1 : 0,
+                            background:
+                              "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.5) 50%, transparent 100%)",
+                          }}
+                        />
                         {/* Subtle glow on hover */}
                         <div
                           className="absolute inset-0 rounded-2xl transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-primary/5 to-transparent"
@@ -523,7 +535,15 @@ const ExperienceSection = () => {
           {/* Sidebar */}
           <aside className="space-y-6">
             {/* Education - Glass Panel */}
-            <section className="rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/10 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]">
+            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)] group">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.5) 50%, transparent 100%)",
+                }}
+              />
               <h2 className="text-sm font-medium text-foreground tracking-wider uppercase mb-6">
                 Education
               </h2>
@@ -543,7 +563,15 @@ const ExperienceSection = () => {
             </section>
 
             {/* Skills by category - Glass Panel */}
-            <section className="rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/10 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]">
+            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)] group">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.5) 50%, transparent 100%)",
+                }}
+              />
               <h2 className="text-sm font-medium text-foreground tracking-wider uppercase mb-6">
                 Technical Skills
               </h2>
@@ -576,7 +604,15 @@ const ExperienceSection = () => {
             </section>
 
             {/* Links - Glass Panel */}
-            <section className="rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/10 hover:shadow-[0_0_30px_hsla(185,50%,55%,0.08)]">
+            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)] group">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.5) 50%, transparent 100%)",
+                }}
+              />
               <h2 className="text-sm font-medium text-foreground tracking-wider uppercase mb-6">
                 Links
               </h2>

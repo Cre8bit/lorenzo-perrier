@@ -384,6 +384,12 @@ const reactivityForce = (
   };
 };
 
+// Hoisted to module scope: stable array and pure hash function shared across all frames
+const PRESET_NAMES: PresetName[] = ["architecture", "shipping", "ai", "reactivity"];
+
+// Pure spatial hash: cx/cy fit comfortably within 16 bits for typical viewport sizes
+const spatialKeyOf = (cx: number, cy: number) => (cx << 16) ^ (cy & 0xffff);
+
 interface ParticleSimulationProps {
   activePresetIndex?: number; // -1 = default preset, 0-3 = philosophy presets
   baseQuality: QualitySettings;
@@ -411,15 +417,9 @@ function ParticleSimulation({
   const connectionBucketPoolRef = useRef<number[][]>([]);
 
   // Preset state
-  const presetNames: PresetName[] = [
-    "architecture",
-    "shipping",
-    "ai",
-    "reactivity",
-  ];
   const currentPresetName =
-    activePresetIndex >= 0 && activePresetIndex < presetNames.length
-      ? presetNames[activePresetIndex]
+    activePresetIndex >= 0 && activePresetIndex < PRESET_NAMES.length
+      ? PRESET_NAMES[activePresetIndex]
       : "default";
   const currentPreset = PRESETS[currentPresetName];
 
@@ -848,7 +848,7 @@ function ParticleSimulation({
     const cellSize = minDist; // grid cell size
 
     // Numeric key hash (avoids string allocations)
-    const keyOf = (cx: number, cy: number) => (cx << 16) ^ (cy & 0xffff);
+    // spatialKeyOf is hoisted to module scope — no closure allocation per frame
 
     // Calculate active particle count based on densityFactor (clamped to allocated array size)
     const maxParticles = particles.length;
@@ -872,7 +872,7 @@ function ParticleSimulation({
     for (let i = 0; i < activeCount; i++) {
       const cx = Math.floor(particles[i].x / cellSize);
       const cy = Math.floor(particles[i].y / cellSize);
-      const k = keyOf(cx, cy);
+      const k = spatialKeyOf(cx, cy);
 
       let bucket = grid.get(k);
       if (!bucket) {
@@ -884,6 +884,8 @@ function ParticleSimulation({
 
     // Deterministic noise constants (replace Math.random drift)
     const noiseTimeScale = state.clock.elapsedTime * 0.3;
+    // Hoisted out of the particle loop: single Date.now() call for the whole frame
+    const nowMs = Date.now();
 
     for (let i = 0; i < activeCount; i++) {
       const p = particles[i];
@@ -912,7 +914,7 @@ function ParticleSimulation({
 
       for (let gx = cx - 1; gx <= cx + 1; gx++) {
         for (let gy = cy - 1; gy <= cy + 1; gy++) {
-          const k = keyOf(gx, gy);
+          const k = spatialKeyOf(gx, gy);
           const bucket = grid.get(k);
           if (!bucket) continue;
 
@@ -950,15 +952,14 @@ function ParticleSimulation({
         fx = f.fx;
         fy = f.fy;
       } else if (currentPreset.name === "ai") {
-        // Handle cluster transitions
-        const currentTime = Date.now();
-        if (p.clusterTransitionTime && currentTime >= p.clusterTransitionTime) {
+        // Handle cluster transitions — currentTime hoisted to before the particle loop
+        if (p.clusterTransitionTime && nowMs >= p.clusterTransitionTime) {
           // Time to transition to a new cluster
           const clusterCount = currentPreset.clusterCount || 6;
           const currentCluster = p.clusterId || 0;
 
           // Pick adjacent cluster (creates flowing pattern) - deterministic hash
-          const rdir = hash01(i * 13.37 + ((currentTime * 0.001) | 0));
+          const rdir = hash01(i * 13.37 + ((nowMs * 0.001) | 0));
           const direction = rdir > 0.5 ? 1 : -1;
           p.nextClusterId =
             (currentCluster + direction + clusterCount) % clusterCount;
@@ -973,8 +974,8 @@ function ParticleSimulation({
             p.clusterId = p.nextClusterId;
             p.nextClusterId = undefined;
             // Set next transition time (2-6 seconds) - deterministic hash
-            const rt = hash01(i * 91.7 + ((currentTime * 0.001) | 0));
-            p.clusterTransitionTime = currentTime + 2000 + rt * 4000;
+            const rt = hash01(i * 91.7 + ((nowMs * 0.001) | 0));
+            p.clusterTransitionTime = nowMs + 2000 + rt * 4000;
           }
         }
 
@@ -1043,7 +1044,7 @@ function ParticleSimulation({
 
       // Build spatial grid for connection search
       const cellSizeConn = worldConnDist * 0.75; // smaller cells = fewer candidates per bucket
-      const keyConn = (cx: number, cy: number) => (cx << 16) ^ (cy & 0xffff);
+      // reuse module-level spatialKeyOf — no per-frame closure allocation
 
       const gridConn = connectionGridRef.current;
       const poolConn = connectionBucketPoolRef.current;
@@ -1059,7 +1060,7 @@ function ParticleSimulation({
       for (let i = 0; i < activeCount; i++) {
         const cx = Math.floor(particles[i].x / cellSizeConn);
         const cy = Math.floor(particles[i].y / cellSizeConn);
-        const k = keyConn(cx, cy);
+        const k = spatialKeyOf(cx, cy);
 
         let bucket = gridConn.get(k);
         if (!bucket) {
@@ -1082,7 +1083,7 @@ function ParticleSimulation({
         const MAX_CANDIDATES_PER_CELL = 24; // budget to prevent worst-case crowding
         for (let gx = cx - 1; gx <= cx + 1 && made < maxPerParticle; gx++) {
           for (let gy = cy - 1; gy <= cy + 1 && made < maxPerParticle; gy++) {
-            const bucket = gridConn.get(keyConn(gx, gy));
+            const bucket = gridConn.get(spatialKeyOf(gx, gy));
             if (!bucket) continue;
 
             let checked = 0;

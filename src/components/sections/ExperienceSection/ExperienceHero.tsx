@@ -21,6 +21,7 @@ const AnimatedKPI = ({
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
+  const visibilityTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Parse label to extract number and suffix (e.g., "$30M+" -> 30, "M+")
   // Handles prefixes like $ and extracts the first number sequence
@@ -34,7 +35,10 @@ const AnimatedKPI = ({
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated.current) {
           hasAnimated.current = true;
-          setTimeout(() => setIsVisible(true), delay);
+          visibilityTimerRef.current = setTimeout(() => {
+            setIsVisible(true);
+            visibilityTimerRef.current = null;
+          }, delay);
         }
       },
       { threshold: 0.3 },
@@ -44,7 +48,10 @@ const AnimatedKPI = ({
       observer.observe(ref.current);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
+    };
   }, [delay]);
 
   useEffect(() => {
@@ -52,6 +59,7 @@ const AnimatedKPI = ({
 
     const duration = 3000;
     const startTime = performance.now();
+    let rafId: number;
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -62,17 +70,18 @@ const AnimatedKPI = ({
       setCount(Math.round(easeOutExpo * targetValue));
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       }
     };
 
-    requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
   }, [isVisible, targetValue]);
 
   return (
     <div
       ref={ref}
-      className="text-center transition-all duration-700"
+      className="group relative text-center transition-all duration-700"
       style={{
         opacity: isVisible ? 1 : 0,
         transform: isVisible
@@ -80,10 +89,20 @@ const AnimatedKPI = ({
           : "translateY(20px) scale(0.9)",
       }}
     >
+      {/* Soft hover glow */}
       <div
-        className="text-2xl md:text-3xl font-display text-primary transition-all duration-500"
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -m-2 rounded-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+        style={{
+          background:
+            "radial-gradient(60% 60% at 50% 50%, hsl(var(--primary) / 0.06) 0%, transparent 70%)",
+        }}
+      />
+      <div
+        className="relative text-2xl md:text-3xl font-display text-primary transition-all duration-500"
         style={{
           filter: isVisible ? "blur(0px)" : "blur(4px)",
+          textShadow: "0 0 24px hsl(var(--primary) / 0.18)",
         }}
       >
         {targetValue > 0 ? (
@@ -97,7 +116,7 @@ const AnimatedKPI = ({
         )}
       </div>
       <div
-        className="text-xs text-muted-foreground mt-1 transition-all duration-500"
+        className="relative text-xs text-muted-foreground mt-1 transition-all duration-500"
         style={{
           opacity: isVisible ? 1 : 0,
           transitionDelay: "200ms",
@@ -111,7 +130,26 @@ const AnimatedKPI = ({
 
 const ExperienceHero = ({ showSticky, heroSentinelRef }: HeroSectionProps) => (
   <section className="mb-20">
-    <div className="relative rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-8 md:p-12">
+    <div className="relative rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-8 md:p-12 overflow-hidden">
+      {/* Top edge highlight for editorial framing */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-0 left-0 right-0 h-px"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.35) 50%, transparent 100%)",
+        }}
+      />
+      {/* Ambient corner glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, hsl(var(--primary) / 0.08) 0%, transparent 70%)",
+        }}
+      />
+
       <div className="flex flex-col md:flex-row gap-8 items-start">
         {/* Image */}
         <img
