@@ -98,6 +98,17 @@ export const AnimatedSubtitle = () => {
   const innerTimeout1Ref = useRef<NodeJS.Timeout | null>(null);
   const innerTimeout2Ref = useRef<NodeJS.Timeout | null>(null);
 
+  // Refs mirror state so the schedule loop can read fresh values
+  // without re-running the effect (which would clear in-flight timeouts).
+  const currentIndexRef = useRef(currentIndex);
+  const usedIndicesRef = useRef(usedIndices);
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+  useEffect(() => {
+    usedIndicesRef.current = usedIndices;
+  }, [usedIndices]);
+
   // Only show/animate the constellation in the HERO section
   const isHero = currentSection === "hero";
   const shouldRenderCanvas = isHero; // avoid mounting/RAF work outside hero
@@ -105,22 +116,7 @@ export const AnimatedSubtitle = () => {
 
   useEffect(() => {
     // Only run effect in hero section
-    if (!isHero) {
-      // Clear any existing timeout when leaving hero
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = undefined;
-      }
-      if (innerTimeout1Ref.current) {
-        clearTimeout(innerTimeout1Ref.current);
-        innerTimeout1Ref.current = null;
-      }
-      if (innerTimeout2Ref.current) {
-        clearTimeout(innerTimeout2Ref.current);
-        innerTimeout2Ref.current = null;
-      }
-      return;
-    }
+    if (!isHero) return;
 
     const t0 = performance.now();
     const scheduleNext = () => {
@@ -138,22 +134,30 @@ export const AnimatedSubtitle = () => {
         innerTimeout1Ref.current = setTimeout(() => {
           let nextIndex: number;
 
+          const current = currentIndexRef.current;
+          const used = usedIndicesRef.current;
+
           const available = Array.from(
             { length: SUBTITLES.length },
             (_, i) => i,
-          ).filter((i) => i !== currentIndex);
+          ).filter((i) => i !== current);
 
-          if (usedIndices.length >= SUBTITLES.length) {
-            setUsedIndices([currentIndex]);
+          if (used.length >= SUBTITLES.length) {
+            const reset = [current];
+            usedIndicesRef.current = reset;
+            setUsedIndices(reset);
             nextIndex = available[(Math.random() * available.length) | 0];
           } else {
-            const unused = available.filter((i) => !usedIndices.includes(i));
+            const unused = available.filter((i) => !used.includes(i));
             const pool = unused.length ? unused : available;
             nextIndex = pool[(Math.random() * pool.length) | 0];
           }
 
+          currentIndexRef.current = nextIndex;
           setCurrentIndex(nextIndex);
-          setUsedIndices((prev) => [...prev, nextIndex]);
+          const nextUsed = [...usedIndicesRef.current, nextIndex];
+          usedIndicesRef.current = nextUsed;
+          setUsedIndices(nextUsed);
 
           // fade in text
           setTextVisible(true);
@@ -177,7 +181,7 @@ export const AnimatedSubtitle = () => {
       if (innerTimeout1Ref.current) clearTimeout(innerTimeout1Ref.current);
       if (innerTimeout2Ref.current) clearTimeout(innerTimeout2Ref.current);
     };
-  }, [currentIndex, usedIndices, isHero]); // Added isHero to deps
+  }, [isHero]);
 
   const currentSubtitle = SUBTITLES[currentIndex];
 
