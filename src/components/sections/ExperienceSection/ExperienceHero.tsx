@@ -130,7 +130,21 @@ const AnimatedKPI = ({
 
 const ExperienceHero = ({ showSticky, heroSentinelRef }: HeroSectionProps) => (
   <section className="mb-20">
-    <div className="relative rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-8 md:p-12 overflow-hidden">
+    <div
+      onMouseMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        e.currentTarget.style.setProperty(
+          "--sx",
+          `${((e.clientX - r.left) / r.width) * 100}%`,
+        );
+        e.currentTarget.style.setProperty(
+          "--sy",
+          `${((e.clientY - r.top) / r.height) * 100}%`,
+        );
+      }}
+      className="spotlight-card relative rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-8 md:p-12 overflow-hidden"
+    >
+      <span className="edge-light" aria-hidden />
       {/* Top edge highlight for editorial framing */}
       <div
         aria-hidden

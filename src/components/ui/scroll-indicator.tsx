@@ -144,7 +144,7 @@ export const ScrollIndicator = () => {
           <div className="absolute inset-0 blur-xl bg-primary/30 rounded-full animate-pulse-glow" />
 
           {/* Glass container */}
-          <div className="relative w-8 h-12 rounded-full border border-primary/20 bg-glass-bg backdrop-blur-sm flex items-center justify-center overflow-hidden">
+          <div className="liquid-glass-fx relative w-8 h-12 rounded-full border border-primary/20 bg-glass-bg backdrop-blur-sm flex items-center justify-center overflow-hidden">
             {/* Inner glow line */}
             <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-primary/10 to-transparent" />
 

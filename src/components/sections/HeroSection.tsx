@@ -4,8 +4,25 @@ import { reportPerformance } from "@/components/ui/performance-overlay";
 
 export const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isInView, setIsInView] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
+
+  // Pause expensive decoration animations (shimmer, orbits, aurora) when the
+  // hero is scrolled out of view. CSS animations otherwise keep compositing
+  // in the background, eating frame budget and slowing scrollY reads in
+  // other sections' RAF loops.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      // Generous margin so we don't thrash on the boundary.
+      { root: null, threshold: 0, rootMargin: "100px 0px 100px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     setIsVisible(true);
@@ -62,6 +79,16 @@ export const HeroSection = () => {
       className="relative h-screen flex items-center justify-center"
       style={{ zIndex: 10 }}
     >
+      {/* Decorative tech grid floor */}
+      <div aria-hidden className="tech-grid" />
+
+      {/* Aurora beam — drifts slowly behind the name */}
+      <div
+        aria-hidden
+        className="aurora-beam"
+        data-paused={!isInView || undefined}
+      />
+
       {/* Soft halo behind the name — adds depth without color noise */}
       <div
         aria-hidden
@@ -77,6 +104,99 @@ export const HeroSection = () => {
           transitionDuration: "1400ms",
         }}
       />
+
+      {/* Orbital rings around the name */}
+      <div
+        aria-hidden
+        data-paused={!isInView || undefined}
+        className={`pointer-events-none absolute inset-0 transition-opacity ease-smooth ${
+          isVisible ? "opacity-100" : "opacity-0"
+        }`}
+        style={{
+          transitionDuration: "1600ms",
+          // Soft vertical mask: open at top (so rings continue into elastic
+          // scroll), fading just before philosophy starts to avoid bleed.
+          maskImage:
+            "linear-gradient(to bottom, black 0%, black 85%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, black 0%, black 85%, transparent 100%)",
+        }}
+      >
+        {/* Outer — wide, slow, gentle shimmer running along the wire */}
+        <div
+          className="orbital-ring orbital-ring--slow"
+          style={{ width: "min(120vw, 1400px)", height: "min(120vw, 1400px)" }}
+        >
+          <div
+            className="orbital-ring__shimmer"
+            style={{
+              ["--cycle" as string]: "42s",
+              ["--arc" as string]: "62deg",
+              ["--hue" as string]: "205",
+              ["--cdelay" as string]: "0s",
+            } as React.CSSProperties}
+          />
+        </div>
+
+        {/* Middle — primary ring with a bright node + a slow shimmer */}
+        <div
+          className="orbital-ring"
+          style={{ width: "min(86vw, 980px)", height: "min(86vw, 980px)" }}
+        >
+          <div className="orbital-ring__nodes">
+            <div
+              className="node"
+              style={{
+                ["--a" as string]: "0deg",
+                ["--s" as string]: "9px",
+              } as React.CSSProperties}
+            />
+          </div>
+          <div
+            className="orbital-ring__shimmer"
+            style={{
+              ["--cycle" as string]: "32s",
+              ["--arc" as string]: "46deg",
+              ["--hue" as string]: "200",
+              ["--cdelay" as string]: "-6s",
+            } as React.CSSProperties}
+          />
+        </div>
+
+        {/* Inner — tighter, counter-rotating, cool-hued node + cool shimmer */}
+        <div
+          className="orbital-ring"
+          style={{
+            width: "min(56vw, 620px)",
+            height: "min(56vw, 620px)",
+            animationDirection: "reverse",
+            animationDuration: "55s",
+            borderColor: "hsl(var(--primary) / 0.10)",
+          }}
+        >
+          <div className="orbital-ring__nodes">
+            <div
+              className="node"
+              style={{
+                ["--a" as string]: "120deg",
+                ["--s" as string]: "7px",
+                ["--c-h" as string]: "210",
+                ["--c-l" as string]: "80%",
+                ["--d" as string]: "0.6s",
+              } as React.CSSProperties}
+            />
+          </div>
+          <div
+            className="orbital-ring__shimmer"
+            style={{
+              ["--cycle" as string]: "24s",
+              ["--arc" as string]: "38deg",
+              ["--hue" as string]: "215",
+              ["--cdelay" as string]: "-3s",
+            } as React.CSSProperties}
+          />
+        </div>
+      </div>
 
       <div
         ref={textRef}

@@ -26,6 +26,8 @@ import {
 import { CubeSpaceDebugOverlay } from "./components/ui/cubespace-debug-overlay";
 import { useCubeSpaceDebugOverlay } from "@/hooks/use-cubespace-debug-overlay";
 import { setParticleField3DQuality } from "./components/ui/particle-quality";
+import { CursorGlow } from "@/components/ui/cursor-glow";
+import { ScrollProgressBar } from "@/components/ui/scroll-progress-bar";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +47,8 @@ const AppRouterLayer = () => {
   return (
     <>
       <GlobalBackground particleMode={isCubeSpaceRoute ? "idle" : "active"} />
+      <CursorGlow />
+      {!isCubeSpaceRoute && <ScrollProgressBar />}
       <CubeSpaceDataProvider enabled={keepAliveEnabled}>
         <CubeSpaceDebugOverlay enabled={cubeDebugEnabled && keepAliveEnabled} />
         <AppLoaderGate>

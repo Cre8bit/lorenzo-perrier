@@ -93,13 +93,13 @@ export const ScrollTransition: React.FC<ScrollTransitionProps> = ({
         <div
           className="relative"
           style={{
-            transform: `scale(${0.8 + scrollProgress * 0.2})`,
+            transform: `scale(${0.8 + scrollProgress * 0.2}) rotate(${scrollProgress * 90}deg)`,
             opacity: isVisible ? 0.3 + scrollProgress * 0.7 : 0,
             transition: "opacity 400ms ease",
           }}
         >
-          <div className="w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center backdrop-blur-sm bg-background/20">
-            <Sparkles className="w-5 h-5 text-primary/60" />
+          <div className="liquid-glass-fx relative w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center backdrop-blur-sm bg-background/20">
+            <Sparkles className="w-5 h-5 text-primary/60 relative z-10" />
           </div>
 
           {/* Ripple effect */}

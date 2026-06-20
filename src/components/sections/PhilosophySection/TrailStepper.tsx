@@ -56,23 +56,25 @@ export const TrailStepper: React.FC<TrailStepperProps> = ({
             className="group relative p-2"
             style={{ pointerEvents: hasBeenSeen ? "auto" : "none" }}
           >
-            {/* Outer rings for active — layered halo */}
+            {/* Outer rings for active — layered halo, all centered on the dot */}
             {isActive && (
               <>
                 <span
-                  className="absolute inset-0 m-auto rounded-full transition-all duration-500"
+                  className="pointer-events-none absolute top-1/2 left-1/2 rounded-full transition-all duration-500"
                   style={{
                     width: 18,
                     height: 18,
+                    transform: "translate(-50%, -50%)",
                     border: "1px solid hsl(var(--primary) / 0.35)",
                     boxShadow: "0 0 18px hsl(var(--primary) / 0.25)",
                   }}
                 />
                 <span
-                  className="absolute inset-0 m-auto rounded-full transition-all duration-500"
+                  className="pointer-events-none absolute top-1/2 left-1/2 rounded-full transition-all duration-500"
                   style={{
                     width: 28,
                     height: 28,
+                    transform: "translate(-50%, -50%)",
                     border: "1px solid hsl(var(--primary) / 0.10)",
                   }}
                 />
