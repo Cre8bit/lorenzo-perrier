@@ -130,8 +130,8 @@ export const HeroSection = () => {
           <div
             className="orbital-ring__shimmer"
             style={{
-              ["--cycle" as string]: "30s",
-              ["--arc" as string]: "48deg",
+              ["--cycle" as string]: "42s",
+              ["--arc" as string]: "62deg",
               ["--hue" as string]: "205",
               ["--cdelay" as string]: "0s",
             } as React.CSSProperties}
@@ -155,8 +155,8 @@ export const HeroSection = () => {
           <div
             className="orbital-ring__shimmer"
             style={{
-              ["--cycle" as string]: "22s",
-              ["--arc" as string]: "36deg",
+              ["--cycle" as string]: "32s",
+              ["--arc" as string]: "46deg",
               ["--hue" as string]: "200",
               ["--cdelay" as string]: "-6s",
             } as React.CSSProperties}
@@ -189,8 +189,8 @@ export const HeroSection = () => {
           <div
             className="orbital-ring__shimmer"
             style={{
-              ["--cycle" as string]: "16s",
-              ["--arc" as string]: "30deg",
+              ["--cycle" as string]: "24s",
+              ["--arc" as string]: "38deg",
               ["--hue" as string]: "215",
               ["--cdelay" as string]: "-3s",
             } as React.CSSProperties}

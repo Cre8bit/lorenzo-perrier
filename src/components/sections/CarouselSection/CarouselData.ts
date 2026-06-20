@@ -22,7 +22,7 @@ export const carouselContexts: CarouselContext[] = [
     visualType: "flow",
     backTitle: "What this looks like",
     backDetails: [
-      "Introducing asynchronous ID verification tracks.",
+      "Introducing asynchronous ID verification tracks and new system designs.",
       "Restructuring the flow to support multiple investment assets running in parallel.",
       "Shaping architecture complexity to match real product needs and delivery constraints.",
     ],

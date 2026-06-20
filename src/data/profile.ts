@@ -42,10 +42,10 @@ export const experiences = [
       description:
         "Worked on a live, regulated B2C investment platform serving tens of thousands of users, contributing to platform changes that enabled the launch of the $500M Defense Fund.<br><br>The platform supports end-to-end digital onboarding, investment workflows, and regulatory compliance for private equity funds.",
       keyContributions: [
-        "Enabled parallel fund lifecycles and asynchronous identity verification workflows under scale.",
+        "Enabled parallel fund lifecycles, asynchronous identity verification workflows under scale and designed a notification system.",
         "Owned architectural and quality-critical topics, stabilizing CI workflows, simplifying navigation logic and removing redundant data fetching.",
         "Designed AI agent workflows following a “right the first time” philosophy, with feedback loops improving reliability and team delivery.",
-        "Supported team adoption of AI coding agents through internal documentation, knowledge sharing, and hands-on enablement.",
+        "Supported company-scale adoption of AI coding agents through internal documentation, knowledge sharing, and hands-on enablement.",
       ],
     },
     tags: [
