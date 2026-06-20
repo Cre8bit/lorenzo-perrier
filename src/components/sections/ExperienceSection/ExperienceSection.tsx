@@ -245,6 +245,18 @@ const ExperienceSection = () => {
                   const isEven = i % 2 === 0;
                   const isHovered = !isMobile && hoveredCardIndex === i;
 
+                  const handleSpotlight = (e: React.MouseEvent<HTMLElement>) => {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    e.currentTarget.style.setProperty(
+                      "--sx",
+                      `${((e.clientX - r.left) / r.width) * 100}%`,
+                    );
+                    e.currentTarget.style.setProperty(
+                      "--sy",
+                      `${((e.clientY - r.top) / r.height) * 100}%`,
+                    );
+                  };
+
                   return (
                     <div
                       key={i}
@@ -261,7 +273,12 @@ const ExperienceSection = () => {
                         className={`hidden md:block absolute top-8 w-12 h-px bg-gradient-to-${isEven ? "r" : "l"} from-primary/30 to-transparent ${isEven ? "right-full" : "left-full"}`}
                       />
 
-                      <article className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-4 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)]">
+                      <article
+                        onMouseMove={handleSpotlight}
+                        data-active={isHovered}
+                        className="spotlight-card group relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-4 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)]"
+                      >
+                        <span className="sheen" aria-hidden />
                         {/* Top edge highlight on hover */}
                         <div
                           aria-hidden
@@ -535,7 +552,20 @@ const ExperienceSection = () => {
           {/* Sidebar */}
           <aside className="space-y-6">
             {/* Education - Glass Panel */}
-            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)] group">
+            <section
+              onMouseMove={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                e.currentTarget.style.setProperty(
+                  "--sx",
+                  `${((e.clientX - r.left) / r.width) * 100}%`,
+                );
+                e.currentTarget.style.setProperty(
+                  "--sy",
+                  `${((e.clientY - r.top) / r.height) * 100}%`,
+                );
+              }}
+              className="spotlight-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)] group"
+            >
               <span
                 aria-hidden
                 className="pointer-events-none absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -563,7 +593,20 @@ const ExperienceSection = () => {
             </section>
 
             {/* Skills by category - Glass Panel */}
-            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)] group">
+            <section
+              onMouseMove={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                e.currentTarget.style.setProperty(
+                  "--sx",
+                  `${((e.clientX - r.left) / r.width) * 100}%`,
+                );
+                e.currentTarget.style.setProperty(
+                  "--sy",
+                  `${((e.clientY - r.top) / r.height) * 100}%`,
+                );
+              }}
+              className="spotlight-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)] group"
+            >
               <span
                 aria-hidden
                 className="pointer-events-none absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -604,7 +647,20 @@ const ExperienceSection = () => {
             </section>
 
             {/* Links - Glass Panel */}
-            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)] group">
+            <section
+              onMouseMove={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                e.currentTarget.style.setProperty(
+                  "--sx",
+                  `${((e.clientX - r.left) / r.width) * 100}%`,
+                );
+                e.currentTarget.style.setProperty(
+                  "--sy",
+                  `${((e.clientY - r.top) / r.height) * 100}%`,
+                );
+              }}
+              className="spotlight-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 backdrop-blur-sm border border-border/20 p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_40px_hsla(185,50%,55%,0.10)] group"
+            >
               <span
                 aria-hidden
                 className="pointer-events-none absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -668,7 +724,7 @@ const ExperienceSection = () => {
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">
-              © 2025 {profile.name.first}. Open to opportunities.
+              © 2026 {profile.name.first}. Open to opportunities.
             </p>
             <p className="text-xs text-muted-foreground/60">
               Last updated · {import.meta.env.VITE_BUILD_DATE}

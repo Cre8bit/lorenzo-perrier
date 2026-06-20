@@ -37,7 +37,7 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
 
       {/* Glass button */}
       <div
-        className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
+        className={`liquid-glass-fx relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
           isHovered
             ? "bg-primary/20 border-primary/40 scale-110"
             : "bg-glass-bg/60 border-white/10"
@@ -273,7 +273,7 @@ const ContactButton = () => {
         />
 
         <div
-          className={`relative px-0 sm:px-4 h-10 sm:h-10 w-10 sm:w-auto rounded-full flex items-center justify-center gap-0 sm:gap-2 transition-all duration-500 ${
+          className={`liquid-glass-fx relative px-0 sm:px-4 h-10 sm:h-10 w-10 sm:w-auto rounded-full flex items-center justify-center gap-0 sm:gap-2 transition-all duration-500 ${
             isHovered
               ? "bg-primary/20 border-primary/40 scale-105"
               : "bg-glass-bg/60 border-white/10"

@@ -128,7 +128,7 @@ export const LiquidNavigation = () => {
     >
       <div
         ref={barRef}
-        className="relative px-10 py-5 rounded-full cursor-pointer overflow-hidden transition-all duration-700 ease-smooth"
+        className="liquid-glass-fx relative px-10 py-5 rounded-full cursor-pointer overflow-hidden transition-all duration-700 ease-smooth"
         style={{
           minWidth: "360px",
           background: isHovered

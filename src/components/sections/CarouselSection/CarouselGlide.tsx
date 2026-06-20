@@ -331,7 +331,7 @@ export const CarouselGlide: React.FC = () => {
         style={{ top: "var(--carousel-title-offset-bigger)" }}
       >
         <h2
-          className="text-primary uppercase text-center"
+          className="text-iridescent uppercase text-center"
           style={{
             fontSize: "var(--section-title-font-size)",
             letterSpacing: "var(--section-title-tracking)",
@@ -346,19 +346,19 @@ export const CarouselGlide: React.FC = () => {
         <button
           onClick={safePrev}
           disabled={!canPrev}
-          className="absolute left-4 md:left-8 z-40 p-3 rounded-full bg-background/20 backdrop-blur-sm border border-primary/10 hover:bg-background/40 hover:scale-110 transition-all duration-300 disabled:opacity-30 disabled:hover:scale-100"
+          className="liquid-glass-fx absolute left-4 md:left-8 z-40 p-3 rounded-full bg-background/20 backdrop-blur-sm border border-primary/10 hover:bg-background/40 hover:scale-110 transition-all duration-300 disabled:opacity-30 disabled:hover:scale-100"
           aria-label="Previous card"
         >
-          <ChevronLeft className="w-5 h-5 text-foreground/70" />
+          <ChevronLeft className="w-5 h-5 text-foreground/70 relative z-10" />
         </button>
 
         <button
           onClick={safeNext}
           disabled={!canNext}
-          className="absolute right-4 md:right-8 z-40 p-3 rounded-full bg-background/20 backdrop-blur-sm border border-primary/10 hover:bg-background/40 hover:scale-110 transition-all duration-300 disabled:opacity-30 disabled:hover:scale-100"
+          className="liquid-glass-fx absolute right-4 md:right-8 z-40 p-3 rounded-full bg-background/20 backdrop-blur-sm border border-primary/10 hover:bg-background/40 hover:scale-110 transition-all duration-300 disabled:opacity-30 disabled:hover:scale-100"
           aria-label="Next card"
         >
-          <ChevronRight className="w-5 h-5 text-foreground/70" />
+          <ChevronRight className="w-5 h-5 text-foreground/70 relative z-10" />
         </button>
 
         <div
