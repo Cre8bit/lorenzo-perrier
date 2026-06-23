@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { HeroSection } from "@/components/sections/HeroSection";
+import { OrbitMorph } from "@/components/sections/OrbitMorph";
 import { ScrollIndicator } from "@/components/ui/scroll-indicator";
 import { PhilosophyReveal } from "@/components/sections/PhilosophySection/PhilosophyReveal";
 import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGlide";
@@ -108,6 +109,24 @@ const HomeContent = () => {
       className="relative z-10 min-h-screen w-full"
       style={{ overflowX: "clip" }}
     >
+      {/* Orbital morph overlay. Sticky-pinned at viewport top from
+          scrollY=0 so the dots stay browser-positioned (no JS scroll lag
+          → no flicker at the dwell point) while still living in document
+          flow so they elastic-bounce with the hero rings. */}
+      <div
+        aria-hidden
+        className="pointer-events-none"
+        style={{
+          position: "sticky",
+          top: 0,
+          height: 0,
+          overflow: "visible",
+          zIndex: 30,
+        }}
+      >
+        <OrbitMorph />
+      </div>
+
       <section id="hero" ref={hero.ref}>
         <HeroSection />
       </section>

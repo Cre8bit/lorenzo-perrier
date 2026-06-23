@@ -76,6 +76,7 @@ export const HeroSection = () => {
   return (
     <section
       ref={containerRef}
+      data-hero-section
       className="relative h-screen flex items-center justify-center"
       style={{ zIndex: 10 }}
     >
@@ -138,20 +139,13 @@ export const HeroSection = () => {
           />
         </div>
 
-        {/* Middle — primary ring with a bright node + a slow shimmer */}
+        {/* Middle — primary ring with a slow shimmer (orbital nodes are
+            rendered by <OrbitMorph /> so they can morph into the philosophy
+            stepper on scroll) */}
         <div
           className="orbital-ring"
           style={{ width: "min(86vw, 980px)", height: "min(86vw, 980px)" }}
         >
-          <div className="orbital-ring__nodes">
-            <div
-              className="node"
-              style={{
-                ["--a" as string]: "0deg",
-                ["--s" as string]: "9px",
-              } as React.CSSProperties}
-            />
-          </div>
           <div
             className="orbital-ring__shimmer"
             style={{
@@ -174,18 +168,6 @@ export const HeroSection = () => {
             borderColor: "hsl(var(--primary) / 0.10)",
           }}
         >
-          <div className="orbital-ring__nodes">
-            <div
-              className="node"
-              style={{
-                ["--a" as string]: "120deg",
-                ["--s" as string]: "7px",
-                ["--c-h" as string]: "210",
-                ["--c-l" as string]: "80%",
-                ["--d" as string]: "0.6s",
-              } as React.CSSProperties}
-            />
-          </div>
           <div
             className="orbital-ring__shimmer"
             style={{
@@ -258,11 +240,11 @@ export const HeroSection = () => {
         >
           <span className="relative flex h-2 w-2 items-center justify-center">
             {/* Soft outer glow halo */}
-            <span className="absolute h-3.5 w-3.5 rounded-full bg-primary/30 blur-[3px]" />
+            <span className="absolute h-3.5 w-3.5 rounded-full bg-green-400/30 blur-[3px]" />
             {/* Expanding ping ring */}
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/80" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400/80" />
             {/* Bright flickering core */}
-            <span className="animate-status-flicker relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="animate-status-flicker relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400" />
           </span>
           <span className="text-[10px] font-body uppercase tracking-[0.3em] text-muted-foreground/80">
             Open to opportunities
