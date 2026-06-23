@@ -59,7 +59,8 @@ export const experiences = [
       "Agile & Lean",
       "AI Agents",
       "ReAct",
-      "Chain-of-Thought",
+      "Automation",
+      "n8n",
     ],
     logo: "Logo_Theodo.png",
   },
@@ -91,8 +92,8 @@ export const experiences = [
       "Vector Store",
       "Real-time Systems",
       "ReAct",
-      "Chain-of-Thought",
       "TypeScript",
+      "Automation",
       "Python",
     ],
     logo: "BMW_logo.png",
@@ -206,7 +207,7 @@ export const skills = {
     "Firebase",
     "Three.js",
   ],
-  tools: ["Docker", "Datadog", "Kafka", "GitHub Copilot", "Claude Code"],
+  tools: ["Docker", "Datadog", "Kafka", "n8n", "GitHub Copilot", "Claude Code"],
   MLtools: ["Pytorch", "TensorFlow", "CUDA", "LangGraph"],
 };
 

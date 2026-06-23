@@ -372,10 +372,14 @@ export const PhilosophyReveal = () => {
           Is
         </h2>
 
-        {/* Stepper */}
+        {/* Stepper. Opacity is gated by --orbit-morph-fade (driven by
+            OrbitMorph) so the stepper — including the active dot's halo —
+            doesn't appear until the morph dots have arrived at their slots. */}
         <div
           className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2 z-10"
-          style={{ opacity: exitOpacity }}
+          style={{
+            opacity: `calc(${exitOpacity} * var(--orbit-morph-fade, 1))`,
+          }}
         >
           <TrailStepper
             items={philosophyItems}

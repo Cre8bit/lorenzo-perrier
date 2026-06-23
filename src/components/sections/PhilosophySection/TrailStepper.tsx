@@ -81,6 +81,7 @@ export const TrailStepper: React.FC<TrailStepperProps> = ({
               </>
             )}
             <span
+              data-stepper-dot
               className="relative block rounded-full transition-all duration-300 ease-out"
               style={{
                 width: isActive ? 7 : 4,
