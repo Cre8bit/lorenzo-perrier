@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AmbientBackground } from "@/components/ui/ambient-background";
 import ParticleField3D from "@/components/ui/particle-field-3d";
 import { useAppContext } from "@/contexts/useAppContext";
+import { useBootContext } from "@/contexts/useBootContext";
 
 type ParticleMode = "active" | "idle";
 
@@ -30,8 +31,8 @@ function useIsMobileSync() {
 }
 
 export function GlobalBackground({ particleMode = "active" }: Props) {
-  const { activePresetIndex, currentSection, setIsParticleFieldInitialized } =
-    useAppContext();
+  const { activePresetIndex, currentSection } = useAppContext();
+  const { setIsParticleFieldInitialized } = useBootContext();
   const readyFiredRef = useRef(false);
   const isMobile = useIsMobileSync();
 

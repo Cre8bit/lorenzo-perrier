@@ -10,7 +10,6 @@ import NotFound from "./pages/NotFound";
 import { LiquidNavigation } from "@/components/sections/LiquidNavigation";
 import { ContactActions, SocialLinks } from "@/components/ui/social-links";
 import { AppProvider } from "@/contexts/AppProvider";
-import { useAppContext } from "@/contexts/useAppContext";
 import { GlobalBackground } from "@/components/ui/global-background";
 import { AppLoaderGate } from "@/components/transitions/AppLoaderGate";
 import { CubeSpaceDataProvider } from "@/contexts/CubeSpaceDataProvider";
@@ -35,7 +34,6 @@ const CubeSpace = lazy(() => import("./pages/CubeSpace"));
 
 const AppRouterLayer = () => {
   const isCubeSpaceRoute = useMatch("/cubespace/*") != null;
-  const { currentSection } = useAppContext();
   const [hasVisitedCubeSpace, setHasVisitedCubeSpace] = useState(false);
   const keepAliveEnabled = hasVisitedCubeSpace || isCubeSpaceRoute;
   const cubeDebugEnabled = useCubeSpaceDebugOverlay();
@@ -52,8 +50,8 @@ const AppRouterLayer = () => {
       <CubeSpaceDataProvider enabled={keepAliveEnabled}>
         <CubeSpaceDebugOverlay enabled={cubeDebugEnabled && keepAliveEnabled} />
         <AppLoaderGate>
-          <SocialLinks hide={currentSection === "experience"} />
-          <ContactActions hide={currentSection === "experience"} />
+          <SocialLinks />
+          <ContactActions />
           <LiquidNavigation />
 
           <Suspense fallback={null}>

@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef } from "react";
 import { useMatch } from "react-router-dom";
-import { useAppContext } from "@/contexts/useAppContext";
+import { useBootContext } from "@/contexts/useBootContext";
 import { AppBootLoader } from "@/components/transitions/AppBootLoader";
 
 type Props = {
@@ -13,7 +13,7 @@ export const AppLoaderGate = ({ children }: Props) => {
     isCubeSpaceReady,
     hasBooted,
     setHasBooted,
-  } = useAppContext();
+  } = useBootContext();
 
   const isCubeSpaceRoute = useMatch("/cubespace/*") != null;
   const startedOnCubeSpaceRouteRef = useRef(isCubeSpaceRoute);
@@ -34,6 +34,15 @@ export const AppLoaderGate = ({ children }: Props) => {
       : !hasBooted
     : !hasBooted;
 
+    console.log("AppLoaderGate", {
+      isCubeSpaceRoute,
+      startedOnCubeSpaceRouteRef: startedOnCubeSpaceRouteRef.current,
+      isParticleFieldInitialized,
+      isCubeSpaceReady,
+      hasBooted,
+      routeReady,
+      showLoader,
+    });
   return (
     <>
       {children}
