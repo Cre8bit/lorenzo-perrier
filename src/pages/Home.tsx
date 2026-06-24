@@ -1,14 +1,14 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useRef } from "react";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { OrbitMorph } from "@/components/sections/OrbitMorph";
 import { ScrollIndicator } from "@/components/ui/scroll-indicator";
 import { PhilosophyReveal } from "@/components/sections/PhilosophySection/PhilosophyReveal";
 import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGlide";
 import { ScrollTransition } from "@/components/transitions/ScrollTransition";
-import { useInViewport } from "@/hooks/use-in-viewport";
 import { useAppContext } from "@/contexts/useAppContext";
 import ExperienceSection from "@/components/sections/ExperienceSection/ExperienceSection";
-import { reportPerformance } from "@/components/ui/performance-overlay";
+
+type SectionId = "hero" | "philosophy" | "carousel" | "experience";
 
 const HomeContent = () => {
   const { currentSection, setCurrentSection } = useAppContext();
@@ -19,90 +19,106 @@ const HomeContent = () => {
     }
   }, [currentSection, setCurrentSection]);
 
-  // Stable spy options - memoized to prevent observer recreation
-  const spyOptions = useMemo<IntersectionObserverInit>(
-    () => ({
-      root: null,
-      rootMargin: "-20% 0px -20% 0px", // Balanced margins for reliable detection
-      threshold: Array.from({ length: 21 }, (_, i) => i / 20),
-    }),
-    [],
-  );
+  // One section ref per id. We use a single IntersectionObserver with a
+  // small threshold list — the previous design used 4 observers ×
+  // 21 thresholds each (84 boundary events per scroll cycle) which was
+  // pure waste for nav state.
+  const heroRef = useRef<HTMLElement>(null);
+  const philoRef = useRef<HTMLElement>(null);
+  const carouselRef = useRef<HTMLElement>(null);
+  const experienceRef = useRef<HTMLElement>(null);
 
-  const hero = useInViewport<HTMLElement>(spyOptions);
-  const philo = useInViewport<HTMLElement>(spyOptions);
-  const carousel = useInViewport<HTMLElement>(spyOptions);
-  const experience = useInViewport<HTMLElement>(spyOptions);
+  // Latest IO entry per section, kept in a ref to avoid re-rendering on
+  // every threshold crossing. Only the eventual `setCurrentSection` call
+  // triggers React work.
+  const entriesRef = useRef(new Map<SectionId, IntersectionObserverEntry>());
+  const currentSectionRef = useRef(currentSection);
+  currentSectionRef.current = currentSection;
 
   useEffect(() => {
-    const t0 = performance.now();
-    const viewportCenter = window.innerHeight / 2;
-
-    const allCandidates = [
-      { id: "hero" as const, entry: hero.entry, ratio: hero.ratio },
-      { id: "philosophy" as const, entry: philo.entry, ratio: philo.ratio },
-      { id: "carousel" as const, entry: carousel.entry, ratio: carousel.ratio },
-      {
-        id: "experience" as const,
-        entry: experience.entry,
-        ratio: experience.ratio,
-      },
+    const sections: Array<{ id: SectionId; ref: React.RefObject<HTMLElement> }> = [
+      { id: "hero", ref: heroRef },
+      { id: "philosophy", ref: philoRef },
+      { id: "carousel", ref: carouselRef },
+      { id: "experience", ref: experienceRef },
     ];
 
-    const candidates = allCandidates
-      .filter((c) => c.entry?.isIntersecting)
-      .map((c) => {
-        const rect = c.entry!.boundingClientRect;
+    // Map element → id for quick lookup in the IO callback.
+    const elToId = new Map<Element, SectionId>();
+    sections.forEach(({ id, ref }) => {
+      if (ref.current) elToId.set(ref.current, id);
+    });
+
+    // Coalesce IO events into a single rAF — IO can fire dozens of times
+    // during a fast scroll, but we only need the final state.
+    let rafId = 0;
+    const flush = () => {
+      rafId = 0;
+      const viewportCenter = window.innerHeight / 2;
+
+      let best: { id: SectionId; dist: number } | null = null;
+      entriesRef.current.forEach((entry, id) => {
+        if (!entry.isIntersecting) return;
+        if (entry.intersectionRatio < 0.001) return;
+        const rect = entry.boundingClientRect;
         const center = rect.top + rect.height / 2;
         const dist = Math.abs(center - viewportCenter);
-        return { ...c, dist, center };
+        if (!best || dist < best.dist) best = { id, dist };
       });
 
-    if (candidates.length === 0) {
-      reportPerformance("Index:sectionSpy", performance.now() - t0);
-      return;
-    }
+      if (!best) return;
 
-    // Find section closest to viewport center
-    const best = candidates.reduce((a, b) => (b.dist < a.dist ? b : a));
-
-    // Hysteresis: require significant advantage to switch (100px or 10% better)
-    const currentCandidate = candidates.find((c) => c.id === currentSection);
-    const distanceThreshold = 100; // pixels
-    const ratioThreshold = 0.001; // minimal visibility required
-
-    if (best.ratio < ratioThreshold) {
-      reportPerformance("Index:sectionSpy", performance.now() - t0);
-      return; // Skip if barely visible
-    }
-
-    // If current section is still visible, require best to be significantly closer
-    if (currentCandidate && currentCandidate.entry?.isIntersecting) {
-      const improvement = currentCandidate.dist - best.dist;
-      if (improvement < distanceThreshold && best.id !== currentSection) {
-        // Not enough improvement, keep current section
-        reportPerformance("Index:sectionSpy", performance.now() - t0);
+      // Hysteresis: keep current section unless the new candidate is
+      // meaningfully closer (avoids flicker at boundaries).
+      const cur = currentSectionRef.current;
+      const curEntry = entriesRef.current.get(cur as SectionId);
+      if (
+        curEntry?.isIntersecting &&
+        cur !== best.id &&
+        best.dist >
+          Math.abs(
+            curEntry.boundingClientRect.top +
+              curEntry.boundingClientRect.height / 2 -
+              viewportCenter,
+          ) -
+            100
+      ) {
         return;
       }
-    }
 
-    // Switch to best section
-    if (best.id !== currentSection) {
-      setCurrentSection(best.id);
-    }
-    reportPerformance("Index:sectionSpy", performance.now() - t0);
-  }, [
-    hero.entry,
-    philo.entry,
-    carousel.entry,
-    experience.entry,
-    hero.ratio,
-    philo.ratio,
-    carousel.ratio,
-    experience.ratio,
-    currentSection,
-    setCurrentSection,
-  ]);
+      if (best.id !== currentSectionRef.current) {
+        setCurrentSection(best.id);
+      }
+    };
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const id = elToId.get(e.target);
+          if (id) entriesRef.current.set(id, e);
+        }
+        if (rafId === 0) rafId = requestAnimationFrame(flush);
+      },
+      {
+        root: null,
+        rootMargin: "-20% 0px -20% 0px",
+        // Three boundaries: edge, midway, full. Enough to drive
+        // center-distance hysteresis without thrashing.
+        threshold: [0, 0.5, 1],
+      },
+    );
+
+    sections.forEach(({ ref }) => {
+      if (ref.current) io.observe(ref.current);
+    });
+
+    const entries = entriesRef.current;
+    return () => {
+      io.disconnect();
+      if (rafId) cancelAnimationFrame(rafId);
+      entries.clear();
+    };
+  }, [setCurrentSection]);
 
   return (
     <main
@@ -127,23 +143,23 @@ const HomeContent = () => {
         <OrbitMorph />
       </div>
 
-      <section id="hero" ref={hero.ref}>
+      <section id="hero" ref={heroRef}>
         <HeroSection />
       </section>
 
       <ScrollIndicator />
 
-      <section id="philosophy" ref={philo.ref}>
+      <section id="philosophy" ref={philoRef}>
         <PhilosophyReveal />
       </section>
 
-      <section id="carousel" ref={carousel.ref}>
+      <section id="carousel" ref={carouselRef}>
         <CarouselGlide />
       </section>
 
       <ScrollTransition />
 
-      <section id="experience" ref={experience.ref}>
+      <section id="experience" ref={experienceRef}>
         <ExperienceSection />
       </section>
     </main>

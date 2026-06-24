@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatedSubtitle } from "@/components/ui/animated-subtitle";
 import { reportPerformance } from "@/components/ui/performance-overlay";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsTouchDevice } from "@/hooks/use-touch-device";
 
 export const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isInView, setIsInView] = useState(true);
+  const isMobile = useIsMobile();
+  const isTouch = useIsTouchDevice();
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
 
@@ -32,6 +36,11 @@ export const HeroSection = () => {
       "(prefers-reduced-motion: reduce)",
     ).matches;
     if (prefersReducedMotion) return;
+
+    // Skip mousemove parallax on touch devices — no real mouse, the
+    // listener just wastes cycles on scroll-derived pointer events and
+    // is invisible to the user anyway.
+    if (isTouch) return;
 
     // Throttle mousemove with rAF
     let scheduled = false;
@@ -71,14 +80,21 @@ export const HeroSection = () => {
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+  }, [isTouch]);
 
   return (
     <section
       ref={containerRef}
       data-hero-section
       className="relative h-screen flex items-center justify-center"
-      style={{ zIndex: 10 }}
+      style={{
+        zIndex: 10,
+        // Promote the hero to its own compositor layer. Safari otherwise
+        // repaints the overlapping hero + philosophy stack on the CPU when
+        // scrolling back up from philosophy, which shows up as jitter.
+        transform: "translate3d(0,0,0)",
+        backfaceVisibility: "hidden",
+      }}
     >
       {/* Decorative tech grid floor */}
       <div aria-hidden className="tech-grid" />
@@ -90,7 +106,8 @@ export const HeroSection = () => {
         data-paused={!isInView || undefined}
       />
 
-      {/* Soft halo behind the name — adds depth without color noise */}
+      {/* Soft halo behind the name — adds depth without color noise.
+          Drop the filter blur on mobile (radial gradient is already soft). */}
       <div
         aria-hidden
         className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity ease-smooth ${
@@ -101,7 +118,7 @@ export const HeroSection = () => {
           height: "min(40vh, 420px)",
           background:
             "radial-gradient(ellipse at center, hsl(var(--primary) / 0.10) 0%, hsl(var(--primary) / 0.04) 35%, transparent 70%)",
-          filter: "blur(8px)",
+          filter: isMobile ? undefined : "blur(8px)",
           transitionDuration: "1400ms",
         }}
       />
@@ -123,21 +140,25 @@ export const HeroSection = () => {
             "linear-gradient(to bottom, black 0%, black 85%, transparent 100%)",
         }}
       >
-        {/* Outer — wide, slow, gentle shimmer running along the wire */}
-        <div
-          className="orbital-ring orbital-ring--slow"
-          style={{ width: "min(120vw, 1400px)", height: "min(120vw, 1400px)" }}
-        >
+        {/* Outer — wide, slow, gentle shimmer running along the wire.
+            Hidden on mobile (visually mostly off-screen anyway, and the
+            shimmer keyframe is expensive). */}
+        {!isMobile && (
           <div
-            className="orbital-ring__shimmer"
-            style={{
-              ["--cycle" as string]: "42s",
-              ["--arc" as string]: "62deg",
-              ["--hue" as string]: "205",
-              ["--cdelay" as string]: "0s",
-            } as React.CSSProperties}
-          />
-        </div>
+            className="orbital-ring orbital-ring--slow"
+            style={{ width: "min(120vw, 1400px)", height: "min(120vw, 1400px)" }}
+          >
+            <div
+              className="orbital-ring__shimmer"
+              style={{
+                ["--cycle" as string]: "42s",
+                ["--arc" as string]: "62deg",
+                ["--hue" as string]: "205",
+                ["--cdelay" as string]: "0s",
+              } as React.CSSProperties}
+            />
+          </div>
+        )}
 
         {/* Middle — primary ring with a slow shimmer (orbital nodes are
             rendered by <OrbitMorph /> so they can morph into the philosophy
@@ -157,27 +178,31 @@ export const HeroSection = () => {
           />
         </div>
 
-        {/* Inner — tighter, counter-rotating, cool-hued node + cool shimmer */}
-        <div
-          className="orbital-ring"
-          style={{
-            width: "min(56vw, 620px)",
-            height: "min(56vw, 620px)",
-            animationDirection: "reverse",
-            animationDuration: "55s",
-            borderColor: "hsl(var(--primary) / 0.10)",
-          }}
-        >
+        {/* Inner — tighter, counter-rotating, cool-hued node + cool
+            shimmer. Skipped on mobile to keep one ring only (visual
+            signature preserved, GPU work halved). */}
+        {!isMobile && (
           <div
-            className="orbital-ring__shimmer"
+            className="orbital-ring"
             style={{
-              ["--cycle" as string]: "24s",
-              ["--arc" as string]: "38deg",
-              ["--hue" as string]: "215",
-              ["--cdelay" as string]: "-3s",
-            } as React.CSSProperties}
-          />
-        </div>
+              width: "min(56vw, 620px)",
+              height: "min(56vw, 620px)",
+              animationDirection: "reverse",
+              animationDuration: "55s",
+              borderColor: "hsl(var(--primary) / 0.10)",
+            }}
+          >
+            <div
+              className="orbital-ring__shimmer"
+              style={{
+                ["--cycle" as string]: "24s",
+                ["--arc" as string]: "38deg",
+                ["--hue" as string]: "215",
+                ["--cdelay" as string]: "-3s",
+              } as React.CSSProperties}
+            />
+          </div>
+        )}
       </div>
 
       <div
