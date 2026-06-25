@@ -121,10 +121,7 @@ const HomeContent = () => {
   }, [setCurrentSection]);
 
   return (
-    <main
-      className="relative z-10 min-h-screen w-full"
-      style={{ overflowX: "clip" }}
-    >
+    <div className="relative z-10 min-h-screen w-full">
       {/* Orbital morph overlay. Sticky-pinned at viewport top from
           scrollY=0 so the dots stay browser-positioned (no JS scroll lag
           → no flicker at the dwell point) while still living in document
@@ -162,7 +159,7 @@ const HomeContent = () => {
       <section id="experience" ref={experienceRef}>
         <ExperienceSection />
       </section>
-    </main>
+    </div>
   );
 };
 

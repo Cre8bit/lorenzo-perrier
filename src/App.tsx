@@ -43,7 +43,13 @@ const AppRouterLayer = () => {
   }, [isCubeSpaceRoute]);
 
   return (
-    <>
+    // Safari compositing fix: the fixed-position GlobalBackground and the
+    // scrolling page content must share a single `position: relative;
+    // overflow-x: clip` ancestor.
+    <main
+      className="relative min-h-screen w-full"
+      style={{ overflowX: "clip" }}
+    >
       <GlobalBackground particleMode={isCubeSpaceRoute ? "idle" : "active"} />
       <CursorGlow />
       {!isCubeSpaceRoute && <ScrollProgressBar />}
@@ -79,7 +85,7 @@ const AppRouterLayer = () => {
           )}
         </AppLoaderGate>
       </CubeSpaceDataProvider>
-    </>
+    </main>
   );
 };
 
