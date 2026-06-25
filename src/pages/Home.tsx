@@ -7,11 +7,14 @@ import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGli
 import { ScrollTransition } from "@/components/transitions/ScrollTransition";
 import { useAppContext } from "@/contexts/useAppContext";
 import ExperienceSection from "@/components/sections/ExperienceSection/ExperienceSection";
+import { useIsMobile } from "@/hooks/use-mobile";
+import HomeMobile from "@/pages/HomeMobile";
 
 type SectionId = "hero" | "philosophy" | "carousel" | "experience";
 
 const HomeContent = () => {
   const { currentSection, setCurrentSection } = useAppContext();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (currentSection === "cubeSpace") {
@@ -119,6 +122,10 @@ const HomeContent = () => {
       entries.clear();
     };
   }, [setCurrentSection]);
+
+  if (isMobile) {
+    return <HomeMobile />;
+  }
 
   return (
     <div className="relative z-10 min-h-screen w-full">
