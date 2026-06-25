@@ -30,6 +30,9 @@ export const CarouselMobile = () => {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [flipped, setFlipped] = useState<Set<number>>(new Set());
+  const [offsets, setOffsets] = useState<number[]>(() =>
+    carouselContexts.map(() => 0)
+  );
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -42,18 +45,24 @@ export const CarouselMobile = () => {
         const center = el.scrollLeft + el.clientWidth / 2;
         let best = 0;
         let bestDist = Infinity;
+        const next: number[] = [];
         for (let i = 0; i < el.children.length; i++) {
           const child = el.children[i] as HTMLElement;
           const c = child.offsetLeft + child.offsetWidth / 2;
           const d = Math.abs(c - center);
+          // Signed normalized offset (-1 left, 0 center, +1 right)
+          const signed = (c - center) / (el.clientWidth / 2);
+          next.push(Math.max(-1.5, Math.min(1.5, signed)));
           if (d < bestDist) {
             bestDist = d;
             best = i;
           }
         }
         setActiveIndex(best);
+        setOffsets(next);
       });
     };
+    onScroll();
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       el.removeEventListener("scroll", onScroll);
@@ -86,22 +95,36 @@ export const CarouselMobile = () => {
 
       <div
         ref={scrollerRef}
-        className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-6 px-6"
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-10 pt-6"
         style={{
           scrollbarWidth: "none",
           WebkitOverflowScrolling: "touch",
+          perspective: "1400px",
+          paddingLeft: "9vw",
+          paddingRight: "9vw",
         }}
       >
         {carouselContexts.map((ctx, i) => {
           const tint = TINTS[i % TINTS.length];
           const isFlipped = flipped.has(i);
+          const off = offsets[i] ?? 0;
+          // Fan tilt: cards tilt away from center like a hand of cards.
+          const rotateY = off * 22; // degrees
+          const rotateZ = off * 6;
+          const translateY = Math.abs(off) * 18;
+          const scale = 1 - Math.min(0.12, Math.abs(off) * 0.08);
           return (
             <button
               key={ctx.id}
               type="button"
               onClick={() => toggleFlip(i)}
-              className="snap-center shrink-0 w-[82vw] max-w-[360px] aspect-[3/4] rounded-2xl text-left relative"
-              style={{ perspective: 1200 }}
+              className="snap-center shrink-0 w-[78vw] max-w-[340px] aspect-[3/4] rounded-[28px] text-left relative transition-transform duration-300 ease-out"
+              style={{
+                perspective: 1200,
+                transform: `translateY(${translateY}px) rotateZ(${rotateZ}deg) rotateY(${rotateY}deg) scale(${scale})`,
+                transformOrigin: "center bottom",
+                zIndex: 100 - Math.round(Math.abs(off) * 10),
+              }}
               aria-label={`${ctx.title}, tap to ${isFlipped ? "show summary" : "show details"}`}
             >
               <div
@@ -113,7 +136,7 @@ export const CarouselMobile = () => {
               >
                 {/* FRONT */}
                 <div
-                  className="absolute inset-0 rounded-2xl p-5 flex flex-col justify-between border bg-background/60"
+                  className="absolute inset-0 rounded-[28px] p-5 flex flex-col justify-between border bg-background/60"
                   style={{
                     backfaceVisibility: "hidden",
                     borderColor: tint.border,
@@ -167,7 +190,7 @@ export const CarouselMobile = () => {
 
                 {/* BACK */}
                 <div
-                  className="absolute inset-0 rounded-2xl p-5 flex flex-col justify-between border bg-background/70"
+                  className="absolute inset-0 rounded-[28px] p-5 flex flex-col justify-between border bg-background/70"
                   style={{
                     backfaceVisibility: "hidden",
                     transform: "rotateY(180deg)",
