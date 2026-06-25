@@ -51,7 +51,13 @@ export const OrbitMorph = () => {
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (prefersReducedMotion) {
+    // Also bypass on mobile: the morph is a hero→philosophy transition
+    // ornament; on a phone the user has scrolled past it before the
+    // animation could mean anything, and the rAF + per-frame CSS var
+    // writes are a real scroll cost. We commit `--orbit-morph-fade=1`
+    // so the stepper renders normally and hide the dots.
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    if (prefersReducedMotion || isMobile) {
       dotsRef.current.forEach((d) => {
         if (d) d.style.opacity = "0";
       });

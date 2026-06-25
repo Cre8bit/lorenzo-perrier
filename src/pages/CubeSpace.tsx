@@ -18,6 +18,7 @@ import {
   type CubeProfileMap,
 } from "@/components/cubespace/cubeProfiles";
 import { useAppContext } from "@/contexts/useAppContext";
+import { useBootContext } from "@/contexts/useBootContext";
 import { useCubeSpaceData } from "@/contexts/useCubeSpaceData";
 import { useCubeFlow } from "@/contexts/useCubeFlow";
 import { CubeFlowProvider } from "@/contexts/CubeFlowProvider";
@@ -63,8 +64,8 @@ function useOwnerPanelRect(open: boolean) {
 }
 
 const CubeSpaceInner = ({ active = true }: Props) => {
-  const { setCurrentSection, setIsCubeSpaceReady, setIsCubeSpaceSceneReady } =
-    useAppContext();
+  const { setCurrentSection } = useAppContext();
+  const { setIsCubeSpaceReady, setIsCubeSpaceSceneReady } = useBootContext();
   const isMobile = useIsMobile();
 
   // --- Data Context ---

@@ -8,6 +8,14 @@ export const AmbientBackground = () => {
   useEffect(() => {
     if (currentSection !== "hero") return;
 
+    // No real mouse → no parallax. Skip the listener on touch devices.
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(pointer: coarse)").matches
+    ) {
+      return;
+    }
+
     const el = containerRef.current;
     if (!el) return;
 

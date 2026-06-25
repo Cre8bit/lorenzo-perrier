@@ -341,7 +341,16 @@ export const PhilosophyReveal = () => {
     <section ref={sectionRef} className="min-h-[700vh] relative -mt-[100vh]">
       <div
         className="sticky top-0 h-screen flex items-center justify-center px-4 md:px-8 transition-opacity duration-300 ease-linear"
-        style={{ opacity: revealOpacity }}
+        style={{
+          opacity: revealOpacity,
+          // Promote the sticky element to its own GPU layer. Without this,
+          // Safari paints the whole stack on the CPU during scroll which
+          // produces visible jitter (most noticeable during the hero ↔
+          // philosophy transition and the snap between philosophy cards).
+          transform: "translate3d(0,0,0)",
+          backfaceVisibility: "hidden",
+          willChange: "transform",
+        }}
       >
         {/* Headline - stays visible */}
         <h2
@@ -390,17 +399,17 @@ export const PhilosophyReveal = () => {
           />
         </div>
 
-        {/* Background glow */}
+        {/* Background glow. Static gradient — animating the `background`
+            property forced Safari into a full-page repaint every progress
+            tick (visible as scroll jitter on the philosophy section). The
+            visual delta of the original progress-driven gradient was tiny;
+            we trade it for a clean opacity fade. */}
         <div
           className="absolute inset-0 rounded-3xl pointer-events-none"
           style={{
-            background: `radial-gradient(ellipse ${50 + progress * 20}% ${
-              40 + progress * 15
-            }% at center, hsl(var(--primary) / ${
-              0.05 + progress * 0.1
-            }) 0%, transparent 70%)`,
-            opacity: revealOpacity,
-            transition: "background 0.3s ease-out",
+            background:
+              "radial-gradient(ellipse 60% 47% at center, hsl(var(--primary) / 0.1) 0%, transparent 70%)",
+            opacity: revealOpacity * exitOpacity,
             zIndex: 10,
           }}
         />

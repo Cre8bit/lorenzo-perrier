@@ -2,6 +2,7 @@ import { Github, Linkedin, Mail, X, Sparkles, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAppContext } from "@/contexts/useAppContext";
 
 interface SocialButtonProps {
   href: string;
@@ -79,7 +80,9 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
   );
 };
 
-export const SocialLinks = ({ hide = false }: { hide?: boolean }) => {
+export const SocialLinks = () => {
+  const { currentSection } = useAppContext();
+  const hide = currentSection === "experience";
   return (
     <div
       className="fixed top-8 right-8 z-50 flex items-center gap-3 transition-all duration-500 ease-out"
@@ -105,8 +108,10 @@ export const SocialLinks = ({ hide = false }: { hide?: boolean }) => {
   );
 };
 
-export const ContactActions = ({ hide = false }: { hide?: boolean }) => {
+export const ContactActions = () => {
   const isMobile = useIsMobile();
+  const { currentSection } = useAppContext();
+  const hide = currentSection === "experience";
 
   return <ContactLink hide={hide} variant={isMobile ? "mobile" : "desktop"} />;
 };

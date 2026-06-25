@@ -9,6 +9,7 @@ import {
 import { useAutoplayProgress } from "@/hooks/use-autoplay-progress";
 import { useCarouselTransition } from "@/hooks/use-carousel-transition";
 import { useInViewport } from "@/hooks/use-in-viewport";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { lerp } from "@/utils/animation";
 import { withHslAlpha } from "./tint";
 
@@ -106,6 +107,7 @@ function CardLayer(props: {
   t: number;
   isAnimating: boolean;
   isFlipped: boolean;
+  isMobile: boolean;
   onFlip?: () => void;
   onClick?: () => void;
 }) {
@@ -117,6 +119,7 @@ function CardLayer(props: {
     t,
     isAnimating,
     isFlipped,
+    isMobile,
     onFlip,
     onClick,
   } = props;
@@ -154,6 +157,17 @@ function CardLayer(props: {
 
   const clickable = !isActive && !isAnimating;
 
+  // Mobile: flatten the 3D stack into a 2D translateX-only carousel.
+  // perspective + rotateY + rotateZ each create their own GPU layer on
+  // mobile; flattening drops several composited layers and avoids the
+  // sub-pixel shimmer iOS Safari shows on perspective transforms.
+  const transform = isMobile
+    ? `translate3d(calc(-50% + ${m.x}px), -50%, 0) scale(${m.scale})`
+    : `translate3d(calc(-50% + ${m.x}px), calc(-50% + ${m.y}px), ${m.z}px)
+          scale(${m.scale})
+          rotateY(${m.ry}deg)
+          rotateZ(${m.rz}deg)`;
+
   return (
     <div
       className={clickable ? "cursor-pointer" : undefined}
@@ -162,13 +176,16 @@ function CardLayer(props: {
         position: "absolute",
         left: "50%",
         top: "50%",
-        transformStyle: "preserve-3d",
-        transform: `translate3d(calc(-50% + ${m.x}px), calc(-50% + ${m.y}px), ${m.z}px)
-          scale(${m.scale})
-          rotateY(${m.ry}deg)
-          rotateZ(${m.rz}deg)`,
-        opacity: m.opacity,
-        willChange: "transform, opacity",
+        transformStyle: isMobile ? "flat" : "preserve-3d",
+        transform,
+        // Mobile: keep stacked cards fully opaque (no depth-driven fade).
+        // The translateX offset + scale already communicates depth on a
+        // narrow viewport; opacity falloff just made the side cards look
+        // washed-out against the new starfield background.
+        opacity: isMobile ? 1 : m.opacity,
+        // Only promote the active card to its own layer. Promoting every
+        // card permanently was forcing 10+ composited layers on mobile.
+        willChange: isActive || isAnimating ? "transform, opacity" : undefined,
         zIndex,
         pointerEvents: "auto",
       }}
@@ -187,6 +204,7 @@ function CardLayer(props: {
 
 export const CarouselGlide: React.FC = () => {
   const len = carouselContexts.length;
+  const isMobile = useIsMobile();
 
   const { ref: sectionRef, inView } = useInViewport<HTMLElement>({
     threshold: 0.45,
@@ -259,7 +277,11 @@ export const CarouselGlide: React.FC = () => {
     next();
   };
 
-  const MAX_STACK_SIDE = 6;
+  // Number of cards kept rendered on each side of the center. Mobile cuts
+  // the visible stack down dramatically — each side card is still a real
+  // DOM node with its own transform + opacity, so the per-frame cost
+  // grows linearly with this value.
+  const MAX_STACK_SIDE = isMobile ? 2 : 6;
 
   const visibleIndices = useMemo(() => {
     const anchorA = isAnimating ? fromIndex : activeIndex;
@@ -278,7 +300,7 @@ export const CarouselGlide: React.FC = () => {
     return out.sort(
       (a, b) => Math.abs(b - midAnchor) - Math.abs(a - midAnchor),
     );
-  }, [activeIndex, fromIndex, toIndex, isAnimating, len]);
+  }, [activeIndex, fromIndex, toIndex, isAnimating, len, MAX_STACK_SIDE]);
 
   // Touch handlers for swipe gestures
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -363,7 +385,11 @@ export const CarouselGlide: React.FC = () => {
 
         <div
           className="relative w-full h-full"
-          style={{ perspective: "1200px", perspectiveOrigin: "50% 50%" }}
+          style={
+            isMobile
+              ? undefined
+              : { perspective: "1200px", perspectiveOrigin: "50% 50%" }
+          }
         >
           {visibleIndices.map((idx) => (
             <CardLayer
@@ -374,6 +400,7 @@ export const CarouselGlide: React.FC = () => {
               toIndex={toIndex}
               t={t}
               isAnimating={isAnimating}
+              isMobile={isMobile}
               isFlipped={
                 !isAnimating && idx === activeIndex && flippedCards.has(idx)
               }

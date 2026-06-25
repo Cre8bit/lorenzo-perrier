@@ -1044,10 +1044,93 @@
   .cursor-glow--deep,
   .aurora-beam,
   .orbital-ring,
+  .orbital-ring__shimmer,
   .scroll-beam,
   .text-iridescent,
   .float-soft,
-  .float-soft-alt {
+  .float-soft-alt,
+  .animate-float,
+  .animate-float-delayed,
+  .animate-pulse-slow,
+  .animate-gradient,
+  .animate-pulse-glow,
+  .animate-scroll-bounce,
+  .animate-status-flicker,
+  .ambient-base,
+  .ambient-mist,
+  .tech-grid,
+  .mobile-starfield-twinkle {
     animation: none !important;
+  }
+  /* `animate-ping` is Tailwind; suppress without selecting Tailwind class */
+  *[class*="animate-ping"] {
+    animation: none !important;
+  }
+}
+
+/* Mobile starfield twinkle. Slow opacity-only pulse on the second star
+   layer (no transform, no filter, single property change → composited
+   on the GPU as a plain opacity tween). */
+@keyframes mobile-starfield-twinkle {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.mobile-starfield-twinkle {
+  animation: mobile-starfield-twinkle 5.5s ease-in-out infinite;
+}
+
+/* =====================================================================
+ * Mobile overrides (≤767px) — strip GPU-hostile effects that are too
+ * expensive for mobile compositors. Most mobile users will never see
+ * these subtle decorative layers at a high enough framerate to justify
+ * the scroll cost. We keep the structural rings/text and lose the
+ * blur/halo/shimmer accessories.
+ * ===================================================================*/
+@media (max-width: 767px) {
+  /* Aurora beam: 40px filter blur on a viewport-sized element is the
+     single most expensive thing on the hero. Hide entirely on mobile. */
+  .aurora-beam {
+    display: none !important;
+  }
+
+  /* Ambient mist: 90px blur on 1000px square. Heavy on mobile GPUs. */
+  .ambient-mist {
+    display: none !important;
+  }
+
+  /* Backdrop-filter is a known mobile killer (especially on iOS Safari).
+     Substitute a slightly more opaque background so glass still reads. */
+  .glass-panel,
+  .glass-panel-visible {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: hsl(var(--background) / 0.6);
+  }
+  .liquid-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: hsl(var(--background) / 0.65);
+  }
+
+  /* Status flicker box-shadows + ping rings on the hero chip:
+     constant repaint of a small element is cheap on desktop, jittery on
+     mid-range Android. Replace with a static dot. */
+  .animate-status-flicker {
+    animation: none !important;
+    box-shadow: 0 0 6px hsl(var(--primary) / 0.7);
+  }
+  *[class*="animate-ping"] {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+
+  /* `will-change: transform` on always-on decorative elements forces
+     extra compositor layers permanently. Drop the ones whose animation
+     we've already disabled above. */
+  .ambient-base,
+  .ambient-mist,
+  .aurora-beam,
+  .scroll-beam {
+    will-change: auto !important;
   }
 }
