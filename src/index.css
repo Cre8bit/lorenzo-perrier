@@ -1134,3 +1134,12 @@
     will-change: auto !important;
   }
 }
+
+/* =====================================================================
+ * Mobile horizontal marquee — used by MarqueeBand for KPI / skill
+ * ribbons. CSS-only translateX so it stays on the compositor.
+ * ===================================================================*/
+@keyframes marquee-x {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
