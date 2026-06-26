@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { philosophy } from "@/data/profile";
 
 /**
- * Mobile philosophy reveal — compact liquid-glass banners that slide
- * in from alternating sides as they enter the viewport. Short, calm,
- * and easy to scan on a phone.
+ * Mobile philosophy reveal — scroll-driven liquid-glass slabs.
+ * Each banner tracks its own viewport position (rAF-only when visible)
+ * so the slide-in / scale / blur ease in *smoothly* rather than
+ * snap-on-threshold.
  */
 
 const TINTS = [
@@ -14,6 +15,13 @@ const TINTS = [
   { tag: "04", color: "hsl(155 55% 60%)" },
 ];
 
+const SHORT: Record<string, string> = {
+  "Systems & Architecture": "Built to scale, made to last.",
+  "User-Centered Systems": "Production is the product.",
+  "AI in Production": "AI in systems — not notebooks.",
+  "Reactivity & Adaptation": "Systems learn by listening.",
+};
+
 interface BannerProps {
   index: number;
   title: string;
@@ -21,68 +29,101 @@ interface BannerProps {
 }
 
 const Banner = ({ index, title, short }: BannerProps) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const visibleRef = useRef(false);
   const fromLeft = index % 2 === 0;
   const tint = TINTS[index % TINTS.length];
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const wrap = wrapRef.current;
+    const card = cardRef.current;
+    if (!wrap || !card) return;
+
+    let raf: number | null = null;
+    const apply = () => {
+      raf = null;
+      const rect = wrap.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const center = rect.top + rect.height / 2;
+      // p ∈ [0,1]: 0 = far below viewport center, 1 = at center, then stays.
+      const d = (vh - center) / (vh * 0.65);
+      const p = Math.max(0, Math.min(1, d));
+      // Ease-out cubic for the soft glide.
+      const e = 1 - Math.pow(1 - p, 3);
+      const translateX = (1 - e) * (fromLeft ? -38 : 38);
+      const scale = 0.94 + e * 0.06;
+      const opacity = 0.15 + e * 0.85;
+      const blur = (1 - e) * 6;
+      card.style.transform = `translate3d(${translateX}%, ${(1 - e) * 14}px, 0) scale(${scale.toFixed(3)})`;
+      card.style.opacity = opacity.toFixed(3);
+      card.style.filter = blur > 0.2 ? `blur(${blur.toFixed(2)}px)` : "none";
+    };
+
+    const schedule = () => {
+      if (raf != null) return;
+      raf = requestAnimationFrame(apply);
+    };
+
     const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            setVisible(true);
-            io.disconnect();
-          }
-        });
+      ([entry]) => {
+        visibleRef.current = entry.isIntersecting;
+        if (entry.isIntersecting) schedule();
       },
-      { threshold: 0.25, rootMargin: "0px 0px -10% 0px" }
+      { rootMargin: "20% 0px 20% 0px", threshold: 0 },
     );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+    io.observe(wrap);
+
+    const onScroll = () => {
+      if (visibleRef.current) schedule();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", schedule, { passive: true });
+    apply();
+
+    return () => {
+      io.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", schedule);
+      if (raf != null) cancelAnimationFrame(raf);
+    };
+  }, [fromLeft]);
 
   return (
     <div
-      ref={ref}
-      className={`flex w-full ${fromLeft ? "justify-start pr-6" : "justify-end pl-6"}`}
+      ref={wrapRef}
+      className={`flex w-full ${fromLeft ? "justify-start pr-5" : "justify-end pl-5"}`}
     >
       <article
-        className="relative w-[88%] rounded-[28px] overflow-hidden transition-all duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+        ref={cardRef}
+        className="liquid-glass-fx relative w-[88%] rounded-[26px] overflow-hidden"
         style={{
-          transform: visible
-            ? "translateX(0) scale(1)"
-            : `translateX(${fromLeft ? "-40%" : "40%"}) scale(0.96)`,
-          opacity: visible ? 1 : 0,
           background:
-            "linear-gradient(135deg, hsla(0,0%,100%,0.05) 0%, hsla(0,0%,100%,0.02) 100%)",
-          backdropFilter: "blur(18px) saturate(140%)",
-          WebkitBackdropFilter: "blur(18px) saturate(140%)",
-          border: "1px solid hsla(0,0%,100%,0.08)",
-          boxShadow: `0 20px 50px -20px ${tint.color
+            "linear-gradient(135deg, hsla(0,0%,100%,0.07) 0%, hsla(0,0%,100%,0.02) 60%, hsla(0,0%,100%,0.04) 100%)",
+          backdropFilter: "blur(20px) saturate(150%)",
+          WebkitBackdropFilter: "blur(20px) saturate(150%)",
+          border: "1px solid hsla(0,0%,100%,0.10)",
+          boxShadow: `0 22px 50px -22px ${tint.color
             .replace("hsl(", "hsla(")
-            .replace(")", ",0.25)")}, inset 0 1px 0 hsla(0,0%,100%,0.06)`,
+            .replace(")", ",0.32)")}, inset 0 1px 0 hsla(0,0%,100%,0.08)`,
+          willChange: "transform, opacity, filter",
         }}
       >
-        {/* Edge accent */}
         <span
           aria-hidden
-          className={`absolute top-0 bottom-0 w-[3px] ${fromLeft ? "left-0" : "right-0"} rounded-full`}
+          className={`absolute top-0 bottom-0 w-[2px] ${fromLeft ? "left-0" : "right-0"}`}
           style={{
             background: `linear-gradient(180deg, transparent, ${tint.color}, transparent)`,
-            opacity: 0.55,
+            opacity: 0.65,
           }}
         />
-        {/* Soft highlight blob */}
         <span
           aria-hidden
-          className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl"
-          style={{ background: tint.color, opacity: 0.12 }}
+          className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 rounded-full blur-3xl"
+          style={{ background: tint.color, opacity: 0.14 }}
         />
 
-        <div className="relative px-6 py-6 flex flex-col gap-2">
+        <div className="relative px-5 py-5 flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span
               className="text-[10px] tracking-[0.3em] uppercase"
@@ -98,9 +139,9 @@ const Banner = ({ index, title, short }: BannerProps) => {
               }}
             />
           </div>
-          <h3 className="font-display text-[1.35rem] leading-tight">{title}</h3>
+          <h3 className="font-display text-[1.3rem] leading-tight">{title}</h3>
           <p
-            className="text-base italic leading-snug text-foreground/85"
+            className="text-[15px] italic leading-snug text-foreground/85"
             style={{ fontFamily: "'Cormorant Garamond', serif" }}
           >
             “{short}”
@@ -113,19 +154,30 @@ const Banner = ({ index, title, short }: BannerProps) => {
 
 export const PhilosophyMobile = () => {
   return (
-    <section className="relative w-full">
-      <div className="px-6 pt-20 pb-8">
+    <section
+      className="relative w-full"
+      style={{
+        background:
+          "radial-gradient(120% 80% at 10% 0%, hsl(185 60% 30% / 0.10), transparent 60%), radial-gradient(140% 90% at 90% 100%, hsl(260 55% 35% / 0.10), transparent 60%)",
+      }}
+    >
+      <div className="px-6 pt-16 pb-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-primary/70">
-          The way I build
+          How I build
         </p>
-        <h2 className="font-display text-3xl mt-3 leading-tight">
-          Four ideas behind every product.
+        <h2 className="font-display text-[2rem] mt-3 leading-[1.05]">
+          Four ideas. Every build.
         </h2>
       </div>
 
-      <div className="flex flex-col gap-5 pb-10">
+      <div className="flex flex-col gap-4 pb-12">
         {philosophy.map((p, i) => (
-          <Banner key={p.title} index={i} title={p.title} short={p.short} />
+          <Banner
+            key={p.title}
+            index={i}
+            title={p.title}
+            short={SHORT[p.title] ?? p.short}
+          />
         ))}
       </div>
     </section>
