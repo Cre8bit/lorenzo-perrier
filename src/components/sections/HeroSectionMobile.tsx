@@ -5,7 +5,6 @@ import {
   Download,
   Linkedin,
   MapPin,
-  Sparkles,
 } from "lucide-react";
 import { profile } from "@/data/profile";
 
@@ -29,9 +28,6 @@ export const HeroSectionMobile = () => {
   const [withIdx, setWithIdx] = useState(0);
 
   useEffect(() => {
-    // Alternate which slot ticks every 2.2s. Each slot ends up rotating
-    // every 4.4s, always offset from the other by 2.2s — so the sentence
-    // never has both halves swapping back-to-back.
     let toggle = 0;
     const id = window.setInterval(() => {
       if (toggle === 0) {
@@ -50,7 +46,6 @@ export const HeroSectionMobile = () => {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // Shrink surname until it fits its parent on one line.
   const surnameRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const el = surnameRef.current;
@@ -72,167 +67,142 @@ export const HeroSectionMobile = () => {
   }, []);
 
   return (
-    <section className="relative w-full min-h-[100svh] flex flex-col overflow-hidden pt-20 pb-10 px-5 gap-7">
-      {/* Availability banner — full-width liquid glass strip */}
-      <div
-        className="relative w-full rounded-2xl px-4 py-3 flex items-center gap-3 overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(120deg, hsl(var(--primary) / 0.22) 0%, hsl(var(--primary) / 0.06) 55%, hsl(150 70% 45% / 0.14) 100%)",
-          border: "1px solid hsl(var(--primary) / 0.32)",
-          boxShadow:
-            "0 14px 32px -18px hsl(var(--primary) / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.1)",
-          backdropFilter: "blur(16px) saturate(160%)",
-          WebkitBackdropFilter: "blur(16px) saturate(160%)",
-        }}
-      >
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl"
-          style={{ background: "hsl(var(--primary))", opacity: 0.18 }}
-        />
-        <span className="relative flex h-2.5 w-2.5 items-center justify-center shrink-0">
-          <span className="absolute h-3.5 w-3.5 rounded-full bg-green-400/30 blur-[3px]" />
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400/70" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
-        </span>
-        <div className="relative flex flex-col leading-tight min-w-0">
-          <span className="text-[9.5px] uppercase tracking-[0.32em] text-foreground/55">
-            Currently
-          </span>
-          <span className="text-[13.5px] font-medium text-foreground truncate">
-            Open to international opportunities
-          </span>
-        </div>
-        <span
-          aria-hidden
-          className="relative ml-auto text-[10px] uppercase tracking-[0.28em] text-primary/90 shrink-0"
+    <section className="relative w-full min-h-[100svh] flex flex-col overflow-hidden pt-24 pb-8">
+      {/* Availability */}
+      <div className="px-6">
+        <div
+          className="inline-flex items-center gap-2.5 rounded-full px-3.5 py-1.5 text-[10.5px] uppercase tracking-[0.26em] text-foreground/90 backdrop-blur-md"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--primary) / 0.04) 100%)",
+            border: "1px solid hsl(var(--primary) / 0.32)",
+            boxShadow:
+              "0 8px 24px -12px hsl(var(--primary) / 0.45), inset 0 1px 0 hsl(0 0% 100% / 0.08)",
+          }}
         >
-          2026
-        </span>
+          <span className="relative flex h-2 w-2 items-center justify-center">
+            <span className="absolute h-3 w-3 rounded-full bg-green-400/25 blur-[2px]" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400/70" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400" />
+          </span>
+          <span className="text-foreground/95">Open</span>
+          <span className="text-foreground/40">·</span>
+          <span className="text-primary/90">International opportunities</span>
+        </div>
       </div>
 
-      {/* Identity block */}
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.3em] text-foreground/55">
-          <Sparkles className="w-3 h-3 text-primary/80" strokeWidth={1.6} />
-          <span>Portfolio · 2026</span>
-        </div>
+      {/* Identity */}
+      <div className="px-6 mt-7">
         <h1
-          className="mt-4 font-display leading-[0.86] font-light tracking-tight"
-          style={{ textShadow: "0 0 60px hsl(var(--primary) / 0.1)" }}
+          className="font-display leading-[0.88] font-light tracking-tight"
+          style={{ textShadow: "0 0 60px hsl(var(--primary) / 0.08)" }}
         >
-          <span className="block text-[clamp(3.4rem,16vw,5.6rem)] bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent font-extralight tracking-wide">
+          <span className="block text-[clamp(3.6rem,17vw,6rem)] bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent font-extralight tracking-wider">
             Lorenzo
           </span>
           <span
             ref={surnameRef}
-            className="block whitespace-nowrap text-[clamp(1.45rem,6.6vw,2.3rem)] bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent font-normal tracking-tight mt-2"
+            className="block whitespace-nowrap text-[clamp(1.55rem,7vw,2.5rem)] bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent font-normal tracking-tight mt-2"
           >
             {profile.name.last}
           </span>
         </h1>
 
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] uppercase tracking-[0.26em] text-foreground/85"
-            style={{
-              background: "hsl(var(--primary) / 0.1)",
-              border: "1px solid hsl(var(--primary) / 0.28)",
-            }}
-          >
-            AI &amp; Software Engineer
-          </span>
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] text-foreground/65"
-            style={{
-              background: "hsl(0 0% 100% / 0.04)",
-              border: "1px solid hsl(var(--foreground) / 0.12)",
-            }}
-          >
-            <MapPin className="w-3 h-3" strokeWidth={1.7} />
-            Paris · SF-bound
+        <div className="mt-4 flex items-center gap-3">
+          <span className="h-px w-7 bg-primary/50" />
+          <span className="text-[10.5px] font-body uppercase tracking-[0.32em] text-foreground/65">
+            AI &amp; Software engineer
           </span>
         </div>
       </div>
 
-      {/* Mission statement — centered, compact, fluid */}
-      <div
-        className="relative rounded-[26px] px-5 py-5 overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(160deg, hsl(var(--primary) / 0.10) 0%, hsl(220 20% 6% / 0.35) 60%, hsl(0 0% 100% / 0.03) 100%)",
-          border: "1px solid hsl(var(--primary) / 0.22)",
-          boxShadow:
-            "0 20px 48px -24px hsl(var(--primary) / 0.35), inset 0 1px 0 hsl(0 0% 100% / 0.08)",
-          backdropFilter: "blur(20px) saturate(150%)",
-          WebkitBackdropFilter: "blur(20px) saturate(150%)",
-        }}
-      >
-        {/* Subtle orb */}
+      {/* Location chip */}
+      <div className="px-6 mt-3">
         <span
-          aria-hidden
-          className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full blur-[50px]"
-          style={{ background: "hsl(var(--primary))", opacity: 0.12 }}
-        />
+          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] text-foreground/65"
+          style={{
+            background: "hsl(0 0% 100% / 0.04)",
+            border: "1px solid hsl(var(--foreground) / 0.12)",
+          }}
+        >
+          <MapPin className="w-3 h-3" strokeWidth={1.7} />
+          Paris · SF-bound
+        </span>
+      </div>
 
-        {/* Compact "Now" badge */}
-        <div className="relative flex justify-center">
+      {/* Mission card — glass rectangle */}
+      <div className="px-6 mt-8">
+        <div
+          className="relative rounded-2xl px-5 py-5 overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(160deg, hsl(var(--primary) / 0.10) 0%, hsl(220 20% 6% / 0.35) 60%, hsl(0 0% 100% / 0.03) 100%)",
+            border: "1px solid hsl(var(--primary) / 0.22)",
+            boxShadow:
+              "0 20px 48px -24px hsl(var(--primary) / 0.35), inset 0 1px 0 hsl(0 0% 100% / 0.08)",
+            backdropFilter: "blur(20px) saturate(150%)",
+            WebkitBackdropFilter: "blur(20px) saturate(150%)",
+          }}
+        >
           <span
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[9px] uppercase tracking-[0.28em] text-primary/90"
-            style={{
-              background: "hsl(var(--primary) / 0.10)",
-              border: "1px solid hsl(var(--primary) / 0.25)",
-            }}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            Now — BPIfrance · @theodo
-          </span>
-        </div>
+            aria-hidden
+            className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full blur-[50px]"
+            style={{ background: "hsl(var(--primary))", opacity: 0.12 }}
+          />
 
-        {/* Centered rotating sentence */}
-        <div className="relative mt-4 text-center">
-          <p className="text-[13px] leading-relaxed text-foreground/50 tracking-wide">
-            I build
+          <p className="relative text-[15.5px] leading-snug text-foreground">
+            Leading the AI shift at{" "}
+            <span className="text-primary font-medium">BPIfrance</span>{" "}
+            <span className="text-foreground/55">with</span>{" "}
+            <a
+              href="https://www.theodo.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline-offset-2 hover:underline"
+            >
+              @theodo
+            </a>
           </p>
-          <div className="mt-1 flex justify-center items-center gap-2 flex-wrap">
-            <RotatingSlotCenter items={LOOKING_THING} index={thingIdx} />
-          </div>
-          <p className="mt-2 text-[13px] leading-relaxed text-foreground/50 tracking-wide">
-            with
-          </p>
-          <div className="mt-1 flex justify-center items-center gap-2 flex-wrap">
-            <RotatingSlotCenter items={LOOKING_WITH} index={withIdx} />
+
+          <div className="relative mt-4 font-display text-[1.2rem] leading-[1.3] tracking-tight text-foreground/65">
+            <span>Building </span>
+            <RotatingSlot items={LOOKING_THING} index={thingIdx} />
+            <br />
+            <span>with </span>
+            <RotatingSlot items={LOOKING_WITH} index={withIdx} />
+            <span className="text-foreground/35">.</span>
           </div>
         </div>
       </div>
 
-      {/* CTA tiles */}
-      <div className="grid grid-cols-2 gap-3">
-        <CTATile
-          href={profile.links.linkedin}
-          icon={<Linkedin className="w-4 h-4" strokeWidth={1.7} />}
-          kicker="Let's connect"
-          label="LinkedIn"
-          trail={<ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.8} />}
-          tone="primary"
-          external
-        />
-        <CTATile
-          href="/Lorenzo%20Perrier%20de%20La%20Bathie%20Resume.pdf"
-          icon={<Download className="w-4 h-4" strokeWidth={1.7} />}
-          kicker="Get my resume"
-          label="PDF"
-          trail={<ArrowDown className="w-3.5 h-3.5" strokeWidth={1.8} />}
-          tone="muted"
-          download
-        />
+      {/* CTAs */}
+      <div className="px-6 mt-7">
+        <div className="grid grid-cols-2 gap-3">
+          <CTATile
+            href={profile.links.linkedin}
+            icon={<Linkedin className="w-4 h-4" strokeWidth={1.7} />}
+            kicker="Let's connect"
+            label="LinkedIn"
+            trail={<ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.8} />}
+            tone="primary"
+            external
+          />
+          <CTATile
+            href="/Lorenzo%20Perrier%20de%20La%20Bathie%20Resume.pdf"
+            icon={<Download className="w-4 h-4" strokeWidth={1.7} />}
+            kicker="Get my resume"
+            label="PDF"
+            trail={<ArrowDown className="w-3.5 h-3.5" strokeWidth={1.8} />}
+            tone="muted"
+            download
+          />
+        </div>
       </div>
 
       <button
         type="button"
         onClick={scrollToNext}
-        className="mx-auto mt-auto flex flex-col items-center gap-1.5 text-muted-foreground active:text-primary transition-colors"
+        className="mx-auto mt-auto pt-8 flex flex-col items-center gap-1.5 text-muted-foreground active:text-primary transition-colors"
         aria-label="Scroll to next section"
       >
         <span className="text-[10px] uppercase tracking-[0.3em]">Scroll</span>
@@ -283,58 +253,6 @@ const RotatingSlot = ({ items, index }: RotatingSlotProps) => {
             key={i}
             className="block whitespace-nowrap bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent"
             style={{ height: "1.15em", lineHeight: "1.15em" }}
-          >
-            {item}
-          </span>
-        ))}
-      </span>
-    </span>
-  );
-};
-
-const RotatingSlotCenter = ({ items, index }: RotatingSlotProps) => {
-  const sampleRef = useRef<HTMLSpanElement>(null);
-  const [width, setWidth] = useState<number | null>(null);
-
-  useEffect(() => {
-    const el = sampleRef.current;
-    if (!el) return;
-    setWidth(el.getBoundingClientRect().width);
-  }, [index]);
-
-  return (
-    <span
-      className="relative inline-block overflow-hidden text-center"
-      style={{
-        height: "1.35em",
-        width: width != null ? `${width}px` : undefined,
-        verticalAlign: "bottom",
-        transition: "width 500ms cubic-bezier(0.22,1,0.36,1)",
-      }}
-    >
-      <span
-        ref={sampleRef}
-        aria-hidden
-        className="invisible whitespace-nowrap absolute left-0 top-0"
-      >
-        {items[index]}
-      </span>
-      <span
-        className="absolute inset-0 transition-transform duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-        style={{ transform: `translateY(-${index * 1.35}em)` }}
-      >
-        {items.map((item, i) => (
-          <span
-            key={i}
-            className="block whitespace-nowrap text-center font-display text-[1.15rem] tracking-tight"
-            style={{
-              height: "1.35em",
-              lineHeight: "1.35em",
-              background:
-                "linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--foreground)) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
           >
             {item}
           </span>
