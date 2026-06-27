@@ -156,45 +156,54 @@ export const HeroSectionMobile = () => {
         </div>
       </div>
 
-      {/* Focus card — what I do right now */}
+      {/* Mission statement — centered, compact, fluid */}
       <div
-        className="liquid-glass-fx relative rounded-[22px] p-4 overflow-hidden"
+        className="relative rounded-[26px] px-5 py-5 overflow-hidden"
         style={{
           background:
-            "linear-gradient(135deg, hsl(0 0% 100% / 0.06) 0%, hsl(220 20% 6% / 0.4) 100%)",
-          border: "1px solid hsl(var(--foreground) / 0.12)",
+            "linear-gradient(160deg, hsl(var(--primary) / 0.10) 0%, hsl(220 20% 6% / 0.35) 60%, hsl(0 0% 100% / 0.03) 100%)",
+          border: "1px solid hsl(var(--primary) / 0.22)",
           boxShadow:
-            "0 18px 40px -24px hsl(var(--primary) / 0.35), inset 0 1px 0 hsl(0 0% 100% / 0.08)",
-          backdropFilter: "blur(18px) saturate(150%)",
-          WebkitBackdropFilter: "blur(18px) saturate(150%)",
+            "0 20px 48px -24px hsl(var(--primary) / 0.35), inset 0 1px 0 hsl(0 0% 100% / 0.08)",
+          backdropFilter: "blur(20px) saturate(150%)",
+          WebkitBackdropFilter: "blur(20px) saturate(150%)",
         }}
       >
-        <div className="flex items-center gap-2 text-[9.5px] uppercase tracking-[0.32em] text-primary/80">
-          <span className="h-px w-5 bg-primary/60" />
-          <span>Now</span>
-        </div>
-        <p className="mt-2.5 text-[15.5px] leading-snug text-foreground">
-          Leading the AI shift at{" "}
-          <span className="text-primary font-medium">BPIfrance</span>{" "}
-          <span className="text-foreground/55">with</span>{" "}
-          <a
-            href="https://www.theodo.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary underline-offset-2 hover:underline"
+        {/* Subtle orb */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full blur-[50px]"
+          style={{ background: "hsl(var(--primary))", opacity: 0.12 }}
+        />
+
+        {/* Compact "Now" badge */}
+        <div className="relative flex justify-center">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[9px] uppercase tracking-[0.28em] text-primary/90"
+            style={{
+              background: "hsl(var(--primary) / 0.10)",
+              border: "1px solid hsl(var(--primary) / 0.25)",
+            }}
           >
-            @theodo
-          </a>
-          .
-        </p>
-        <div className="mt-3 h-px w-full bg-gradient-to-r from-transparent via-foreground/15 to-transparent" />
-        <div className="mt-3 font-display text-[1.05rem] leading-[1.25] tracking-tight text-foreground/75">
-          <span className="text-foreground/55">Building </span>
-          <RotatingSlot items={LOOKING_THING} index={thingIdx} />
-          <br />
-          <span className="text-foreground/55">with </span>
-          <RotatingSlot items={LOOKING_WITH} index={withIdx} />
-          <span className="text-foreground/35">.</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            Now — BPIfrance · @theodo
+          </span>
+        </div>
+
+        {/* Centered rotating sentence */}
+        <div className="relative mt-4 text-center">
+          <p className="text-[13px] leading-relaxed text-foreground/50 tracking-wide">
+            I build
+          </p>
+          <div className="mt-1 flex justify-center items-center gap-2 flex-wrap">
+            <RotatingSlotCenter items={LOOKING_THING} index={thingIdx} />
+          </div>
+          <p className="mt-2 text-[13px] leading-relaxed text-foreground/50 tracking-wide">
+            with
+          </p>
+          <div className="mt-1 flex justify-center items-center gap-2 flex-wrap">
+            <RotatingSlotCenter items={LOOKING_WITH} index={withIdx} />
+          </div>
         </div>
       </div>
 
