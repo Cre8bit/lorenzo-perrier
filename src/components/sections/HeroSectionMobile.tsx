@@ -292,6 +292,58 @@ const RotatingSlot = ({ items, index }: RotatingSlotProps) => {
   );
 };
 
+const RotatingSlotCenter = ({ items, index }: RotatingSlotProps) => {
+  const sampleRef = useRef<HTMLSpanElement>(null);
+  const [width, setWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = sampleRef.current;
+    if (!el) return;
+    setWidth(el.getBoundingClientRect().width);
+  }, [index]);
+
+  return (
+    <span
+      className="relative inline-block overflow-hidden text-center"
+      style={{
+        height: "1.35em",
+        width: width != null ? `${width}px` : undefined,
+        verticalAlign: "bottom",
+        transition: "width 500ms cubic-bezier(0.22,1,0.36,1)",
+      }}
+    >
+      <span
+        ref={sampleRef}
+        aria-hidden
+        className="invisible whitespace-nowrap absolute left-0 top-0"
+      >
+        {items[index]}
+      </span>
+      <span
+        className="absolute inset-0 transition-transform duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+        style={{ transform: `translateY(-${index * 1.35}em)` }}
+      >
+        {items.map((item, i) => (
+          <span
+            key={i}
+            className="block whitespace-nowrap text-center font-display text-[1.15rem] tracking-tight"
+            style={{
+              height: "1.35em",
+              lineHeight: "1.35em",
+              background:
+                "linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--foreground)) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            {item}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+};
+
 type CTATileProps = {
   href: string;
   icon: React.ReactNode;
