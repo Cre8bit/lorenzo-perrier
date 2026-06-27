@@ -1,24 +1,49 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, MapPin } from "lucide-react";
+import { ArrowDown, ArrowUpRight, Download, Linkedin } from "lucide-react";
 import { profile } from "@/data/profile";
 
-/**
- * Mobile hero. Reuses the desktop gradient treatment on the name,
- * fits the surname on a single auto-shrunk line, and replaces the
- * marquee with a "tape deck" of stats that auto-cycles. The deck
- * sits well above the bottom liquid nav.
- */
+const LOOKING_THING = [
+  "ML systems",
+  "real products",
+  "AI agents",
+  "tools that ship",
+  "ambitious problems",
+];
+const LOOKING_WITH = [
+  "ambitious teams",
+  "curious builders",
+  "great engineers",
+  "people who care",
+  "thoughtful makers",
+];
+
 export const HeroSectionMobile = () => {
-  const [stat, setStat] = useState(0);
-  const total = profile.highlights.length;
+  const [thingIdx, setThingIdx] = useState(0);
+  const [withIdx, setWithIdx] = useState(0);
 
   useEffect(() => {
-    const id = window.setInterval(() => setStat((s) => (s + 1) % total), 2600);
+    // Alternate which slot ticks every 2.2s. Each slot ends up rotating
+    // every 4.4s, always offset from the other by 2.2s — so the sentence
+    // never has both halves swapping back-to-back.
+    let toggle = 0;
+    const id = window.setInterval(() => {
+      if (toggle === 0) {
+        setThingIdx((s) => (s + 1) % LOOKING_THING.length);
+      } else {
+        setWithIdx((s) => (s + 1) % LOOKING_WITH.length);
+      }
+      toggle ^= 1;
+    }, 2200);
     return () => window.clearInterval(id);
-  }, [total]);
+  }, []);
 
-  // Auto-fit surname to one line. We measure parent width and ramp the
-  // font-size down until it fits. Cheap, runs once + on resize.
+  const scrollToNext = () => {
+    document
+      .getElementById("philosophy")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Shrink surname until it fits its parent on one line.
   const surnameRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const el = surnameRef.current;
@@ -26,10 +51,8 @@ export const HeroSectionMobile = () => {
     const fit = () => {
       const parent = el.parentElement;
       if (!parent) return;
-      // Reset, then shrink until single-line.
       el.style.fontSize = "";
-      const maxPx = parseFloat(getComputedStyle(el).fontSize);
-      let size = maxPx;
+      let size = parseFloat(getComputedStyle(el).fontSize);
       while (el.scrollWidth > parent.clientWidth && size > 10) {
         size -= 1;
         el.style.fontSize = `${size}px`;
@@ -42,132 +65,229 @@ export const HeroSectionMobile = () => {
   }, []);
 
   return (
-    <section className="relative w-full min-h-[100svh] flex flex-col overflow-hidden">
-      {/* Top status chip */}
-      <div className="px-6 pt-24">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background/40 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-primary/80 backdrop-blur-md">
-          <span
-            className="inline-block w-1.5 h-1.5 rounded-full bg-primary"
-            style={{ boxShadow: "0 0 6px hsl(var(--primary) / 0.7)" }}
-          />
-          {profile.title}
+    <section className="relative w-full min-h-[100svh] flex flex-col overflow-hidden pt-24 pb-8">
+      <div className="px-6">
+        <div
+          className="inline-flex items-center gap-2.5 rounded-full px-3.5 py-1.5 text-[10.5px] uppercase tracking-[0.26em] text-foreground/90 backdrop-blur-md"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--primary) / 0.04) 100%)",
+            border: "1px solid hsl(var(--primary) / 0.32)",
+            boxShadow:
+              "0 8px 24px -12px hsl(var(--primary) / 0.45), inset 0 1px 0 hsl(0 0% 100% / 0.08)",
+          }}
+        >
+          <span className="relative flex h-2 w-2 items-center justify-center">
+            <span className="absolute h-3 w-3 rounded-full bg-green-400/25 blur-[2px]" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400/70" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400" />
+          </span>
+          <span className="text-foreground/95">Open</span>
+          <span className="text-foreground/40">·</span>
+          <span className="text-primary/90">International opportunities</span>
         </div>
-      </div>
 
-      {/* Name + tagline */}
-      <div className="flex-1 px-6 flex flex-col justify-center">
         <h1
-          className="font-display leading-[0.9] font-light tracking-tight"
+          className="mt-7 font-display leading-[0.88] font-light tracking-tight"
           style={{ textShadow: "0 0 60px hsl(var(--primary) / 0.08)" }}
         >
-          <span
-            className="block text-[clamp(3rem,14vw,5rem)] bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent font-extralight tracking-wider"
-          >
+          <span className="block text-[clamp(3.6rem,17vw,6rem)] bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent font-extralight tracking-wider">
             Lorenzo
           </span>
           <span
             ref={surnameRef}
-            className="block whitespace-nowrap text-[clamp(1.4rem,6.4vw,2.2rem)] bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent font-normal tracking-tight mt-1"
+            className="block whitespace-nowrap text-[clamp(1.55rem,7vw,2.5rem)] bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent font-normal tracking-tight mt-2"
           >
             {profile.name.last}
           </span>
         </h1>
 
-        <p className="mt-5 text-[15px] text-foreground/80 leading-relaxed max-w-[34ch]">
-          AI &amp; software engineer — shipping systems that think and scale.
-        </p>
-
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5 text-primary/80">
-            <MapPin className="w-3 h-3" />
-            {profile.location}
+        <div className="mt-4 flex items-center gap-3">
+          <span className="h-px w-7 bg-primary/50" />
+          <span className="text-[10.5px] font-body uppercase tracking-[0.32em] text-foreground/65">
+            AI &amp; Software engineer
           </span>
-          <span className="opacity-40">·</span>
-          <span>Open to SF / Bay Area</span>
         </div>
       </div>
 
-      {/* Stats deck — auto-cycling glass card. Sits above the bottom
-          liquid nav with safe-area padding. */}
-      <div className="px-6 pb-32">
-        <div
-          className="relative rounded-2xl border border-primary/20 overflow-hidden"
-          style={{
-            background:
-              "linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(220 20% 8% / 0.55) 60%, hsl(var(--primary) / 0.04) 100%)",
-            backdropFilter: "blur(14px) saturate(140%)",
-            WebkitBackdropFilter: "blur(14px) saturate(140%)",
-            boxShadow:
-              "0 20px 60px -20px hsl(var(--primary) / 0.25), inset 0 1px 0 hsl(0 0% 100% / 0.06)",
-          }}
-        >
-          {/* Top hairline + drifting accent */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-px"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.5), transparent)",
-            }}
+      <div className="px-6 mt-10">
+        <p className="text-[16.5px] leading-snug text-foreground">
+          Leading the AI shift at{" "}
+          <span className="text-primary">BPIfrance</span>{" "}
+          <span className="text-foreground/55">with</span>{" "}
+          <a
+            href="https://www.theodo.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline-offset-2 hover:underline"
+          >
+            @theodo
+          </a>
+        </p>
+      </div>
+
+      <div className="px-6 mt-5">
+        <div className="font-display text-[1.2rem] leading-[1.2] tracking-tight text-foreground/65">
+          <span>Building </span>
+          <RotatingSlot items={LOOKING_THING} index={thingIdx} />
+          <br />
+          <span>with </span>
+          <RotatingSlot items={LOOKING_WITH} index={withIdx} />
+          <span className="text-foreground/35">.</span>
+        </div>
+      </div>
+
+      <div className="px-6 mt-7">
+        <div className="grid grid-cols-2 gap-3">
+          <CTATile
+            href={profile.links.linkedin}
+            icon={<Linkedin className="w-4 h-4" strokeWidth={1.7} />}
+            kicker="Let's connect"
+            label="LinkedIn"
+            trail={<ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.8} />}
+            tone="primary"
+            external
           />
-
-          {/* Stat reel */}
-          <div className="relative h-[68px] overflow-hidden">
-            <div
-              className="absolute inset-0 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{ transform: `translateY(${-stat * 68}px)` }}
-            >
-              {profile.highlights.map((h, i) => (
-                <div
-                  key={i}
-                  className="h-[68px] flex items-center gap-4 px-4"
-                >
-                  <span
-                    className="font-display text-[2rem] leading-none bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent"
-                  >
-                    {h.label}
-                  </span>
-                  <span className="text-[11px] uppercase tracking-[0.28em] text-foreground/70 leading-tight">
-                    {h.description}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Progress dots */}
-          <div className="flex justify-between items-center px-4 pb-3 pt-1">
-            <div className="flex gap-1.5">
-              {profile.highlights.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setStat(i)}
-                  aria-label={`Show stat ${i + 1}`}
-                  className="block h-1 rounded-full transition-all duration-300"
-                  style={{
-                    width: i === stat ? 18 : 6,
-                    background:
-                      i === stat
-                        ? "hsl(var(--primary))"
-                        : "hsl(var(--muted-foreground) / 0.3)",
-                  }}
-                />
-              ))}
-            </div>
-            <span className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/70">
-              In numbers
-            </span>
-          </div>
+          <CTATile
+            href="/Lorenzo%20Perrier%20de%20La%20Bathie%20Resume.pdf"
+            icon={<Download className="w-4 h-4" strokeWidth={1.7} />}
+            kicker="Get my resume"
+            label="PDF"
+            trail={<ArrowDown className="w-3.5 h-3.5" strokeWidth={1.8} />}
+            tone="muted"
+            download
+          />
         </div>
 
-        {/* Scroll hint */}
-        <div className="flex flex-col items-center gap-1.5 mt-6 text-muted-foreground">
+        <button
+          type="button"
+          onClick={scrollToNext}
+          className="mx-auto mt-6 flex flex-col items-center gap-1.5 text-muted-foreground active:text-primary transition-colors"
+          aria-label="Scroll to next section"
+        >
           <span className="text-[10px] uppercase tracking-[0.3em]">Scroll</span>
           <ArrowDown className="w-3.5 h-3.5 animate-bounce" />
-        </div>
+        </button>
       </div>
     </section>
+  );
+};
+
+type RotatingSlotProps = {
+  items: string[];
+  index: number;
+};
+
+const RotatingSlot = ({ items, index }: RotatingSlotProps) => {
+  const sampleRef = useRef<HTMLSpanElement>(null);
+  const [width, setWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = sampleRef.current;
+    if (!el) return;
+    setWidth(el.getBoundingClientRect().width);
+  }, [index]);
+
+  return (
+    <span
+      className="relative inline-block overflow-hidden"
+      style={{
+        height: "1.15em",
+        width: width != null ? `${width}px` : undefined,
+        verticalAlign: "bottom",
+        transition: "width 500ms cubic-bezier(0.22,1,0.36,1)",
+      }}
+    >
+      <span
+        ref={sampleRef}
+        aria-hidden
+        className="invisible whitespace-nowrap absolute left-0 top-0"
+      >
+        {items[index]}
+      </span>
+      <span
+        className="absolute inset-0 transition-transform duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+        style={{ transform: `translateY(-${index * 1.15}em)` }}
+      >
+        {items.map((item, i) => (
+          <span
+            key={i}
+            className="block whitespace-nowrap bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent"
+            style={{ height: "1.15em", lineHeight: "1.15em" }}
+          >
+            {item}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+};
+
+type CTATileProps = {
+  href: string;
+  icon: React.ReactNode;
+  kicker: string;
+  label: string;
+  trail: React.ReactNode;
+  tone: "primary" | "muted";
+  download?: boolean;
+  external?: boolean;
+};
+
+const CTATile = ({
+  href,
+  icon,
+  kicker,
+  label,
+  trail,
+  tone,
+  download,
+  external,
+}: CTATileProps) => {
+  const isPrimary = tone === "primary";
+  return (
+    <a
+      href={href}
+      {...(download ? { download: true } : {})}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className="liquid-glass-fx group relative flex flex-col justify-between rounded-2xl px-4 py-3.5 overflow-hidden active:scale-[0.98] transition-transform"
+      style={{
+        background: isPrimary
+          ? "linear-gradient(135deg, hsl(var(--primary) / 0.22) 0%, hsl(var(--primary) / 0.06) 100%)"
+          : "linear-gradient(135deg, hsl(0 0% 100% / 0.05) 0%, hsl(220 20% 6% / 0.45) 100%)",
+        border: isPrimary
+          ? "1px solid hsl(var(--primary) / 0.42)"
+          : "1px solid hsl(var(--foreground) / 0.14)",
+        boxShadow: isPrimary
+          ? "0 10px 30px -12px hsl(var(--primary) / 0.45), inset 0 1px 0 hsl(0 0% 100% / 0.12)"
+          : "inset 0 1px 0 hsl(0 0% 100% / 0.06)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <span
+          className={`inline-flex items-center justify-center w-7 h-7 rounded-full ${
+            isPrimary
+              ? "bg-primary/20 text-primary"
+              : "bg-foreground/10 text-foreground/80"
+          }`}
+        >
+          {icon}
+        </span>
+        <span className={isPrimary ? "text-primary" : "text-foreground/60"}>
+          {trail}
+        </span>
+      </div>
+      <div className="mt-3">
+        <div className="text-[13.5px] font-medium text-foreground leading-tight">
+          {kicker}
+        </div>
+        <div className="text-[10.5px] uppercase tracking-[0.22em] text-foreground/55 mt-1">
+          {label}
+        </div>
+      </div>
+    </a>
   );
 };
 

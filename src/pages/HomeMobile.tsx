@@ -7,12 +7,6 @@ import ExperienceMobile from "@/components/sections/ExperienceSection/Experience
 
 type SectionId = "hero" | "philosophy" | "carousel" | "experience";
 
-/**
- * Dedicated mobile experience.
- * No scroll-jacking (no OrbitMorph / ScrollIndicator / ScrollTransition),
- * no canvas particle field — just full-bleed sections, native scroll,
- * a single IntersectionObserver for nav state.
- */
 const HomeMobile = () => {
   const { setCurrentSection } = useAppContext();
   const heroRef = useRef<HTMLElement>(null);
