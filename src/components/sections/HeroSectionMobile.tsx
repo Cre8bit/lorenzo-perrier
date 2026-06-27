@@ -67,142 +67,96 @@ export const HeroSectionMobile = () => {
   }, []);
 
   return (
-    <section className="relative w-full min-h-[100svh] flex flex-col overflow-hidden pt-24 pb-8">
+    <section className="relative w-full min-h-[100svh] flex flex-col items-center justify-center overflow-hidden px-6 py-20 text-center">
       {/* Availability */}
-      <div className="px-6">
-        <div
-          className="inline-flex items-center gap-2.5 rounded-full px-3.5 py-1.5 text-[10.5px] uppercase tracking-[0.26em] text-foreground/90 backdrop-blur-md"
-          style={{
-            background:
-              "linear-gradient(135deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--primary) / 0.04) 100%)",
-            border: "1px solid hsl(var(--primary) / 0.32)",
-            boxShadow:
-              "0 8px 24px -12px hsl(var(--primary) / 0.45), inset 0 1px 0 hsl(0 0% 100% / 0.08)",
-          }}
-        >
-          <span className="relative flex h-2 w-2 items-center justify-center">
-            <span className="absolute h-3 w-3 rounded-full bg-green-400/25 blur-[2px]" />
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400/70" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400" />
-          </span>
-          <span className="text-foreground/95">Open</span>
-          <span className="text-foreground/40">·</span>
-          <span className="text-primary/90">International opportunities</span>
-        </div>
+      <div className="inline-flex items-center gap-2 text-[10.5px] uppercase tracking-[0.28em] text-foreground/70">
+        <span className="relative flex h-1.5 w-1.5 items-center justify-center">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400/70" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400" />
+        </span>
+        <span>Open to opportunities</span>
       </div>
 
       {/* Identity */}
-      <div className="px-6 mt-7">
-        <h1
-          className="font-display leading-[0.88] font-light tracking-tight"
-          style={{ textShadow: "0 0 60px hsl(var(--primary) / 0.08)" }}
-        >
-          <span className="block text-[clamp(3.6rem,17vw,6rem)] bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent font-extralight tracking-wider">
-            Lorenzo
-          </span>
-          <span
-            ref={surnameRef}
-            className="block whitespace-nowrap text-[clamp(1.55rem,7vw,2.5rem)] bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent font-normal tracking-tight mt-2"
-          >
-            {profile.name.last}
-          </span>
-        </h1>
-
-        <div className="mt-4 flex items-center gap-3">
-          <span className="h-px w-7 bg-primary/50" />
-          <span className="text-[10.5px] font-body uppercase tracking-[0.32em] text-foreground/65">
-            AI &amp; Software engineer
-          </span>
-        </div>
-      </div>
-
-      {/* Location chip */}
-      <div className="px-6 mt-3">
-        <span
-          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] text-foreground/65"
-          style={{
-            background: "hsl(0 0% 100% / 0.04)",
-            border: "1px solid hsl(var(--foreground) / 0.12)",
-          }}
-        >
-          <MapPin className="w-3 h-3" strokeWidth={1.7} />
-          Paris · SF-bound
+      <h1
+        className="mt-5 font-display leading-[0.88] font-light tracking-tight w-full"
+        style={{ textShadow: "0 0 60px hsl(var(--primary) / 0.08)" }}
+      >
+        <span className="block text-[clamp(3.6rem,17vw,6rem)] bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent font-extralight tracking-wider">
+          Lorenzo
         </span>
-      </div>
-
-      {/* Mission card — glass rectangle */}
-      <div className="px-6 mt-8">
-        <div
-          className="relative rounded-2xl px-5 py-5 overflow-hidden"
-          style={{
-            background:
-              "linear-gradient(160deg, hsl(var(--primary) / 0.10) 0%, hsl(220 20% 6% / 0.35) 60%, hsl(0 0% 100% / 0.03) 100%)",
-            border: "1px solid hsl(var(--primary) / 0.22)",
-            boxShadow:
-              "0 20px 48px -24px hsl(var(--primary) / 0.35), inset 0 1px 0 hsl(0 0% 100% / 0.08)",
-            backdropFilter: "blur(20px) saturate(150%)",
-            WebkitBackdropFilter: "blur(20px) saturate(150%)",
-          }}
+        <span
+          ref={surnameRef}
+          className="block whitespace-nowrap text-[clamp(1.55rem,7vw,2.5rem)] bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent font-normal tracking-tight mt-2"
         >
-          <span
-            aria-hidden
-            className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full blur-[50px]"
-            style={{ background: "hsl(var(--primary))", opacity: 0.12 }}
-          />
+          {profile.name.last}
+        </span>
+      </h1>
 
-          <p className="relative text-[15.5px] leading-snug text-foreground">
-            Leading the AI shift at{" "}
-            <span className="text-primary font-medium">BPIfrance</span>{" "}
-            <span className="text-foreground/55">with</span>{" "}
-            <a
-              href="https://www.theodo.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline-offset-2 hover:underline"
-            >
-              @theodo
-            </a>
-          </p>
+      <p className="mt-3 text-[15px] leading-snug text-foreground/85">
+        Leading the AI shift at{" "}
+        <span className="text-primary font-medium">BPIfrance</span>{" "}
+        <span className="text-foreground/55">with</span>{" "}
+        <a
+          href="https://www.theodo.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline-offset-2 hover:underline"
+        >
+          @theodo
+        </a>
+      </p>
 
-          <div className="relative mt-4 font-display text-[1.2rem] leading-[1.3] tracking-tight text-foreground/65">
-            <span>Building </span>
-            <RotatingSlot items={LOOKING_THING} index={thingIdx} />
-            <br />
-            <span>with </span>
-            <RotatingSlot items={LOOKING_WITH} index={withIdx} />
-            <span className="text-foreground/35">.</span>
-          </div>
+      <span
+        className="mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] text-foreground/65"
+        style={{
+          background: "hsl(0 0% 100% / 0.04)",
+          border: "1px solid hsl(var(--foreground) / 0.12)",
+        }}
+      >
+        <MapPin className="w-3 h-3" strokeWidth={1.7} />
+        Paris · SF-bound
+      </span>
+
+      {/* Rotating sentence */}
+      <div className="my-12 font-display text-[1.35rem] leading-[1.5] tracking-tight text-foreground/70 flex flex-col gap-1.5">
+        <div>
+          <span>Building </span>
+          <RotatingSlot items={LOOKING_THING} index={thingIdx} />
+        </div>
+        <div>
+          <span>with </span>
+          <RotatingSlot items={LOOKING_WITH} index={withIdx} />
+          <span className="text-foreground/35">.</span>
         </div>
       </div>
 
       {/* CTAs */}
-      <div className="px-6 mt-7">
-        <div className="grid grid-cols-2 gap-3">
-          <CTATile
-            href={profile.links.linkedin}
-            icon={<Linkedin className="w-4 h-4" strokeWidth={1.7} />}
-            kicker="Let's connect"
-            label="LinkedIn"
-            trail={<ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.8} />}
-            tone="primary"
-            external
-          />
-          <CTATile
-            href="/Lorenzo%20Perrier%20de%20La%20Bathie%20Resume.pdf"
-            icon={<Download className="w-4 h-4" strokeWidth={1.7} />}
-            kicker="Get my resume"
-            label="PDF"
-            trail={<ArrowDown className="w-3.5 h-3.5" strokeWidth={1.8} />}
-            tone="muted"
-            download
-          />
-        </div>
+      <div className="grid grid-cols-2 gap-3 w-full">
+        <CTATile
+          href={profile.links.linkedin}
+          icon={<Linkedin className="w-4 h-4" strokeWidth={1.7} />}
+          kicker="Let's connect"
+          label="LinkedIn"
+          trail={<ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.8} />}
+          tone="primary"
+          external
+        />
+        <CTATile
+          href="/Lorenzo%20Perrier%20de%20La%20Bathie%20Resume.pdf"
+          icon={<Download className="w-4 h-4" strokeWidth={1.7} />}
+          kicker="Get my resume"
+          label="PDF"
+          trail={<ArrowDown className="w-3.5 h-3.5" strokeWidth={1.8} />}
+          tone="muted"
+          download
+        />
       </div>
 
       <button
         type="button"
         onClick={scrollToNext}
-        className="mx-auto mt-auto pt-8 flex flex-col items-center gap-1.5 text-muted-foreground active:text-primary transition-colors"
+        className="mt-8 flex flex-col items-center gap-1.5 text-muted-foreground active:text-primary transition-colors"
         aria-label="Scroll to next section"
       >
         <span className="text-[10px] uppercase tracking-[0.3em]">Scroll</span>
@@ -229,11 +183,11 @@ const RotatingSlot = ({ items, index }: RotatingSlotProps) => {
 
   return (
     <span
-      className="relative inline-block overflow-hidden"
+      className="relative inline-block overflow-hidden align-top"
       style={{
-        height: "1.15em",
+        height: "1.5em",
+        lineHeight: "1.5em",
         width: width != null ? `${width}px` : undefined,
-        verticalAlign: "bottom",
         transition: "width 500ms cubic-bezier(0.22,1,0.36,1)",
       }}
     >
@@ -246,13 +200,13 @@ const RotatingSlot = ({ items, index }: RotatingSlotProps) => {
       </span>
       <span
         className="absolute inset-0 transition-transform duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-        style={{ transform: `translateY(-${index * 1.15}em)` }}
+        style={{ transform: `translateY(-${index * 1.5}em)` }}
       >
         {items.map((item, i) => (
           <span
             key={i}
             className="block whitespace-nowrap bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent"
-            style={{ height: "1.15em", lineHeight: "1.15em" }}
+            style={{ height: "1.5em", lineHeight: "1.5em" }}
           >
             {item}
           </span>
