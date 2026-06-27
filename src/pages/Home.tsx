@@ -7,30 +7,23 @@ import { CarouselGlide } from "@/components/sections/CarouselSection/CarouselGli
 import { ScrollTransition } from "@/components/transitions/ScrollTransition";
 import { useAppContext } from "@/contexts/useAppContext";
 import ExperienceSection from "@/components/sections/ExperienceSection/ExperienceSection";
+import { useIsMobile } from "@/hooks/use-mobile";
+import HomeMobile from "@/pages/HomeMobile";
 
 type SectionId = "hero" | "philosophy" | "carousel" | "experience";
 
-const HomeContent = () => {
+const HomeDesktop = () => {
   const { currentSection, setCurrentSection } = useAppContext();
 
   useEffect(() => {
-    if (currentSection === "cubeSpace") {
-      setCurrentSection("hero");
-    }
+    if (currentSection === "cubeSpace") setCurrentSection("hero");
   }, [currentSection, setCurrentSection]);
 
-  // One section ref per id. We use a single IntersectionObserver with a
-  // small threshold list — the previous design used 4 observers ×
-  // 21 thresholds each (84 boundary events per scroll cycle) which was
-  // pure waste for nav state.
   const heroRef = useRef<HTMLElement>(null);
   const philoRef = useRef<HTMLElement>(null);
   const carouselRef = useRef<HTMLElement>(null);
   const experienceRef = useRef<HTMLElement>(null);
 
-  // Latest IO entry per section, kept in a ref to avoid re-rendering on
-  // every threshold crossing. Only the eventual `setCurrentSection` call
-  // triggers React work.
   const entriesRef = useRef(new Map<SectionId, IntersectionObserverEntry>());
   const currentSectionRef = useRef(currentSection);
   currentSectionRef.current = currentSection;
@@ -43,14 +36,11 @@ const HomeContent = () => {
       { id: "experience", ref: experienceRef },
     ];
 
-    // Map element → id for quick lookup in the IO callback.
     const elToId = new Map<Element, SectionId>();
     sections.forEach(({ id, ref }) => {
       if (ref.current) elToId.set(ref.current, id);
     });
 
-    // Coalesce IO events into a single rAF — IO can fire dozens of times
-    // during a fast scroll, but we only need the final state.
     let rafId = 0;
     const flush = () => {
       rafId = 0;
@@ -68,8 +58,8 @@ const HomeContent = () => {
 
       if (!best) return;
 
-      // Hysteresis: keep current section unless the new candidate is
-      // meaningfully closer (avoids flicker at boundaries).
+      // Hysteresis — only switch when the new candidate is meaningfully
+      // closer than the current section. Avoids flicker at boundaries.
       const cur = currentSectionRef.current;
       const curEntry = entriesRef.current.get(cur as SectionId);
       if (
@@ -86,9 +76,7 @@ const HomeContent = () => {
         return;
       }
 
-      if (best.id !== currentSectionRef.current) {
-        setCurrentSection(best.id);
-      }
+      if (best.id !== currentSectionRef.current) setCurrentSection(best.id);
     };
 
     const io = new IntersectionObserver(
@@ -99,13 +87,7 @@ const HomeContent = () => {
         }
         if (rafId === 0) rafId = requestAnimationFrame(flush);
       },
-      {
-        root: null,
-        rootMargin: "-20% 0px -20% 0px",
-        // Three boundaries: edge, midway, full. Enough to drive
-        // center-distance hysteresis without thrashing.
-        threshold: [0, 0.5, 1],
-      },
+      { root: null, rootMargin: "-20% 0px -20% 0px", threshold: [0, 0.5, 1] },
     );
 
     sections.forEach(({ ref }) => {
@@ -122,10 +104,6 @@ const HomeContent = () => {
 
   return (
     <div className="relative z-10 min-h-screen w-full">
-      {/* Orbital morph overlay. Sticky-pinned at viewport top from
-          scrollY=0 so the dots stay browser-positioned (no JS scroll lag
-          → no flicker at the dwell point) while still living in document
-          flow so they elastic-bounce with the hero rings. */}
       <div
         aria-hidden
         className="pointer-events-none"
@@ -164,7 +142,8 @@ const HomeContent = () => {
 };
 
 const Home = () => {
-  return <HomeContent />;
+  const isMobile = useIsMobile();
+  return isMobile ? <HomeMobile /> : <HomeDesktop />;
 };
 
 export default Home;
