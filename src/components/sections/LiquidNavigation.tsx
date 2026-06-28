@@ -83,7 +83,7 @@ export const LiquidNavigation = () => {
     >
       <div
         ref={barRef}
-        className="liquid-glass-fx relative px-7 sm:px-10 py-3.5 sm:py-5 rounded-full cursor-pointer overflow-hidden transition-all duration-700 ease-smooth min-w-[260px] sm:min-w-[360px]"
+        className="mobile-no-blur liquid-glass-fx relative px-7 sm:px-10 py-3.5 sm:py-5 rounded-full cursor-pointer overflow-hidden transition-all duration-700 ease-smooth min-w-[260px] sm:min-w-[360px]"
         style={{
           background: isActive
             ? "linear-gradient(135deg, hsla(185, 50%, 55%, 0.12) 0%, hsla(220, 20%, 4%, 0.6) 50%, hsla(185, 50%, 55%, 0.08) 100%)"

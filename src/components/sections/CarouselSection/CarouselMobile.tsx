@@ -105,11 +105,7 @@ export const CarouselMobile = () => {
 
   return (
     <section className="relative w-full pb-20 overflow-hidden">
-      <div
-        ref={titleRef}
-        className="px-6 mb-8"
-        style={{ willChange: "transform, opacity" }}
-      >
+      <div ref={titleRef} className="px-6 mb-8">
         <p className="text-[11px] uppercase tracking-[0.3em] text-primary/70">
           Work
         </p>
@@ -119,7 +115,7 @@ export const CarouselMobile = () => {
         <p className="mt-3 text-sm text-muted-foreground">Swipe. Tap to flip.</p>
       </div>
 
-      <div ref={rowWrapRef} style={{ willChange: "transform, opacity" }}>
+      <div ref={rowWrapRef}>
         <div
           ref={scrollerRef}
           className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-12 pt-4"
@@ -155,7 +151,6 @@ export const CarouselMobile = () => {
                     transformStyle: "preserve-3d",
                     transform: `rotateY(${isFlipped ? 180 : 0}deg)`,
                     transition: "transform 600ms cubic-bezier(0.4, 0.0, 0.2, 1)",
-                    willChange: "transform",
                   }}
                 >
                   <div

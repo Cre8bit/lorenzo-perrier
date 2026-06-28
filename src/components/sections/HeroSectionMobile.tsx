@@ -239,19 +239,17 @@ const CTATile = ({
       href={href}
       {...(download ? { download: true } : {})}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="liquid-glass-fx group relative flex flex-col justify-between rounded-2xl px-4 py-3.5 overflow-hidden active:scale-[0.98] transition-transform"
+      className="group relative flex flex-col justify-between rounded-2xl px-4 py-3.5 overflow-hidden active:scale-[0.98] transition-transform"
       style={{
         background: isPrimary
-          ? "linear-gradient(135deg, hsl(var(--primary) / 0.22) 0%, hsl(var(--primary) / 0.06) 100%)"
-          : "linear-gradient(135deg, hsl(0 0% 100% / 0.05) 0%, hsl(220 20% 6% / 0.45) 100%)",
+          ? "linear-gradient(135deg, hsl(var(--primary) / 0.28) 0%, hsl(220 25% 8% / 0.85) 100%)"
+          : "linear-gradient(135deg, hsl(220 18% 10% / 0.92) 0%, hsl(220 25% 5% / 0.96) 100%)",
         border: isPrimary
           ? "1px solid hsl(var(--primary) / 0.42)"
           : "1px solid hsl(var(--foreground) / 0.14)",
         boxShadow: isPrimary
           ? "0 10px 30px -12px hsl(var(--primary) / 0.45), inset 0 1px 0 hsl(0 0% 100% / 0.12)"
           : "inset 0 1px 0 hsl(0 0% 100% / 0.06)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
       }}
     >
       <div className="flex items-center justify-between">

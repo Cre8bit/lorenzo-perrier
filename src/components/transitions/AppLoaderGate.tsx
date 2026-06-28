@@ -34,15 +34,6 @@ export const AppLoaderGate = ({ children }: Props) => {
       : !hasBooted
     : !hasBooted;
 
-    console.log("AppLoaderGate", {
-      isCubeSpaceRoute,
-      startedOnCubeSpaceRouteRef: startedOnCubeSpaceRouteRef.current,
-      isParticleFieldInitialized,
-      isCubeSpaceReady,
-      hasBooted,
-      routeReady,
-      showLoader,
-    });
   return (
     <>
       {children}

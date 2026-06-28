@@ -50,10 +50,7 @@ export const SectionZoom = ({
     <div ref={outerRef} className={className}>
       <div
         ref={innerRef}
-        style={{
-          willChange: disabled ? undefined : "transform, opacity",
-          transformOrigin: "center center",
-        }}
+        style={{ transformOrigin: "center center" }}
       >
         {children}
       </div>
