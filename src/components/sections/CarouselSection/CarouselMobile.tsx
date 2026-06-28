@@ -33,12 +33,6 @@ const TINTS = [
   },
 ];
 
-/**
- * Slide-in from the right; plays once, then detaches its listeners.
- * `gate: false` because the target's own transform pushes it offscreen-right
- * — an IO on the same element would report not-intersecting and never
- * trigger the return slide.
- */
 const useSlideFromRight = (
   ref: React.RefObject<HTMLElement>,
   distance: number,
@@ -75,20 +69,12 @@ export const CarouselMobile = () => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        const half = el.clientWidth / 2;
-        const center = el.scrollLeft + half;
+        const center = el.scrollLeft + el.clientWidth / 2;
         let best = 0;
         let bestDist = Infinity;
         for (let i = 0; i < el.children.length; i++) {
           const child = el.children[i] as HTMLElement;
-          const c = child.offsetLeft + child.offsetWidth / 2;
-          const signed = (c - center) / half;
-          const absOff = Math.min(1, Math.abs(signed));
-          // marginTop (not transform) so it doesn't fight the card's
-          // perspective + rotateY flip on the same element.
-          child.style.marginTop = `${Math.round(absOff * 10)}px`;
-          child.style.opacity = (1 - absOff * 0.4).toFixed(3);
-          const d = Math.abs(c - center);
+          const d = Math.abs(child.offsetLeft + child.offsetWidth / 2 - center);
           if (d < bestDist) {
             bestDist = d;
             best = i;
@@ -147,6 +133,7 @@ export const CarouselMobile = () => {
           {carouselContexts.map((ctx, i) => {
             const tint = TINTS[i % TINTS.length];
             const isFlipped = flipped.has(i);
+            const isActive = i === activeIndex;
             return (
               <button
                 key={ctx.id}
@@ -154,7 +141,9 @@ export const CarouselMobile = () => {
                 onClick={() => toggleFlip(i)}
                 className="snap-center shrink-0 w-[80vw] max-w-[340px] aspect-[3/4.4] rounded-[28px] text-left relative"
                 style={{
-                  transition: "margin-top 300ms ease-out, opacity 300ms ease-out",
+                  marginTop: isActive ? 0 : 10,
+                  opacity: isActive ? 1 : 0.65,
+                  transition: "margin-top 320ms ease-out, opacity 320ms ease-out",
                   perspective: 1600,
                   WebkitTapHighlightColor: "transparent",
                 }}

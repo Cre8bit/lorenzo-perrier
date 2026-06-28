@@ -68,7 +68,6 @@ export const HeroSectionMobile = () => {
 
   return (
     <section className="relative w-full min-h-[100svh] flex flex-col items-center justify-center overflow-hidden px-6 py-20 text-center">
-      {/* Availability */}
       <div className="inline-flex items-center gap-2 text-[10.5px] uppercase tracking-[0.28em] text-foreground/70">
         <span className="relative flex h-1.5 w-1.5 items-center justify-center">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400/70" />
@@ -77,7 +76,6 @@ export const HeroSectionMobile = () => {
         <span>Open to opportunities</span>
       </div>
 
-      {/* Identity */}
       <h1
         className="mt-5 font-display leading-[0.88] font-light tracking-tight w-full"
         style={{ textShadow: "0 0 60px hsl(var(--primary) / 0.08)" }}
@@ -118,7 +116,6 @@ export const HeroSectionMobile = () => {
         Paris · SF-bound
       </span>
 
-      {/* Rotating sentence */}
       <div className="my-12 font-display text-[1.35rem] leading-[1.5] tracking-tight text-foreground/70 flex flex-col gap-1.5">
         <div>
           <span>Building </span>
@@ -131,7 +128,6 @@ export const HeroSectionMobile = () => {
         </div>
       </div>
 
-      {/* CTAs */}
       <div className="grid grid-cols-2 gap-3 w-full">
         <CTATile
           href={profile.links.linkedin}

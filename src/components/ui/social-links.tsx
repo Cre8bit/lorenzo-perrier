@@ -25,7 +25,6 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
       onMouseLeave={() => setIsHovered(false)}
       style={{ animationDelay: `${delay}ms` }}
     >
-      {/* Glow effect on hover */}
       <div
         className={`absolute inset-0 rounded-full blur-lg transition-opacity duration-500 ${
           isHovered ? "opacity-100" : "opacity-0"
@@ -36,7 +35,6 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
         }}
       />
 
-      {/* Glass button */}
       <div
         className={`liquid-glass-fx relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
           isHovered
@@ -45,6 +43,7 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
         }`}
         style={{
           backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
           border: "1px solid",
           borderColor: isHovered
             ? "hsl(var(--primary) / 0.4)"
@@ -82,7 +81,8 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
 
 export const SocialLinks = () => {
   const { currentSection } = useAppContext();
-  const hide = currentSection === "experience";
+  const isMobile = useIsMobile();
+  const hide = !isMobile && currentSection === "experience";
   return (
     <div
       className="fixed top-8 right-8 z-50 flex items-center gap-3 transition-all duration-500 ease-out"
@@ -146,7 +146,7 @@ const ContactLink = ({
 const ContactButton = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1); // Two-step modal
+  const [step, setStep] = useState<1 | 2>(1);
   const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -285,6 +285,7 @@ const ContactButton = () => {
           }`}
           style={{
             backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
             border: "1px solid",
             borderColor: isHovered
               ? "hsl(var(--primary) / 0.4)"

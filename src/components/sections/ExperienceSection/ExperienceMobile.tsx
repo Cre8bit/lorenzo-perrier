@@ -33,30 +33,39 @@ export const ExperienceMobile = () => {
       return next;
     });
 
-  // Identity card scales up while entering, then fades the rest in just
-  // before the card leaves so the hand-off feels continuous.
   const zoomRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const restRef = useRef<HTMLDivElement>(null);
+  const lastZoom = useRef({ scale: -1, cardOp: -1, restOp: -1 });
 
   const applyZoom = useCallback(() => {
     const card = cardRef.current;
     if (!card) return;
     const rect = card.getBoundingClientRect();
     const vh = window.innerHeight;
-    const start = vh;
-    const end = vh * 0.25;
-    const p = Math.max(0, Math.min(1, (start - rect.top) / (start - end)));
+    const p = Math.max(0, Math.min(1, (vh - rect.top) / (vh * 0.75)));
     const eased = easeOutQuad(p);
-    const scale = 0.82 + eased * 0.26;
-    card.style.transform = `scale(${scale.toFixed(3)})`;
-    card.style.opacity = (0.7 + eased * 0.3).toFixed(3);
-    if (restRef.current) {
-      restRef.current.style.opacity = Math.max(0, (p - 0.55) / 0.4).toFixed(3);
+    const scale = Math.round((0.82 + eased * 0.26) * 200) / 200;
+    const cardOp = Math.round((0.7 + eased * 0.3) * 100) / 100;
+    const restOp =
+      p < 0.55 ? 0 : Math.min(1, Math.round(((p - 0.55) / 0.4) * 50) / 50);
+    const last = lastZoom.current;
+    if (scale !== last.scale || cardOp !== last.cardOp) {
+      card.style.transform = `scale(${scale})`;
+      card.style.opacity = `${cardOp}`;
+      last.scale = scale;
+      last.cardOp = cardOp;
+    }
+    if (restRef.current && restOp !== last.restOp) {
+      restRef.current.style.opacity = `${restOp}`;
+      last.restOp = restOp;
     }
   }, []);
 
-  useScrollDriven(zoomRef, applyZoom, { leadVh: 1.2, rootMargin: "60% 0px 60% 0px" });
+  useScrollDriven(zoomRef, applyZoom, {
+    leadVh: 1.2,
+    rootMargin: "40% 0px 40% 0px",
+  });
 
   return (
     <section className="relative w-full">

@@ -17,19 +17,15 @@ export const LiquidNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Determine initial active index based on current route
   const getInitialIndex = () => {
-    const currentPath = location.pathname;
-    const index = chapters.findIndex((c) => c.route === currentPath);
-    return index >= 0 ? index : 1; // Default to "Home"
+    const index = chapters.findIndex((c) => c.route === location.pathname);
+    return index >= 0 ? index : 1;
   };
 
   const isTouch = useIsTouchDevice();
   const [isHovered, setIsHovered] = useState(false);
   const [activeIndex, setActiveIndex] = useState(getInitialIndex);
 
-  // On touch devices, treat the bar as always "active" so the glass surface
-  // reads cleanly without a hover state.
   const isActive = isHovered || isTouch;
 
   const barRef = useRef<HTMLDivElement>(null);
