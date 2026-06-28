@@ -116,6 +116,10 @@ export const ExperienceMobile = () => {
                 <img
                   src={`${import.meta.env.BASE_URL}Lorenzo_in_vietnam.jpg`}
                   alt={profile.name.first}
+                  loading="lazy"
+                  decoding="async"
+                  width={64}
+                  height={64}
                   className="w-16 h-16 rounded-2xl object-cover border border-primary/20"
                 />
                 <div>
@@ -188,6 +192,10 @@ export const ExperienceMobile = () => {
                               <img
                                 src={`${import.meta.env.BASE_URL}${exp.logo}`}
                                 alt=""
+                                loading="lazy"
+                                decoding="async"
+                                width={14}
+                                height={14}
                                 className="w-3.5 h-3.5 opacity-60"
                               />
                             )}

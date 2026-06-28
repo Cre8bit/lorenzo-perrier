@@ -25,18 +25,21 @@ const HomeMobile = () => {
     sections.forEach(({ id, ref }) => {
       if (ref.current) elToId.set(ref.current, id);
     });
+    const latest = new Map<SectionId, number>();
     const io = new IntersectionObserver(
       (entries) => {
-        let bestId: SectionId | null = null;
-        let bestRatio = 0;
         for (const e of entries) {
           const id = elToId.get(e.target);
-          if (!id) continue;
-          if (e.intersectionRatio > bestRatio) {
-            bestRatio = e.intersectionRatio;
+          if (id) latest.set(id, e.intersectionRatio);
+        }
+        let bestId: SectionId | null = null;
+        let bestRatio = 0;
+        latest.forEach((ratio, id) => {
+          if (ratio > bestRatio) {
+            bestRatio = ratio;
             bestId = id;
           }
-        }
+        });
         if (bestId) setCurrentSection(bestId);
       },
       { threshold: [0, 0.25, 0.5, 0.75] },

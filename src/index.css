@@ -1098,6 +1098,21 @@
     display: none !important;
   }
 
+  .ambient-base {
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .ambient-noise {
+    display: none !important;
+  }
+
+  .liquid-glass-fx::before,
+  .liquid-glass-fx::after {
+    display: none !important;
+  }
+
   /* Backdrop-filter is a known mobile killer (especially on iOS Safari).
      Substitute a slightly more opaque background so glass still reads. */
   .glass-panel,
@@ -1112,9 +1127,26 @@
     background: hsl(var(--background) / 0.65);
   }
 
-  /* Status flicker box-shadows + ping rings on the hero chip:
-     constant repaint of a small element is cheap on desktop, jittery on
-     mid-range Android. Replace with a static dot. */
+  .mobile-no-blur {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background:
+      linear-gradient(
+        135deg,
+        hsla(190, 35%, 16%, 0.66) 0%,
+        hsla(220, 25%, 7%, 0.82) 50%,
+        hsla(190, 35%, 14%, 0.66) 100%
+      ) !important;
+    box-shadow:
+      0 6px 18px hsla(220, 30%, 2%, 0.45),
+      0 1px 0 hsla(0, 0%, 100%, 0.08) inset,
+      0 0 0 1px hsla(190, 35%, 70%, 0.06) inset !important;
+  }
+  .mobile-no-blur * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   .animate-status-flicker {
     animation: none !important;
     box-shadow: 0 0 6px hsl(var(--primary) / 0.7);
@@ -1124,14 +1156,21 @@
     opacity: 0 !important;
   }
 
-  /* `will-change: transform` on always-on decorative elements forces
-     extra compositor layers permanently. Drop the ones whose animation
-     we've already disabled above. */
+  .mobile-starfield-twinkle {
+    display: none !important;
+  }
+
   .ambient-base,
   .ambient-mist,
   .aurora-beam,
   .scroll-beam {
     will-change: auto !important;
+  }
+
+  .scroll-beam {
+    animation: none !important;
+    background: hsl(var(--primary) / 0.9) !important;
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.45) !important;
   }
 }
 
@@ -1199,5 +1238,15 @@
     transform: none;
     opacity: 1;
     filter: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .philo-card,
+  .philo-header-eyebrow,
+  .philo-header-title {
+    filter: none !important;
+    transition-property: opacity, transform !important;
+    will-change: transform, opacity;
   }
 }

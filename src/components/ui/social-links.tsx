@@ -36,7 +36,7 @@ const SocialButton = ({ href, icon, label, delay = 0 }: SocialButtonProps) => {
       />
 
       <div
-        className={`liquid-glass-fx relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
+        className={`mobile-no-blur liquid-glass-fx relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
           isHovered
             ? "bg-primary/20 border-primary/40 scale-110"
             : "bg-glass-bg/60 border-white/10"
@@ -111,7 +111,7 @@ export const SocialLinks = () => {
 export const ContactActions = () => {
   const isMobile = useIsMobile();
   const { currentSection } = useAppContext();
-  const hide = currentSection === "experience";
+  const hide = !isMobile && currentSection === "experience";
 
   return <ContactLink hide={hide} variant={isMobile ? "mobile" : "desktop"} />;
 };
@@ -278,7 +278,7 @@ const ContactButton = () => {
         />
 
         <div
-          className={`liquid-glass-fx relative px-0 sm:px-4 h-10 sm:h-10 w-10 sm:w-auto rounded-full flex items-center justify-center gap-0 sm:gap-2 transition-all duration-500 ${
+          className={`mobile-no-blur liquid-glass-fx relative px-0 sm:px-4 h-10 sm:h-10 w-10 sm:w-auto rounded-full flex items-center justify-center gap-0 sm:gap-2 transition-all duration-500 ${
             isHovered
               ? "bg-primary/20 border-primary/40 scale-105"
               : "bg-glass-bg/60 border-white/10"
