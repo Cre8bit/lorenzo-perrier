@@ -11,13 +11,6 @@ const TINTS = [
 const tintA = (hsl: string, a: number) =>
   hsl.replace("hsl(", "hsla(").replace(")", ` / ${a})`);
 
-const SHORT: Record<string, string> = {
-  "Systems & Architecture": "Built to scale, made to last.",
-  "User-Centered Systems": "Production is the product.",
-  "AI in Production": "AI in systems — not notebooks.",
-  "Reactivity & Adaptation": "Systems learn by listening.",
-};
-
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -96,7 +89,7 @@ const Banner = ({ index, title, short }: BannerProps) => {
           }}
         />
 
-        <div className="relative px-4 py-3 flex flex-col gap-1">
+        <div className="relative px-4 py-4 flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
             <span
               className="text-[9px] font-semibold tracking-[0.3em] uppercase px-1.5 py-0.5 rounded-full"
@@ -115,12 +108,28 @@ const Banner = ({ index, title, short }: BannerProps) => {
               }}
             />
           </div>
-          <h3 className="font-display text-[1.1rem] leading-[1.15]">{title}</h3>
+          <h3
+            className="font-body text-[11px] font-semibold uppercase tracking-[0.2em] leading-tight"
+            style={{ color: tintA(tint.color, 0.95) }}
+          >
+            {title}
+          </h3>
           <p
-            className="text-[13px] italic leading-snug text-foreground/80"
+            className="text-[16px] italic leading-snug text-foreground relative pl-5"
             style={{ fontFamily: "'Cormorant Garamond', serif" }}
           >
-            “{short}”
+            <span
+              aria-hidden
+              className="absolute left-0 top-0 text-[28px] leading-none font-serif"
+              style={{
+                color: tintA(tint.color, 0.55),
+                fontFamily: "Georgia, serif",
+                top: "0.15em",
+              }}
+            >
+              “
+            </span>
+            {short}
           </p>
         </div>
       </article>
@@ -158,7 +167,7 @@ export const PhilosophyMobile = () => (
           key={p.title}
           index={i}
           title={p.title}
-          short={SHORT[p.title] ?? p.short}
+          short={p.short}
         />
       ))}
     </div>

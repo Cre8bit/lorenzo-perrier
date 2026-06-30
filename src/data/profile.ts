@@ -23,7 +23,7 @@ export const profile = {
     "Off-screen: slacklining, bouldering, playing the piano and learning (paragliding soon!).",
   highlights: [
     { label: "$50M+", description: "raised on platform" },
-    { label: "20+", description: "LLM agents orchestrated" },
+    { label: "10+", description: "teams enabled with AI" },
     { label: "35k+", description: "users served" },
   ],
 };
@@ -221,7 +221,7 @@ export const philosophy = [
     short: "Production is the product.",
   },
   {
-    title: "AI in Production",
+    title: "AI & Production",
     short: "AI belongs in systems, not notebooks.",
   },
   {

@@ -10,17 +10,28 @@ import { profile } from "@/data/profile";
 
 const LOOKING_THING = [
   "ML systems",
-  "real products",
+  "products people love",
   "AI agents",
+  "big ideas",
+  "intelligent systems",
+  "AI-native software",
+  "hard technical problems",
   "tools that ship",
-  "ambitious problems",
+  "next gen AI tools",
+  "real products",
+  "products at scale",
+  "complex systems",
 ];
 const LOOKING_WITH = [
   "ambitious teams",
-  "curious builders",
+  "curious minds",
   "great engineers",
   "people who care",
+  "mission-driven teams",
   "thoughtful makers",
+  "small, fast teams",
+  "people who move fast",
+  "curious builders",
 ];
 
 export const HeroSectionMobile = () => {
@@ -91,7 +102,7 @@ export const HeroSectionMobile = () => {
         </span>
       </h1>
 
-      <p className="mt-3 text-[15px] leading-snug text-foreground/85">
+      <p className="mt-5 text-[15px] leading-snug text-foreground/85">
         Leading the AI shift at{" "}
         <span className="text-primary font-medium">BPIfrance</span>{" "}
         <span className="text-foreground/55">with</span>{" "}
