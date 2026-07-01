@@ -147,7 +147,7 @@ export const ExperienceMobile = () => {
           </div>
         </div>
 
-        <div ref={restRef} className="relative pb-20 px-5" style={{ opacity: 0 }}>
+        <div ref={restRef} className="relative px-5" style={{ opacity: 0 }}>
           <div className="-mx-5">
             <BannerMarquee speed={26}>
               {profile.highlights.map((h, i) => (
@@ -174,7 +174,7 @@ export const ExperienceMobile = () => {
               const isOpen = expanded.has(i);
               return (
                 <SectionZoom key={i} minScale={0.94} minOpacity={0.55}>
-                  <article className="rounded-2xl border border-border/25 bg-gradient-to-br from-muted/15 to-muted/5 overflow-hidden">
+                  <article className="rounded-2xl border border-border/40 bg-gradient-to-br from-muted/35 to-muted/15 overflow-hidden">
                     <button
                       type="button"
                       onClick={() => toggle(i)}
@@ -284,7 +284,7 @@ export const ExperienceMobile = () => {
             <h3 className="font-display text-[1.7rem] leading-[1.1]">Education</h3>
           </div>
           <SectionZoom minScale={0.94} minOpacity={0.55}>
-            <div className="rounded-2xl border border-border/25 bg-gradient-to-br from-muted/15 to-muted/5 p-5 space-y-4">
+            <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-muted/35 to-muted/15 p-5 space-y-4">
               {education.map((e, i) => (
                 <div
                   key={i}
@@ -314,7 +314,7 @@ export const ExperienceMobile = () => {
             </h3>
           </div>
           <SectionZoom minScale={0.94} minOpacity={0.55}>
-            <div className="rounded-2xl border border-border/25 bg-gradient-to-br from-muted/15 to-muted/5 p-5 overflow-hidden">
+            <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-muted/35 to-muted/15 p-5 overflow-hidden">
               <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground mb-3">
                 Stack
               </p>
@@ -349,7 +349,7 @@ export const ExperienceMobile = () => {
             <h3 className="font-display text-[1.7rem] leading-[1.1]">Contact</h3>
           </div>
           <SectionZoom minScale={0.94} minOpacity={0.55}>
-            <div className="rounded-2xl border border-border/25 bg-gradient-to-br from-muted/15 to-muted/5 p-5 space-y-2">
+            <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-muted/35 to-muted/15 p-5 space-y-2">
               {[
                 {
                   icon: Github,
@@ -398,6 +398,28 @@ export const ExperienceMobile = () => {
               </a>
             </div>
           </SectionZoom>
+
+          <footer
+            className="mt-16 -mx-5 px-6 pt-5 backdrop-blur-md"
+            style={{
+              background:
+                "linear-gradient(180deg, hsl(220 30% 6% / 0) 0%, hsl(220 30% 6% / 0.55) 40%, hsl(220 30% 6% / 0.75) 100%)",
+              paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom, 0px))",
+            }}
+          >
+            <div
+              aria-hidden
+              className="mx-auto mb-3.5 h-px w-12 bg-gradient-to-r from-transparent via-foreground/10 to-transparent"
+            />
+            <div className="flex flex-col items-center gap-1 text-center">
+              <p className="text-[10px] uppercase tracking-[0.32em] text-foreground/30">
+                © 2026 · {profile.name.first}
+              </p>
+              <p className="text-[9.5px] tracking-[0.18em] text-foreground/20">
+                Updated {import.meta.env.VITE_BUILD_DATE} · React · Three.js · Vite
+              </p>
+            </div>
+          </footer>
         </div>
       </div>
     </section>
