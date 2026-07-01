@@ -27,6 +27,7 @@ export const LiquidNavigation = () => {
   const [activeIndex, setActiveIndex] = useState(getInitialIndex);
 
   const isActive = isHovered || isTouch;
+  const showHoverFx = isHovered && !isTouch;
 
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -96,7 +97,7 @@ export const LiquidNavigation = () => {
           boxShadow: isActive
             ? `0 0 60px hsla(185, 50%, 55%, 0.15), 0 0 100px hsla(185, 50%, 55%, 0.08), inset 0 1px 0 hsla(210, 20%, 92%, 0.1)`
             : "0 0 20px hsla(185, 50%, 55%, 0.02)",
-          transform: isHovered ? "scale(1.02)" : "scale(1)",
+          transform: showHoverFx ? "scale(1.02)" : "scale(1)",
         }}
       >
         {/* Liquid reveal effect */}
@@ -116,7 +117,7 @@ export const LiquidNavigation = () => {
           style={{
             background:
               "linear-gradient(105deg, transparent 30%, hsla(185, 50%, 70%, 0.15) 45%, hsla(210, 20%, 92%, 0.1) 50%, transparent 55%)",
-            transform: isHovered ? "translateX(100%)" : "translateX(-100%)",
+            transform: showHoverFx ? "translateX(100%)" : "translateX(-100%)",
             transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         />
