@@ -3,7 +3,6 @@ import { RotateCcw, ArrowRight, MousePointerClick } from "lucide-react";
 import type { CarouselContext } from "./CarouselData";
 import { withHslAlpha } from "./tint";
 import { lerp } from "@/utils/animation";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 export type CarouselTint = {
   bg: string;
@@ -107,15 +106,12 @@ export const EditorialCard: React.FC<EditorialCardProps> = ({
   onFlip,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const isMobile = useIsMobile();
 
   const strength = clamp01(activeStrength ?? (isActive ? 1 : 0));
   const styles = useCardStyles(tint);
   const bodyOpacity = lerp(0.3, 1, strength);
 
-  // Hover should only matter when the card is actually interactive/active.
-  // On mobile, active cards are always in hover state for better visibility.
-  const hoverOn = isActive && (isMobile || isHovered);
+  const hoverOn = isActive && isHovered;
 
   // Metadata opacity tuning (point 5)
   const metaOpacity = hoverOn ? 0.55 : 0.38;
@@ -129,8 +125,7 @@ export const EditorialCard: React.FC<EditorialCardProps> = ({
         : 0.14
     : 0;
 
-  // Gentle idle levitation once the card settles at center. Desktop only —
-  const levitate = isActive && !isMobile;
+  const levitate = isActive;
 
   return (
     <div

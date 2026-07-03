@@ -13,16 +13,13 @@ import { SkillsGraph } from "@/components/ui/skills-graph";
 import { Reveal } from "@/components/ui/reveal";
 import Hero from "./ExperienceHero";
 import { useAppContext } from "@/contexts/useAppContext";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const ExperienceSection = () => {
   const { currentSection, isResumeViewVisible, setIsResumeViewVisible } =
     useAppContext();
-  const isMobile = useIsMobile();
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const contentRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
-  const [showAllExperiences, setShowAllExperiences] = useState(false);
   const [_, setIsHeroSectionVisible] = useState(false);
   const footerRef = useRef<HTMLDivElement | null>(null);
 
@@ -201,8 +198,7 @@ const ExperienceSection = () => {
         />
 
         {/* Skills Graph */}
-        {!isMobile && (
-          <section className="mb-20">
+        <section className="mb-20">
             <div className="mb-6">
               <h2 className="text-sm font-medium text-foreground tracking-wider uppercase flex items-center gap-3">
                 <span className="w-8 h-px bg-gradient-to-r from-transparent to-primary" />
@@ -223,7 +219,6 @@ const ExperienceSection = () => {
               }}
             />
           </section>
-        )}
 
         {/* Two-column layout */}
         <div className="grid md:grid-cols-[2fr,1fr] gap-16">
@@ -238,13 +233,10 @@ const ExperienceSection = () => {
               </h2>
 
               <div className="space-y-8">
-                {(isMobile && !showAllExperiences
-                  ? experiences.slice(0, 3)
-                  : experiences
-                ).map((exp, i) => {
+                {experiences.map((exp, i) => {
                   const isExpanded = expandedCards.has(i);
                   const isEven = i % 2 === 0;
-                  const isHovered = !isMobile && hoveredCardIndex === i;
+                  const isHovered = hoveredCardIndex === i;
 
                   const handleSpotlight = (e: React.MouseEvent<HTMLElement>) => {
                     const r = e.currentTarget.getBoundingClientRect();
@@ -262,12 +254,8 @@ const ExperienceSection = () => {
                     <div
                       key={i}
                       className={`relative ${isEven ? "md:mr-12" : "md:ml-12"}`}
-                      onMouseEnter={() => {
-                        if (!isMobile) setHoveredCardIndex(i);
-                      }}
-                      onMouseLeave={() => {
-                        if (!isMobile) setHoveredCardIndex(null);
-                      }}
+                      onMouseEnter={() => setHoveredCardIndex(i)}
+                      onMouseLeave={() => setHoveredCardIndex(null)}
                     >
                       {/* Connection line */}
                       <div
@@ -377,7 +365,7 @@ const ExperienceSection = () => {
                               className="flex items-center gap-2 text-sm leading-relaxed transition-colors duration-300 group/summary"
                               style={{
                                 color:
-                                  isMobile || isHovered
+                                  isHovered
                                     ? "hsl(var(--foreground) / 0.9)"
                                     : "hsl(var(--muted-foreground))",
                               }}
@@ -392,7 +380,7 @@ const ExperienceSection = () => {
                               className="text-sm text-muted-foreground leading-relaxed transition-colors duration-300"
                               style={{
                                 color:
-                                  isHovered || isMobile
+                                  isHovered
                                     ? "hsl(var(--foreground) / 0.9)"
                                     : undefined,
                               }}
@@ -447,7 +435,7 @@ const ExperienceSection = () => {
                                       className="text-muted-foreground/80 leading-relaxed text-sm transition-colors duration-300 mb-3"
                                       style={{
                                         color:
-                                          isHovered || isMobile
+                                          isHovered
                                             ? "hsl(var(--foreground) / 0.9)"
                                             : undefined,
                                       }}
@@ -464,7 +452,7 @@ const ExperienceSection = () => {
                                           className="text-muted-foreground/80 leading-relaxed text-sm transition-colors duration-300"
                                           style={{
                                             color:
-                                              isHovered || isMobile
+                                              isHovered
                                                 ? "hsl(var(--foreground) / 0.9)"
                                                 : undefined,
                                           }}
@@ -496,7 +484,7 @@ const ExperienceSection = () => {
                                                       className="leading-relaxed transition-colors duration-300"
                                                       style={{
                                                         color:
-                                                          isHovered || isMobile
+                                                          isHovered
                                                             ? "hsl(var(--foreground) / 0.9)"
                                                             : undefined,
                                                       }}
@@ -539,16 +527,6 @@ const ExperienceSection = () => {
                 })}
               </div>
 
-              {/* Show more button for mobile */}
-              {isMobile && !showAllExperiences && experiences.length > 3 && (
-                <button
-                  onClick={() => setShowAllExperiences(true)}
-                  className="mt-8 w-full px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 border border-primary/30 hover:border-primary/50 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  <span>Show more experiences</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              )}
             </section>
           </div>
 

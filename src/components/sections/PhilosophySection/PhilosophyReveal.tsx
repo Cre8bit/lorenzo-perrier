@@ -4,7 +4,6 @@ import { reportPerformance } from "@/components/ui/performance-overlay";
 import { clamp01, smoothstep } from "@/utils/animation";
 import { useAppContext } from "@/contexts/useAppContext";
 import { TrailStepper } from "./TrailStepper";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 // --- Quote tokenization ------------------------------------------------------
 // The quote is rendered word by word so the active card can stagger-reveal
@@ -77,7 +76,6 @@ const QuoteWords = ({
 
 export const PhilosophyReveal = () => {
   const { setActivePresetIndex } = useAppContext();
-  const isMobile = useIsMobile();
 
   // Snapped (discrete) progress = center of active card
   const [progress, setProgress] = useState(0);
@@ -483,7 +481,7 @@ export const PhilosophyReveal = () => {
         >
           {philosophyItems.map((item, index) => {
             const opacity = getItemOpacity(index);
-            const isHovered = isMobile || hoveredIndex === index;
+            const isHovered = hoveredIndex === index;
             const isActive = index === effectiveActiveIndex;
 
             return (

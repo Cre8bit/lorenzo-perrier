@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useAppContext } from "@/contexts/useAppContext";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 // Distance of the indicator from the bottom of the viewport (matches the
 // inline `bottom` style below) and its approximate rendered height. Used to
@@ -11,7 +10,6 @@ const INDICATOR_HEIGHT = 84;
 const COLLISION_MARGIN = 24;
 
 export const ScrollIndicator = () => {
-  const isMobile = useIsMobile();
   const { currentSection } = useAppContext();
   const [isVisible, setIsVisible] = useState(false);
   const [readyToShow, setReadyToShow] = useState(false);
@@ -121,7 +119,7 @@ export const ScrollIndicator = () => {
     }
   };
 
-  if (!isVisible || isMobile || !hasRoom) {
+  if (!isVisible || !hasRoom) {
     return null;
   }
 
