@@ -14,7 +14,6 @@ export const ScrollIndicator = () => {
   const isMobile = useIsMobile();
   const { currentSection } = useAppContext();
   const [isVisible, setIsVisible] = useState(false);
-  const [_, setHasScrolled] = useState(false);
   const [readyToShow, setReadyToShow] = useState(false);
   const [hasRoom, setHasRoom] = useState(true);
 
@@ -78,7 +77,6 @@ export const ScrollIndicator = () => {
 
     const handleScroll = () => {
       const scrolled = window.scrollY > 100;
-      setHasScrolled(scrolled);
       setHasRoom(checkRoom());
 
       if (scrolled) {

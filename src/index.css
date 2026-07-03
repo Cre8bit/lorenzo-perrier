@@ -1,6 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* ============================================================================
+   Chromatic journey — a single registered hue that drifts as the visitor
+   travels down the page (hero → philosophy → carousel → experience). Every
+   ambient light source (cursor glow, flow aura) reads it, so the whole site's
+   color temperature shifts with scroll position. Registered via @property so
+   consuming elements can *transition* the hue smoothly instead of snapping.
+   ============================================================================ */
+@property --flow-hue {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 185;
+}
 
 @layer base {
   :root {
@@ -498,14 +510,16 @@
   );
   background: radial-gradient(
     circle at center,
-    hsl(185 60% 55% / 0.12) 0%,
-    hsl(195 60% 50% / 0.06) 25%,
-    hsl(220 50% 40% / 0.03) 45%,
+    hsl(var(--flow-hue) 60% 55% / 0.12) 0%,
+    hsl(calc(var(--flow-hue) + 10) 60% 50% / 0.06) 25%,
+    hsl(calc(var(--flow-hue) + 35) 50% 40% / 0.03) 45%,
     transparent 65%
   );
   filter: blur(40px);
   mix-blend-mode: screen;
-  transition: opacity 600ms var(--ease-smooth);
+  transition:
+    opacity 600ms var(--ease-smooth),
+    --flow-hue 2400ms ease;
   will-change: transform;
 }
 
@@ -520,8 +534,8 @@
   );
   background: radial-gradient(
     circle at center,
-    hsl(220 60% 50% / 0.06) 0%,
-    hsl(260 50% 40% / 0.03) 35%,
+    hsl(calc(var(--flow-hue) + 35) 60% 50% / 0.06) 0%,
+    hsl(calc(var(--flow-hue) + 75) 50% 40% / 0.03) 35%,
     transparent 70%
   );
   filter: blur(80px);
@@ -1034,7 +1048,9 @@
    hero decoration wrapper when its section scrolls out of view) and every
    CSS animation below stops eating composite budget. */
 [data-paused="true"],
-[data-paused="true"] * {
+[data-paused="true"] *,
+[data-paused="true"] *::before,
+[data-paused="true"] *::after {
   animation-play-state: paused !important;
 }
 
@@ -1248,5 +1264,282 @@
     filter: none !important;
     transition-property: opacity, transform !important;
     will-change: transform, opacity;
+  }
+}
+
+/* ============================================================================
+   Signature entrance & ambience layer
+   ----------------------------------------------------------------------------
+   Everything below is one-shot (entrance) or slow idle (levitate, aura) work:
+   opacity/transform/clip-path only, no per-frame JS. Each block carries its
+   own reduced-motion / mobile guard at the end of the file.
+   ============================================================================ */
+
+/* --- Flow aura — fixed ambient wash that follows --flow-hue ----------------
+   Static gradients (zero per-frame cost); the only animated thing is the
+   registered --flow-hue custom property, and only for 2400ms on section
+   change. Alphas are deliberately assertive: at 0.08 the wash was invisible
+   under the vignette/noise layers stacked above it. The top wash now dips
+   into the viewport and a counter-hued corner glow anchors the bottom, so
+   the section-to-section temperature shift actually reads. */
+.flow-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      110% 75% at 50% -8%,
+      hsl(var(--flow-hue) 75% 55% / 0.17) 0%,
+      hsl(var(--flow-hue) 70% 50% / 0.07) 40%,
+      transparent 66%
+    ),
+    radial-gradient(
+      85% 65% at 88% 108%,
+      hsl(calc(var(--flow-hue) + 45) 65% 52% / 0.12) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      60% 50% at 4% 85%,
+      hsl(calc(var(--flow-hue) - 25) 65% 50% / 0.07) 0%,
+      transparent 60%
+    );
+  mix-blend-mode: screen;
+  transition: --flow-hue 2400ms ease;
+}
+
+/* --- Hero: letter cascade for the first name ------------------------------- */
+@keyframes char-cascade {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0.4em, 0);
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
+.char-in {
+  display: inline-block;
+  opacity: 0;
+  animation: char-cascade 800ms var(--ease-smooth) forwards;
+  animation-delay: calc(150ms + var(--ci, 0) * 55ms);
+}
+
+/* --- Hero: horizontal wipe reveal for the surname -------------------------- */
+@keyframes name-wipe {
+  0% {
+    opacity: 0;
+    clip-path: inset(-20% 100% -20% 0);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(-20% -5% -20% 0);
+    filter: blur(0);
+  }
+}
+
+.name-wipe {
+  opacity: 0;
+  animation: name-wipe 1100ms var(--ease-smooth) 550ms forwards;
+}
+
+/* --- Hero: hairline divider that draws itself outward ---------------------- */
+@keyframes hair-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes diamond-pop {
+  0% {
+    opacity: 0;
+    transform: rotate(45deg) scale(0);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(45deg) scale(1.45);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+}
+
+.hair-grow-l,
+.hair-grow-r {
+  transform: scaleX(0);
+  animation: hair-grow 900ms var(--ease-smooth) 1250ms forwards;
+}
+.hair-grow-l {
+  transform-origin: 100% 50%;
+}
+.hair-grow-r {
+  transform-origin: 0% 50%;
+}
+
+.diamond-pop {
+  opacity: 0;
+  animation: diamond-pop 700ms var(--ease-bounce) 1150ms forwards;
+}
+
+/* --- Philosophy: per-word quote reveal -------------------------------------
+   Words rise a fraction of a line with a slight stagger when a card becomes
+   active. Inline-block spans, opacity+transform only. */
+@keyframes word-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.35em, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.word-in {
+  display: inline-block;
+  opacity: 0;
+  animation: word-rise 520ms var(--ease-smooth) forwards;
+  animation-delay: calc(var(--wi, 0) * 26ms);
+}
+
+/* --- Philosophy: index counter tick ---------------------------------------- */
+@keyframes counter-tick {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -7px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.counter-tick {
+  display: inline-block;
+  animation: counter-tick 460ms var(--ease-smooth) both;
+}
+
+/* --- Carousel: active card idle levitation --------------------------------- */
+@keyframes card-levitate {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -6px, 0);
+  }
+}
+
+.card-levitate {
+  animation: card-levitate 6.5s ease-in-out infinite;
+}
+
+/* --- Carousel: one-shot light sweep when a card arrives at center ---------- */
+.card-arrive-sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.card-arrive-sheen::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 34%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(210 80% 90% / 0.09) 50%,
+    transparent 100%
+  );
+  transform: translateX(-130%) skewX(-16deg);
+  opacity: 0;
+  animation: sheen-sweep 1.2s var(--ease-smooth) 400ms forwards;
+}
+
+/* --- Experience: one-shot reveal-on-scroll ----------------------------------
+   Driven by the useRevealOnce hook flipping data-inview. Transition (not
+   animation) so interrupted reveals settle gracefully. --ri staggers siblings. */
+.reveal-up {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  transition:
+    opacity 700ms var(--ease-smooth),
+    transform 820ms var(--ease-smooth);
+  transition-delay: calc(var(--ri, 0) * 90ms);
+}
+
+.reveal-up[data-inview="true"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* --- Mobile hero: entrance cascade ------------------------------------------
+   Opacity + transform only (no blur/filter — cheap on mobile compositors). */
+@keyframes m-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.m-rise {
+  opacity: 0;
+  animation: m-rise 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--mi, 0) * 85ms);
+}
+
+/* --- Guards ----------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .char-in,
+  .name-wipe,
+  .word-in,
+  .counter-tick,
+  .m-rise,
+  .hair-grow-l,
+  .hair-grow-r,
+  .diamond-pop {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+    filter: none !important;
+  }
+  .card-levitate,
+  .card-arrive-sheen::before,
+  .flow-aura {
+    animation: none !important;
+    transition: none !important;
+  }
+  .reveal-up {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Blur keyframes are desktop-only decoration; the mobile hero uses m-rise.
+     If the desktop hero ever renders on a small viewport, drop the filters. */
+  .char-in,
+  .name-wipe {
+    filter: none !important;
   }
 }

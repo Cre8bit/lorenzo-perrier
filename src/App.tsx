@@ -27,6 +27,7 @@ import { useCubeSpaceDebugOverlay } from "@/hooks/use-cubespace-debug-overlay";
 import { setParticleField3DQuality } from "./components/ui/particle-quality";
 import { CursorGlow } from "@/components/ui/cursor-glow";
 import { ScrollProgressBar } from "@/components/ui/scroll-progress-bar";
+import { useFlowHue } from "@/hooks/use-flow-hue";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,9 @@ const AppRouterLayer = () => {
   const [hasVisitedCubeSpace, setHasVisitedCubeSpace] = useState(false);
   const keepAliveEnabled = hasVisitedCubeSpace || isCubeSpaceRoute;
   const cubeDebugEnabled = useCubeSpaceDebugOverlay();
+
+  // Drives the site-wide --flow-hue chromatic drift from the active section.
+  useFlowHue();
 
   useEffect(() => {
     if (isCubeSpaceRoute) setHasVisitedCubeSpace(true);

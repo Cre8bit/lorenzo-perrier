@@ -335,6 +335,7 @@ export const CarouselGlide: React.FC = () => {
   return (
     <section
       ref={sectionRef}
+      data-paused={!inView || undefined}
       className="min-h-[75vh] relative overflow-visible flex flex-col items-center justify-center -mt-[83vh]"
       style={{ zIndex: 40 }}
       onMouseEnter={() => {

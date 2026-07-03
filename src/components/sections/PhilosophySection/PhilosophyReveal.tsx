@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { philosophyItems } from "./PhilosophyData";
 import { reportPerformance } from "@/components/ui/performance-overlay";
 import { clamp01, smoothstep } from "@/utils/animation";
@@ -6,13 +6,78 @@ import { useAppContext } from "@/contexts/useAppContext";
 import { TrailStepper } from "./TrailStepper";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+// --- Quote tokenization ------------------------------------------------------
+// The quote is rendered word by word so the active card can stagger-reveal
+// its text. A word is a keyword if it overlaps any keyword occurrence, which
+// keeps punctuation attached to its word (no orphan commas).
+
+type QuoteToken = { text: string; isKeyword: boolean };
+
+const tokenizeQuote = (text: string, keywords: string[]): QuoteToken[] => {
+  const ranges: Array<[number, number]> = [];
+  if (keywords.length) {
+    const pattern = new RegExp(
+      keywords.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
+      "gi",
+    );
+    for (const m of text.matchAll(pattern)) {
+      ranges.push([m.index!, m.index! + m[0].length]);
+    }
+  }
+
+  const tokens: QuoteToken[] = [];
+  for (const m of text.matchAll(/\S+/g)) {
+    const start = m.index!;
+    const end = start + m[0].length;
+    tokens.push({
+      text: m[0],
+      isKeyword: ranges.some(([a, b]) => start < b && end > a),
+    });
+  }
+  return tokens;
+};
+
+const QUOTE_TOKENS = philosophyItems.map((item) =>
+  tokenizeQuote(item.description, item.keywords),
+);
+
+const QuoteWords = ({
+  tokens,
+  animate,
+  isHovered,
+}: {
+  tokens: QuoteToken[];
+  animate: boolean;
+  isHovered: boolean;
+}) => (
+  <>
+    {tokens.map((tok, i) => {
+      const keywordClass = tok.isKeyword
+        ? `transition-all duration-700 ${
+            isHovered
+              ? "text-primary/90 drop-shadow-[0_0_8px_rgba(99,179,179,0.4)]"
+              : ""
+          }`
+        : "";
+      return (
+        <React.Fragment key={i}>
+          <span
+            className={
+              animate ? `word-in ${keywordClass}`.trim() : keywordClass || undefined
+            }
+            style={animate ? ({ "--wi": i } as React.CSSProperties) : undefined}
+          >
+            {tok.text}
+          </span>{" "}
+        </React.Fragment>
+      );
+    })}
+  </>
+);
+
 export const PhilosophyReveal = () => {
   const { setActivePresetIndex } = useAppContext();
   const isMobile = useIsMobile();
-
-  // Section-level fades
-  const [revealOpacity, setRevealOpacity] = useState(0);
-  const [exitOpacity, setExitOpacity] = useState(1);
 
   // Snapped (discrete) progress = center of active card
   const [progress, setProgress] = useState(0);
@@ -26,6 +91,7 @@ export const PhilosophyReveal = () => {
 
   // DOM refs
   const sectionRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
 
   // Metrics cache
   const metricsRef = useRef({ top: 0, total: 1 });
@@ -34,11 +100,16 @@ export const PhilosophyReveal = () => {
   const revealCompletedRef = useRef(false);
   const revealStartScrollRef = useRef(0);
 
-  // Render throttling
-  const lastRef = useRef({ reveal: 0, exit: 1, progress: 0, activeIndex: 0 });
+  // Render throttling (discrete card-index state only)
+  const lastRef = useRef({ progress: 0, activeIndex: 0 });
 
-  // Skip RAF when far
+  const fadesRef = useRef({ reveal: -1, exit: -1 });
+
+  // Skip scroll work when far away
   const isNearRef = useRef(false);
+
+  // Latest scroll-update function, callable from the IO / resize handlers
+  const updateRef = useRef<() => void>(() => {});
 
   // Programmatic navigation (stepper click)
   const isProgrammaticScrollRef = useRef(false);
@@ -111,40 +182,47 @@ export const PhilosophyReveal = () => {
     const io = new IntersectionObserver(
       ([entry]) => {
         isNearRef.current = entry.isIntersecting;
+        // Sync immediately on entry so the first painted frame isn't stale.
+        if (entry.isIntersecting) updateRef.current();
       },
       { root: null, threshold: 0, rootMargin: "200px 0px 200px 0px" },
     );
 
     io.observe(el);
-    window.addEventListener("resize", measure);
+
+    const onResize = () => {
+      measure();
+      updateRef.current();
+    };
+    window.addEventListener("resize", onResize);
 
     return () => {
       io.disconnect();
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", onResize);
       if (rafWatchRef.current) cancelAnimationFrame(rafWatchRef.current);
     };
   }, []);
 
-  // --- RAF loop --------------------------------------------------------------
+  // --- Scroll-driven update ----------------------------------------------------
+  // Runs only when the page actually scrolls (rAF-throttled), instead of the
+  // previous free-running rAF loop that burned a tick on every frame the
+  // section was merely near the viewport.
 
   useEffect(() => {
     let raf = 0;
+    let scheduled = false;
 
-    const tick = () => {
-      const tickStart = performance.now();
-      raf = requestAnimationFrame(tick);
+    const update = () => {
+      scheduled = false;
+      const t0 = performance.now();
 
-      if (document.hidden) return;
-      if (!isNearRef.current) return;
-
-      const el = sectionRef.current;
-      if (!el) return;
+      const sticky = stickyRef.current;
+      if (!sticky) return;
 
       const { top, total } = metricsRef.current;
 
       // Section progress
-      const traveled = window.scrollY - top;
-      const sectionP = clamp01(traveled / total);
+      const sectionP = clamp01((window.scrollY - top) / total);
 
       // Reveal fade in (first 10% of section)
       const reveal = smoothstep(clamp01(sectionP / 0.1));
@@ -195,24 +273,37 @@ export const PhilosophyReveal = () => {
         }
       }
 
-      // Thresholded state updates for fades
-      if (Math.abs(lastRef.current.reveal - reveal) > 0.01) {
-        lastRef.current.reveal = reveal;
-        setRevealOpacity(reveal);
+      // Fades: direct CSS-var writes, no React involved
+      if (Math.abs(fadesRef.current.reveal - reveal) > 0.004) {
+        fadesRef.current.reveal = reveal;
+        sticky.style.setProperty("--pr", reveal.toFixed(3));
       }
-      if (Math.abs(lastRef.current.exit - exit) > 0.01) {
-        lastRef.current.exit = exit;
-        setExitOpacity(exit);
+      if (Math.abs(fadesRef.current.exit - exit) > 0.004) {
+        fadesRef.current.exit = exit;
+        sticky.style.setProperty("--px", exit.toFixed(3));
       }
 
-      const tickDuration = performance.now() - tickStart;
-      if (tickDuration > 8) {
-        reportPerformance("PhilosophyReveal:RAF", tickDuration);
+      const duration = performance.now() - t0;
+      if (duration > 8) {
+        reportPerformance("PhilosophyReveal:scroll", duration);
       }
     };
 
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    updateRef.current = update;
+
+    const onScroll = () => {
+      if (scheduled || !isNearRef.current) return;
+      scheduled = true;
+      raf = requestAnimationFrame(update);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    update();
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
     // computeSnappedFromScrollY uses stable refs and is safe to use without deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [n]);
@@ -224,38 +315,6 @@ export const PhilosophyReveal = () => {
       return index === lockedIndexRef.current ? 1 : 0;
     }
     return index === effectiveActiveIndex ? 1 : 0;
-  };
-
-  const highlightKeywords = (
-    text: string,
-    keywords: string[],
-    isHovered: boolean,
-  ) => {
-    if (!keywords.length) return text;
-
-    const pattern = keywords
-      .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-      .join("|");
-
-    const parts = text.split(new RegExp(`(${pattern})`, "gi"));
-    const keywordSet = new Set(keywords.map((k) => k.toLowerCase()));
-
-    return parts.map((part, index) =>
-      keywordSet.has(part.toLowerCase()) ? (
-        <span
-          key={index}
-          className={`transition-all duration-700 ${
-            isHovered
-              ? "text-primary/90 drop-shadow-[0_0_8px_rgba(99,179,179,0.4)]"
-              : ""
-          }`}
-        >
-          {part}
-        </span>
-      ) : (
-        part
-      ),
-    );
   };
 
   const cancelWatch = () => {
@@ -340,9 +399,12 @@ export const PhilosophyReveal = () => {
   return (
     <section ref={sectionRef} className="min-h-[700vh] relative -mt-[100vh]">
       <div
+        ref={stickyRef}
         className="sticky top-0 h-screen flex items-center justify-center px-4 md:px-8 transition-opacity duration-300 ease-linear"
         style={{
-          opacity: revealOpacity,
+          // --pr (reveal) / --px (exit) are written imperatively by the
+          // scroll handler; every fade below derives from them via calc().
+          opacity: "var(--pr, 0)",
           // Promote the sticky element to its own GPU layer. Without this,
           // Safari paints the whole stack on the CPU during scroll which
           // produces visible jitter (most noticeable during the hero ↔
@@ -356,7 +418,7 @@ export const PhilosophyReveal = () => {
         <h2
           className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-body uppercase text-foreground/70 text-center transition-opacity duration-300 ease-linear z-20"
           style={{
-            opacity: revealOpacity,
+            opacity: "var(--pr, 0)",
             top: "var(--section-title-top)",
             fontSize: "var(--section-title-font-size)",
             letterSpacing: "var(--section-title-tracking)",
@@ -370,7 +432,7 @@ export const PhilosophyReveal = () => {
         <h2
           className="pointer-events-none absolute left-1/2 font-body uppercase text-foreground/70 text-center transition-opacity duration-300 ease-linear z-20"
           style={{
-            opacity: 1 - exitOpacity,
+            opacity: "calc(1 - var(--px, 1))",
             top: "calc(var(--section-title-top) + var(--carousel-title-offset))",
             fontSize: "var(--section-title-font-size)",
             letterSpacing: "var(--section-title-tracking)",
@@ -387,7 +449,7 @@ export const PhilosophyReveal = () => {
         <div
           className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2 z-10"
           style={{
-            opacity: `calc(${exitOpacity} * var(--orbit-morph-fade, 1))`,
+            opacity: "calc(var(--px, 1) * var(--orbit-morph-fade, 1))",
           }}
         >
           <TrailStepper
@@ -409,7 +471,7 @@ export const PhilosophyReveal = () => {
           style={{
             background:
               "radial-gradient(ellipse 60% 47% at center, hsl(var(--primary) / 0.1) 0%, transparent 70%)",
-            opacity: revealOpacity * exitOpacity,
+            opacity: "calc(var(--pr, 0) * var(--px, 1))",
             zIndex: 10,
           }}
         />
@@ -417,7 +479,7 @@ export const PhilosophyReveal = () => {
         {/* Items */}
         <div
           className="max-w-4xl w-full relative px-4"
-          style={{ minHeight: "380px", opacity: exitOpacity, zIndex: 20 }}
+          style={{ minHeight: "380px", opacity: "var(--px, 1)", zIndex: 20 }}
         >
           {philosophyItems.map((item, index) => {
             const opacity = getItemOpacity(index);
@@ -444,7 +506,13 @@ export const PhilosophyReveal = () => {
                       isHovered ? "text-primary/70" : "text-primary/40"
                     }`}
                   >
-                    {String(index + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
+                    <span
+                      key={isActive ? `tick-${index}` : "idle"}
+                      className={isActive ? "counter-tick" : undefined}
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                    </span>{" "}
+                    / {String(n).padStart(2, "0")}
                   </span>
 
                   <h3
@@ -483,11 +551,12 @@ export const PhilosophyReveal = () => {
                     >
                       "
                     </span>
-                    {highlightKeywords(
-                      item.description,
-                      item.keywords,
-                      isHovered,
-                    )}
+                    <QuoteWords
+                      key={isActive ? `active-${index}` : "idle"}
+                      tokens={QUOTE_TOKENS[index]}
+                      animate={isActive}
+                      isHovered={isHovered}
+                    />
                   </blockquote>
 
                   <span
@@ -510,7 +579,7 @@ export const PhilosophyReveal = () => {
             style={{
               writingMode: "vertical-rl",
               textOrientation: "mixed",
-              opacity: revealOpacity * exitOpacity,
+              opacity: "calc(var(--pr, 0) * var(--px, 1))",
               transition: "opacity 240ms ease-out",
             }}
           >

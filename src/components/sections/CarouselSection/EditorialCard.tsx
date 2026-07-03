@@ -67,7 +67,7 @@ function CornerMark({
   );
 }
 
-function useCardStyles(tint: CarouselTint, strength: number) {
+function useCardStyles(tint: CarouselTint) {
   const smoothEase = "cubic-bezier(0.22, 1, 0.36, 1)";
   const overlayTransitionDuration = "520ms";
 
@@ -110,7 +110,7 @@ export const EditorialCard: React.FC<EditorialCardProps> = ({
   const isMobile = useIsMobile();
 
   const strength = clamp01(activeStrength ?? (isActive ? 1 : 0));
-  const styles = useCardStyles(tint, strength);
+  const styles = useCardStyles(tint);
   const bodyOpacity = lerp(0.3, 1, strength);
 
   // Hover should only matter when the card is actually interactive/active.
@@ -129,14 +129,19 @@ export const EditorialCard: React.FC<EditorialCardProps> = ({
         : 0.14
     : 0;
 
+  // Gentle idle levitation once the card settles at center. Desktop only —
+  const levitate = isActive && !isMobile;
+
   return (
     <div
-      className="relative w-[280px] md:w-[360px] h-[320px]"
+      className={`relative w-[280px] md:w-[360px] h-[320px] ${
+        levitate ? "card-levitate" : ""
+      }`}
       style={{ perspective: "1100px" }}
       onClick={isActive ? onFlip : undefined}
       role={isActive ? "button" : undefined}
       tabIndex={isActive ? 0 : -1}
-      onKeyDown={
+    onKeyDown={
         isActive
           ? (e) => {
               if (e.key === "Enter" || e.key === " ") {

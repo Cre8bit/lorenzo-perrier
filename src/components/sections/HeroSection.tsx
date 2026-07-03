@@ -1,16 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatedSubtitle } from "@/components/ui/animated-subtitle";
 import { reportPerformance } from "@/components/ui/performance-overlay";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { getDeviceQualityTier } from "@/lib/performance";
 import { useIsTouchDevice } from "@/hooks/use-touch-device";
+
+const FIRST_NAME_CHARS = "Lorenzo".split("");
 
 export const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isInView, setIsInView] = useState(true);
-  const isMobile = useIsMobile();
+  // Low-tier devices get the mobile decoration budget (single ring, no
+  // shimmer accessories, no lens) even on a desktop viewport.
+  const [lowPerf] = useState(() => getDeviceQualityTier() === "low");
   const isTouch = useIsTouchDevice();
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
+  const isInViewRef = useRef(true);
+
+  const liteDecor = lowPerf;
 
   // Pause expensive decoration animations (shimmer, orbits, aurora) when the
   // hero is scrolled out of view. CSS animations otherwise keep compositing
@@ -20,7 +27,10 @@ export const HeroSection = () => {
     const el = containerRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
-      ([entry]) => setIsInView(entry.isIntersecting),
+      ([entry]) => {
+        isInViewRef.current = entry.isIntersecting;
+        setIsInView(entry.isIntersecting);
+      },
       // Generous margin so we don't thrash on the boundary.
       { root: null, threshold: 0, rootMargin: "100px 0px 100px 0px" },
     );
@@ -48,12 +58,10 @@ export const HeroSection = () => {
     let lastY = 0;
 
     const handleMouseMove = (e: MouseEvent) => {
-      // Only process if hero section is visible
-      if (!containerRef.current) return;
-
-      const rect = containerRef.current.getBoundingClientRect();
-      const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-      if (!isVisible) return; // Skip if not visible
+      // Only process while the hero is on screen. Read the IO-maintained
+      // ref instead of getBoundingClientRect — a layout read on every
+      // mousemove forces sync reflow at pointer-event frequency.
+      if (!isInViewRef.current) return;
 
       lastX = e.clientX;
       lastY = e.clientY;
@@ -118,7 +126,7 @@ export const HeroSection = () => {
           height: "min(40vh, 420px)",
           background:
             "radial-gradient(ellipse at center, hsl(var(--primary) / 0.10) 0%, hsl(var(--primary) / 0.04) 35%, transparent 70%)",
-          filter: isMobile ? undefined : "blur(8px)",
+          filter: "blur(8px)",
           transitionDuration: "1400ms",
         }}
       />
@@ -141,9 +149,9 @@ export const HeroSection = () => {
         }}
       >
         {/* Outer — wide, slow, gentle shimmer running along the wire.
-            Hidden on mobile (visually mostly off-screen anyway, and the
-            shimmer keyframe is expensive). */}
-        {!isMobile && (
+            Hidden on mobile and low-tier devices (visually mostly
+            off-screen anyway, and the shimmer keyframe is expensive). */}
+        {!liteDecor && (
           <div
             className="orbital-ring orbital-ring--slow"
             style={{ width: "min(120vw, 1400px)", height: "min(120vw, 1400px)" }}
@@ -179,9 +187,9 @@ export const HeroSection = () => {
         </div>
 
         {/* Inner — tighter, counter-rotating, cool-hued node + cool
-            shimmer. Skipped on mobile to keep one ring only (visual
-            signature preserved, GPU work halved). */}
-        {!isMobile && (
+            shimmer. Skipped on mobile/low-tier to keep one ring only
+            (visual signature preserved, GPU work halved). */}
+        {!liteDecor && (
           <div
             className="orbital-ring"
             style={{
@@ -223,29 +231,41 @@ export const HeroSection = () => {
         </div>
 
         <h1
-          className={`font-display text-5xl md:text-7xl lg:text-8xl font-light tracking-tight mb-6 transition-all duration-1000 ease-smooth ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
+          className="font-display text-5xl md:text-7xl lg:text-8xl font-light tracking-tight mb-6"
           style={{ textShadow: "0 0 60px hsl(var(--primary) / 0.08)" }}
         >
-          <span className="block bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent font-extralight tracking-wider mb-1">
-            Lorenzo
+          {/* First name cascades in letter by letter. The vertical gradient
+              is applied per character so each glyph clips correctly while it
+              moves on its own layer. */}
+          <span
+            className="block font-extralight tracking-wider mb-1"
+            aria-label="Lorenzo"
+          >
+            {FIRST_NAME_CHARS.map((char, i) => (
+              <span
+                key={i}
+                aria-hidden
+                className="char-in bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent"
+                style={{ "--ci": i } as React.CSSProperties}
+              >
+                {char}
+              </span>
+            ))}
           </span>
-          <span className="block bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent font-normal tracking-tight">
+          {/* Surname wipes in left → right once the cascade has landed */}
+          <span className="name-wipe block bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent font-normal tracking-tight">
             Perrier de La Bâthie
           </span>
         </h1>
 
-        {/* Hairline divider with center diamond */}
+        {/* Hairline divider that draws itself outward from a popping diamond */}
         <div
-          className={`mx-auto mb-6 flex items-center justify-center gap-3 transition-all duration-1000 delay-200 ease-smooth ${
-            isVisible ? "opacity-100" : "opacity-0"
-          }`}
+          className="mx-auto mb-6 flex items-center justify-center gap-3"
           aria-hidden
         >
-          <span className="h-px w-16 md:w-24 bg-gradient-to-r from-transparent via-foreground/20 to-primary/30" />
-          <span className="block h-1.5 w-1.5 rotate-45 bg-primary/50 shadow-[0_0_12px_hsl(var(--primary)/0.6)]" />
-          <span className="h-px w-16 md:w-24 bg-gradient-to-l from-transparent via-foreground/20 to-primary/30" />
+          <span className="hair-grow-l h-px w-16 md:w-24 bg-gradient-to-r from-transparent via-foreground/20 to-primary/30" />
+          <span className="diamond-pop block h-1.5 w-1.5 bg-primary/50 shadow-[0_0_12px_hsl(var(--primary)/0.6)]" />
+          <span className="hair-grow-r h-px w-16 md:w-24 bg-gradient-to-l from-transparent via-foreground/20 to-primary/30" />
         </div>
 
         <div
@@ -259,9 +279,8 @@ export const HeroSection = () => {
         {/* Availability chip — quiet, persistent personal hook */}
         <div
           data-hero-chip
-          className={`mt-10 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/40 px-3 py-1.5 backdrop-blur-sm transition-all duration-1000 delay-500 ease-smooth ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
+          className="m-rise mt-10 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/40 px-3 py-1.5 backdrop-blur-sm transition-[border-color,box-shadow] duration-300 ease-smooth hover:border-primary/40 hover:shadow-[0_0_24px_hsl(var(--primary)/0.15)]"
+          style={{ "--mi": 14 } as React.CSSProperties}
         >
           <span className="relative flex h-2 w-2 items-center justify-center">
             {/* Soft outer glow halo */}

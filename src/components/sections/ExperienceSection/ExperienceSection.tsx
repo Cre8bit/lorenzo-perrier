@@ -10,6 +10,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { SkillsGraph } from "@/components/ui/skills-graph";
+import { Reveal } from "@/components/ui/reveal";
 import Hero from "./ExperienceHero";
 import { useAppContext } from "@/contexts/useAppContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -273,6 +274,7 @@ const ExperienceSection = () => {
                         className={`hidden md:block absolute top-8 w-12 h-px bg-gradient-to-${isEven ? "r" : "l"} from-primary/30 to-transparent ${isEven ? "right-full" : "left-full"}`}
                       />
 
+                      <Reveal delayIndex={i % 2}>
                       <article
                         onMouseMove={handleSpotlight}
                         data-active={isHovered}
@@ -531,6 +533,7 @@ const ExperienceSection = () => {
                           )}
                         </div>
                       </article>
+                      </Reveal>
                     </div>
                   );
                 })}
@@ -552,6 +555,7 @@ const ExperienceSection = () => {
           {/* Sidebar */}
           <aside className="space-y-6">
             {/* Education - Glass Panel */}
+            <Reveal delayIndex={0}>
             <section
               onMouseMove={(e) => {
                 const r = e.currentTarget.getBoundingClientRect();
@@ -591,8 +595,10 @@ const ExperienceSection = () => {
                 ))}
               </div>
             </section>
+            </Reveal>
 
             {/* Skills by category - Glass Panel */}
+            <Reveal delayIndex={1}>
             <section
               onMouseMove={(e) => {
                 const r = e.currentTarget.getBoundingClientRect();
@@ -645,8 +651,10 @@ const ExperienceSection = () => {
                 </div>
               </div>
             </section>
+            </Reveal>
 
             {/* Links - Glass Panel */}
+            <Reveal delayIndex={2}>
             <section
               onMouseMove={(e) => {
                 const r = e.currentTarget.getBoundingClientRect();
@@ -695,8 +703,10 @@ const ExperienceSection = () => {
                 </a>
               </div>
             </section>
+            </Reveal>
 
             {/* CTA block */}
+            <Reveal delayIndex={3}>
             <section>
               <div className="rounded-2xl bg-gradient-to-br from-foreground to-foreground/90 text-background p-6">
                 <h2 className="font-display text-lg font-medium mb-2">
@@ -715,6 +725,7 @@ const ExperienceSection = () => {
                 </a>
               </div>
             </section>
+            </Reveal>
           </aside>
         </div>
       </main>

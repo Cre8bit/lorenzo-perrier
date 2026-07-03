@@ -11,23 +11,18 @@ export const ScrollTransition: React.FC<ScrollTransitionProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  // The scroll handler is created once on mount, so it must read visibility
+  // through a ref — reading the state directly would capture the initial
+  // `false` forever and the progress animation would never run.
+  const isVisibleRef = useRef(false);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.1 },
-    );
-
-    observer.observe(container);
-
     const handleScroll = () => {
       // Skip expensive calculations when not visible
-      if (!isVisible) return;
+      if (!isVisibleRef.current) return;
 
       const rect = container.getBoundingClientRect();
       const windowHeight = window.innerHeight;
@@ -46,16 +41,24 @@ export const ScrollTransition: React.FC<ScrollTransitionProps> = ({
       setScrollProgress(progress);
     };
 
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisibleRef.current = entry.isIntersecting;
+        setIsVisible(entry.isIntersecting);
+        // Sync progress the moment we become visible so the first painted
+        // frame isn't stale.
+        if (entry.isIntersecting) handleScroll();
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(container);
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
 
     return () => {
       observer.disconnect();
       window.removeEventListener("scroll", handleScroll);
     };
-    // isVisible is intentionally not included - it's used inside handleScroll
-    // which is redefined on every render. This effect only runs once on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
