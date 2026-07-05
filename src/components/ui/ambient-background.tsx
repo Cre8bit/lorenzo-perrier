@@ -65,6 +65,9 @@ export const AmbientBackground = () => {
       <div className="ambient-mist mist-1" />
       <div className="ambient-mist mist-2" />
 
+      {/* Chromatic wash that follows the active section's --flow-hue */}
+      <div className="flow-aura" />
+
       {/* Grain + vignette (depth without stealing focus) */}
       <div className="ambient-noise absolute inset-0" />
       <div className="ambient-vignette absolute inset-0" />

@@ -79,7 +79,10 @@ export const HeroSectionMobile = () => {
 
   return (
     <section className="relative w-full min-h-[100svh] flex flex-col items-center justify-center overflow-hidden px-6 py-20 text-center">
-      <div className="inline-flex items-center gap-2 text-[10.5px] uppercase tracking-[0.28em] text-foreground/70">
+      <div
+        className="m-rise inline-flex items-center gap-2 text-[10.5px] uppercase tracking-[0.28em] text-foreground/70"
+        style={{ "--mi": 0 } as React.CSSProperties}
+      >
         <span className="relative flex h-1.5 w-1.5 items-center justify-center">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400/70" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400" />
@@ -91,18 +94,25 @@ export const HeroSectionMobile = () => {
         className="mt-5 font-display leading-[0.88] font-light tracking-tight w-full"
         style={{ textShadow: "0 0 60px hsl(var(--primary) / 0.08)" }}
       >
-        <span className="block text-[clamp(3.6rem,17vw,6rem)] bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent font-extralight tracking-wider">
+        <span
+          className="m-rise block text-[clamp(3.6rem,17vw,6rem)] bg-gradient-to-b from-foreground to-primary bg-clip-text text-transparent font-extralight tracking-wider"
+          style={{ "--mi": 1 } as React.CSSProperties}
+        >
           Lorenzo
         </span>
         <span
           ref={surnameRef}
-          className="block whitespace-nowrap text-[clamp(1.55rem,7vw,2.5rem)] bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent font-normal tracking-tight mt-2"
+          className="m-rise block whitespace-nowrap text-[clamp(1.55rem,7vw,2.5rem)] bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent font-normal tracking-tight mt-2"
+          style={{ "--mi": 2 } as React.CSSProperties}
         >
           {profile.name.last}
         </span>
       </h1>
 
-      <p className="mt-5 text-[15px] leading-snug text-foreground/85">
+      <p
+        className="m-rise mt-5 text-[15px] leading-snug text-foreground/85"
+        style={{ "--mi": 3 } as React.CSSProperties}
+      >
         Leading the AI shift at{" "}
         <span className="text-primary font-medium">BPIfrance</span>{" "}
         <span className="text-foreground/55">with</span>{" "}
@@ -117,17 +127,23 @@ export const HeroSectionMobile = () => {
       </p>
 
       <span
-        className="mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] text-foreground/65"
-        style={{
-          background: "hsl(0 0% 100% / 0.04)",
-          border: "1px solid hsl(var(--foreground) / 0.12)",
-        }}
+        className="m-rise mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] text-foreground/65"
+        style={
+          {
+            background: "hsl(0 0% 100% / 0.04)",
+            border: "1px solid hsl(var(--foreground) / 0.12)",
+            "--mi": 4,
+          } as React.CSSProperties
+        }
       >
         <MapPin className="w-3 h-3" strokeWidth={1.7} />
         Paris · SF-bound
       </span>
 
-      <div className="my-12 font-display text-[1.35rem] leading-[1.5] tracking-tight text-foreground/70 flex flex-col gap-1.5">
+      <div
+        className="m-rise my-12 font-display text-[1.35rem] leading-[1.5] tracking-tight text-foreground/70 flex flex-col gap-1.5"
+        style={{ "--mi": 5 } as React.CSSProperties}
+      >
         <div>
           <span>Building </span>
           <RotatingSlot items={LOOKING_THING} index={thingIdx} />
@@ -139,7 +155,10 @@ export const HeroSectionMobile = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 w-full">
+      <div
+        className="m-rise grid grid-cols-2 gap-3 w-full"
+        style={{ "--mi": 6 } as React.CSSProperties}
+      >
         <CTATile
           href={profile.links.linkedin}
           icon={<Linkedin className="w-4 h-4" strokeWidth={1.7} />}
@@ -163,7 +182,8 @@ export const HeroSectionMobile = () => {
       <button
         type="button"
         onClick={scrollToNext}
-        className="mt-8 flex flex-col items-center gap-1.5 text-muted-foreground active:text-primary transition-colors"
+        className="m-rise mt-8 flex flex-col items-center gap-1.5 text-muted-foreground active:text-primary transition-colors"
+        style={{ "--mi": 8 } as React.CSSProperties}
         aria-label="Scroll to next section"
       >
         <span className="text-[10px] uppercase tracking-[0.3em]">Scroll</span>
