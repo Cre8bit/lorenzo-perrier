@@ -37,8 +37,21 @@ const LOOKING_WITH = [
 export const HeroSectionMobile = () => {
   const [thingIdx, setThingIdx] = useState(0);
   const [withIdx, setWithIdx] = useState(0);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [heroVisible, setHeroVisible] = useState(true);
 
   useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) =>
+      setHeroVisible(entry.isIntersecting),
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!heroVisible) return;
     let toggle = 0;
     const id = window.setInterval(() => {
       if (toggle === 0) {
@@ -49,7 +62,7 @@ export const HeroSectionMobile = () => {
       toggle ^= 1;
     }, 2200);
     return () => window.clearInterval(id);
-  }, []);
+  }, [heroVisible]);
 
   const scrollToNext = () => {
     document
@@ -78,7 +91,10 @@ export const HeroSectionMobile = () => {
   }, []);
 
   return (
-    <section className="relative w-full min-h-[100svh] flex flex-col items-center justify-center overflow-hidden px-6 py-20 text-center">
+    <section
+      ref={sectionRef}
+      className="relative w-full min-h-[100svh] flex flex-col items-center justify-center overflow-hidden px-6 py-20 text-center"
+    >
       <div
         className="m-rise inline-flex items-center gap-2 text-[10.5px] uppercase tracking-[0.28em] text-foreground/70"
         style={{ "--mi": 0 } as React.CSSProperties}

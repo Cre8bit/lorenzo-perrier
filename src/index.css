@@ -1188,6 +1188,14 @@
     background: hsl(var(--primary) / 0.9) !important;
     box-shadow: 0 0 8px hsl(var(--primary) / 0.45) !important;
   }
+
+  /* The 2400ms --flow-hue drift repaints this fixed fullscreen gradient on
+     every frame of the transition — right as the user scrolls across a
+     section boundary. Snap instantly on mobile instead. (!important because
+     the base .flow-aura rule is declared later in this file.) */
+  .flow-aura {
+    transition: none !important;
+  }
 }
 
 /* =====================================================================
@@ -1197,6 +1205,30 @@
 @keyframes marquee-x {
   from { transform: translate3d(0, 0, 0); }
   to   { transform: translate3d(-50%, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-lane {
+    animation: none !important;
+  }
+}
+
+/* Experience (mobile): everything below the profile card fades in through
+   one CSS transition. The scroll driver only flips data-revealed at a
+   threshold — animating opacity from JS per frame would repaint the whole
+   subtree (marquee ribbons included) on every scroll tick. */
+.exp-rest {
+  opacity: 0;
+  transition: opacity 560ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.exp-rest[data-revealed="true"] {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .exp-rest {
+    transition: none;
+    opacity: 1;
+  }
 }
 
 /* =====================================================================

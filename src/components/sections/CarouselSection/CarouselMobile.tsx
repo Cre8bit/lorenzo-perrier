@@ -38,11 +38,28 @@ const useSlideFromRight = (
   distance: number,
   leadVh: number,
 ) => {
+  const last = useRef({ tx: -1, op: -1, promoted: false });
   const apply = useCallback(
     (p: number, el: HTMLElement) => {
       const e = easeOutCubic(p);
-      el.style.transform = `translate3d(${((1 - e) * distance).toFixed(2)}%, 0, 0)`;
-      el.style.opacity = (0.1 + e * 0.9).toFixed(3);
+      // Quantized + cached so unchanged frames cost nothing; promote to its
+      // own layer only for the duration of the entrance.
+      const tx = Math.round((1 - e) * distance * 4) / 4;
+      const op = Math.round((0.1 + e * 0.9) * 100) / 100;
+      const l = last.current;
+      if (tx === l.tx && op === l.op) return;
+      l.tx = tx;
+      l.op = op;
+      if (p < 1 && !l.promoted) {
+        el.style.willChange = "transform, opacity";
+        l.promoted = true;
+      }
+      el.style.transform = `translate3d(${tx}%, 0, 0)`;
+      el.style.opacity = String(op);
+      if (p >= 1 && l.promoted) {
+        el.style.willChange = "auto";
+        l.promoted = false;
+      }
     },
     [distance],
   );

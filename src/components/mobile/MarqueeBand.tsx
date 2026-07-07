@@ -42,10 +42,11 @@ export const MarqueeBand = ({
     <div
       ref={ref}
       className={`relative overflow-hidden ${className}`}
+      style={{ contain: "layout paint" }}
       aria-hidden
     >
       <div
-        className="flex w-max will-change-transform"
+        className="marquee-lane flex w-max will-change-transform"
         style={{
           animation: `marquee-x ${speed}s linear infinite`,
           animationDirection: reverse ? "reverse" : "normal",
