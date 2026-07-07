@@ -26,6 +26,7 @@ export const SectionZoom = ({
 }: SectionZoomProps) => {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const last = useRef({ scale: -1, opacity: -1 });
 
   const apply = useCallback(
     (_p: number, outer: HTMLElement) => {
@@ -36,10 +37,16 @@ export const SectionZoom = ({
       const center = rect.top + rect.height / 2;
       const below = Math.max(0, (center - vh / 2) / (vh * 0.6));
       const eased = Math.min(1, below) ** 2;
-      const scale = 1 - (1 - minScale) * eased;
-      const opacity = 1 - (1 - minOpacity) * eased;
-      inner.style.transform = `translate3d(0,0,0) scale(${scale.toFixed(4)})`;
-      inner.style.opacity = opacity.toFixed(3);
+      // Quantize so at-rest frames (eased = 0, the common case while
+      // scrolling past) skip the style write entirely.
+      const scale = Math.round((1 - (1 - minScale) * eased) * 400) / 400;
+      const opacity = Math.round((1 - (1 - minOpacity) * eased) * 200) / 200;
+      if (scale === last.current.scale && opacity === last.current.opacity)
+        return;
+      last.current.scale = scale;
+      last.current.opacity = opacity;
+      inner.style.transform = `translate3d(0,0,0) scale(${scale})`;
+      inner.style.opacity = String(opacity);
     },
     [minScale, minOpacity],
   );

@@ -22,6 +22,8 @@ const allSkills = [
   ...skills.MLtools,
   ...skills.tools,
 ];
+const skillsTop = allSkills.filter((_, i) => i % 2 === 0);
+const skillsBottom = allSkills.filter((_, i) => i % 2 === 1);
 
 export const ExperienceMobile = () => {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -36,7 +38,7 @@ export const ExperienceMobile = () => {
   const zoomRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const restRef = useRef<HTMLDivElement>(null);
-  const lastZoom = useRef({ scale: -1, cardOp: -1, restOp: -1 });
+  const lastZoom = useRef({ scale: -1, cardOp: -1, restOn: false });
 
   const applyZoom = useCallback(() => {
     const card = cardRef.current;
@@ -47,8 +49,6 @@ export const ExperienceMobile = () => {
     const eased = easeOutQuad(p);
     const scale = Math.round((0.82 + eased * 0.26) * 200) / 200;
     const cardOp = Math.round((0.7 + eased * 0.3) * 100) / 100;
-    const restOp =
-      p < 0.55 ? 0 : Math.min(1, Math.round(((p - 0.55) / 0.4) * 50) / 50);
     const last = lastZoom.current;
     if (scale !== last.scale || cardOp !== last.cardOp) {
       card.style.transform = `scale(${scale})`;
@@ -56,9 +56,13 @@ export const ExperienceMobile = () => {
       last.scale = scale;
       last.cardOp = cardOp;
     }
-    if (restRef.current && restOp !== last.restOp) {
-      restRef.current.style.opacity = `${restOp}`;
-      last.restOp = restOp;
+    // The rest of the section (marquees included) fades via one CSS
+    // transition — per-frame opacity writes here would repaint the whole
+    // subtree on every scroll tick and stutter the marquee compositing.
+    const restOn = p >= 0.55;
+    if (restRef.current && restOn !== last.restOn) {
+      restRef.current.dataset.revealed = String(restOn);
+      last.restOn = restOn;
     }
   }, []);
 
@@ -147,7 +151,7 @@ export const ExperienceMobile = () => {
           </div>
         </div>
 
-        <div ref={restRef} className="relative px-5" style={{ opacity: 0 }}>
+        <div ref={restRef} className="exp-rest relative px-5">
           <div className="-mx-5">
             <BannerMarquee speed={26}>
               {profile.highlights.map((h, i) => (
@@ -319,8 +323,8 @@ export const ExperienceMobile = () => {
                 Stack
               </p>
               <div className="-mx-5">
-                <MarqueeBand speed={32}>
-                  {allSkills.map((s, i) => (
+                <MarqueeBand speed={17}>
+                  {skillsTop.map((s, i) => (
                     <span
                       key={i}
                       className="text-sm px-3 py-1.5 rounded-full border border-primary/20 text-foreground/85 whitespace-nowrap"
@@ -331,8 +335,8 @@ export const ExperienceMobile = () => {
                 </MarqueeBand>
               </div>
               <div className="-mx-5 mt-3">
-                <MarqueeBand speed={36} reverse>
-                  {allSkills.map((s, i) => (
+                <MarqueeBand speed={19} reverse>
+                  {skillsBottom.map((s, i) => (
                     <span
                       key={i}
                       className="text-xs px-3 py-1 rounded-full text-muted-foreground border border-border/30 whitespace-nowrap"
